@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { getStream } from "@/lib/api";
 import { useAccrual } from "@/hooks/use-accrual";
+import { useWallet } from "@/hooks/use-wallet";
+import { StreamActions } from "@/components/stream-actions";
 import { formatAmount, truncateAddress } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
@@ -21,8 +23,9 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
   );
 }
 
-function StreamDetail({ stream }: { stream: StreamView }) {
+function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: () => void }) {
   const accrual = useAccrual(stream);
+  const wallet = useWallet();
   const cliffDisplay =
     stream.cliffTime === stream.startTime ? "none" : formatTime(stream.cliffTime);
 
@@ -58,6 +61,8 @@ function StreamDetail({ stream }: { stream: StreamView }) {
         <Field label="End" value={formatTime(stream.endTime)} />
         <Field label="Cliff" value={cliffDisplay} />
       </dl>
+
+      <StreamActions stream={stream} walletAddress={wallet.address} onComplete={onComplete} />
     </main>
   );
 }
@@ -69,6 +74,7 @@ export default function StreamDetailPage() {
   const [stream, setStream] = useState<StreamView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,7 +95,7 @@ export default function StreamDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, reloadKey]);
 
   if (loading) {
     return <main className="mx-auto max-w-2xl px-6 py-10 text-sm text-neutral-500">Loading...</main>;
@@ -103,5 +109,5 @@ export default function StreamDetailPage() {
     );
   }
 
-  return <StreamDetail stream={stream} />;
+  return <StreamDetail stream={stream} onComplete={() => setReloadKey((k) => k + 1)} />;
 }
