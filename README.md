@@ -1,0 +1,93 @@
+# TricklePay Frontend
+
+Web client for TricklePay token streams on Stellar.
+
+Connect a Freighter wallet to see your incoming and outgoing streams, watch a
+recipient's balance accrue in real time, and create, withdraw from, or cancel a
+stream — all signed in the wallet and confirmed on-chain.
+
+It reads stream data from [tricklepay-backend](#related-repositories) and writes
+to the stream contract directly over Soroban RPC.
+
+## Features
+
+- **Wallet connect** via Freighter, with silent session restore and a
+  network-mismatch warning.
+- **Dashboard** splitting streams into incoming (you receive) and outgoing
+  (you send).
+- **Live balances** — a streaming stream's withdrawable amount is recomputed
+  every second client-side, using the same linear vesting math as the contract,
+  so it climbs in real time without polling.
+- **Create** a stream with a recipient, token, amount, time window, and optional
+  cliff.
+- **Withdraw** as the recipient and **cancel** as the sender, each built, signed,
+  submitted, and confirmed on-chain.
+
+## Stack
+
+- [Next.js 15](https://nextjs.org) (App Router) + TypeScript
+- [Tailwind CSS v4](https://tailwindcss.com)
+- [@stellar/stellar-sdk](https://github.com/stellar/js-stellar-sdk) for the write path
+- [@stellar/freighter-api](https://github.com/stellar/freighter) for wallet signing
+
+## Running locally
+
+Requires Node 20+, the [Freighter](https://www.freighter.app) extension, and a
+running backend.
+
+```bash
+cp .env.example .env.local   # set NEXT_PUBLIC_CONTRACT_ID and the API URL
+npm install
+npm run dev
+```
+
+Open http://localhost:3000.
+
+## Configuration
+
+Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`.
+
+| Variable | Description |
+| --- | --- |
+| `NEXT_PUBLIC_API_URL` | Base URL of the backend read API. |
+| `NEXT_PUBLIC_NETWORK` | `testnet` or `mainnet`. |
+| `NEXT_PUBLIC_RPC_URL` | Soroban RPC endpoint. Defaults to the network's public endpoint. |
+| `NEXT_PUBLIC_CONTRACT_ID` | Deployed stream contract id. |
+
+## Project structure
+
+```
+app/
+  layout.tsx            root layout with the header
+  page.tsx              dashboard: incoming and outgoing streams
+  create/page.tsx       create-stream form
+  streams/[id]/page.tsx stream detail with live balance and actions
+components/
+  header.tsx            brand, nav, wallet button
+  wallet-button.tsx     connect / address / network state
+  stream-card.tsx       stream summary card
+  stream-list.tsx       grid of cards with an empty state
+  create-form.tsx       new-stream form
+  stream-actions.tsx    withdraw and cancel buttons
+hooks/
+  use-wallet.ts         Freighter connection state
+  use-accrual.ts        per-second vested/withdrawable recomputation
+lib/
+  config.ts             client configuration
+  api.ts                backend API client
+  contract.ts           build, sign, submit, confirm contract calls
+  vesting.ts            linear vesting math, mirroring the contract
+  format.ts             amount and address formatting
+types/
+  stream.ts             API response types
+```
+
+## Related repositories
+
+- **tricklepay-contracts** — the Soroban streaming contract.
+- **tricklepay-backend** — indexer and read API this client consumes.
+- **tricklepay-docs** — architecture, security model, and contributor guides.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
