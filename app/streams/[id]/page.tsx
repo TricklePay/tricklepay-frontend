@@ -7,6 +7,7 @@ import { getStream } from "@/lib/api";
 import { useAccrual } from "@/hooks/use-accrual";
 import { useWallet } from "@/hooks/use-wallet";
 import { StreamActions } from "@/components/stream-actions";
+import { CopyButton } from "@/components/copy-button";
 import { formatAmount, truncateAddress } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
@@ -14,11 +15,24 @@ function formatTime(unixSeconds: string): string {
   return new Date(Number(unixSeconds) * 1000).toLocaleString();
 }
 
-function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Field({
+  label,
+  value,
+  mono,
+  copyValue,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  copyValue?: string;
+}) {
   return (
     <div>
       <dt className="text-neutral-500">{label}</dt>
-      <dd className={mono ? "font-mono text-neutral-200" : "text-neutral-200"}>{value}</dd>
+      <dd className={`flex items-center gap-2 text-neutral-200 ${mono ? "font-mono" : ""}`}>
+        <span>{value}</span>
+        {copyValue && <CopyButton value={copyValue} label={label} />}
+      </dd>
     </div>
   );
 }
@@ -53,9 +67,9 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
       </div>
 
       <dl className="grid grid-cols-2 gap-4 text-sm">
-        <Field label="From" value={truncateAddress(stream.sender)} mono />
-        <Field label="To" value={truncateAddress(stream.recipient)} mono />
-        <Field label="Token" value={truncateAddress(stream.token)} mono />
+        <Field label="From" value={truncateAddress(stream.sender)} mono copyValue={stream.sender} />
+        <Field label="To" value={truncateAddress(stream.recipient)} mono copyValue={stream.recipient} />
+        <Field label="Token" value={truncateAddress(stream.token)} mono copyValue={stream.token} />
         <Field label="Withdrawn" value={formatAmount(stream.withdrawn)} />
         <Field label="Start" value={formatTime(stream.startTime)} />
         <Field label="End" value={formatTime(stream.endTime)} />
