@@ -8,6 +8,7 @@ import { useAccrual } from "@/hooks/use-accrual";
 import { useWallet } from "@/hooks/use-wallet";
 import { StreamActions } from "@/components/stream-actions";
 import { CopyButton } from "@/components/copy-button";
+import { ProgressBar } from "@/components/progress-bar";
 import { formatAmount, truncateAddress } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
@@ -43,6 +44,9 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
   const cliffDisplay =
     stream.cliffTime === stream.startTime ? "none" : formatTime(stream.cliffTime);
 
+  const total = BigInt(stream.totalAmount);
+  const progress = total === 0n ? 10000 : Number((accrual.vested * 10000n) / total);
+
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
       <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
@@ -64,6 +68,9 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
         <p className="mt-1 text-xs text-neutral-500">
           {formatAmount(accrual.vested.toString())} vested of {formatAmount(stream.totalAmount)} total
         </p>
+        <div className="mt-4">
+          <ProgressBar value={progress} />
+        </div>
       </div>
 
       <dl className="grid grid-cols-2 gap-4 text-sm">
