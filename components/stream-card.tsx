@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { StreamStatus, StreamView } from "@/types/stream";
-import { formatAmount, truncateAddress } from "@/lib/format";
+import { formatAmount, timeRemaining, truncateAddress } from "@/lib/format";
 
 const STATUS_STYLES: Record<StreamStatus, string> = {
   pending: "bg-neutral-800 text-neutral-300",
@@ -39,6 +39,9 @@ export function StreamCard({ stream }: { stream: StreamView }) {
           <p className="text-neutral-100">{formatAmount(stream.totalAmount)}</p>
         </div>
       </div>
+      {(stream.status === "streaming" || stream.status === "pending") && (
+        <p className="mt-3 text-xs text-neutral-500">{timeRemaining(stream.endTime)}</p>
+      )}
     </Link>
   );
 }
