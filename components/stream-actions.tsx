@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cancel, withdraw } from "@/lib/contract";
+import { useAccrual } from "@/hooks/use-accrual";
 import type { StreamView } from "@/types/stream";
 
 interface Props {
@@ -13,16 +14,22 @@ interface Props {
 export function StreamActions({ stream, walletAddress, onComplete }: Props) {
   const [busy, setBusy] = useState<"withdraw" | "cancel" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const accrual = useAccrual(stream);
 
   if (!walletAddress) return null;
   const caller = walletAddress;
 
   const isRecipient = caller === stream.recipient;
   const isSender = caller === stream.sender;
-  const canWithdraw = isRecipient && stream.status !== "pending";
   const canCancel = isSender && stream.status !== "cancelled" && stream.status !== "completed";
 
-  if (!canWithdraw && !canCancel) return null;
+  // Status alone is not enough: between start and cliff a stream is already
+  // "streaming" while nothing has vested, and the contract rejects that
+  // withdrawal with NothingToWithdraw. Gate on the amount itself so the button
+  // never sends a transaction that is certain to revert.
+  const nothingToWithdraw = accrual.withdrawable === 0n;
+
+  if (!isRecipient && !canCancel) return null;
 
   async function run(action: "withdraw" | "cancel") {
     setBusy(action);
@@ -45,10 +52,10 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
   return (
     <div className="mt-8 flex flex-col gap-3">
       <div className="flex gap-3">
-        {canWithdraw && (
+        {isRecipient && (
           <button
             onClick={() => void run("withdraw")}
-            disabled={busy !== null}
+            disabled={busy !== null || nothingToWithdraw}
             className="rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 disabled:opacity-50"
           >
             {busy === "withdraw" ? "Withdrawing..." : "Withdraw"}
