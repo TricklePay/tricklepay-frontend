@@ -38,10 +38,10 @@ export default function Home() {
     setError(null);
 
     Promise.all([listStreams({ recipient: address }), listStreams({ sender: address })])
-      .then(([incomingStreams, outgoingStreams]) => {
+      .then(([incomingPage, outgoingPage]) => {
         if (cancelled) return;
-        setIncoming(incomingStreams);
-        setOutgoing(outgoingStreams);
+        setIncoming(incomingPage.streams);
+        setOutgoing(outgoingPage.streams);
       })
       .catch((err: unknown) => {
         if (cancelled) return;

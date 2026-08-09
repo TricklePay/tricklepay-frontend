@@ -19,6 +19,12 @@ export interface StreamView {
   status: StreamStatus;
 }
 
+// A page of streams. `total` is the number of streams matching the query across
+// every page, not the length of `streams`, so the UI can report how many rows
+// remain unfetched.
 export interface StreamListResponse {
   streams: StreamView[];
+  total: number;
+  limit: number;
+  offset: number;
 }

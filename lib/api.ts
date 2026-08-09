@@ -8,9 +8,13 @@ export interface ListStreamsParams {
   offset?: number;
 }
 
-// Fetches streams from the backend, optionally filtered by party. Results are
-// not cached so the list reflects the latest indexed state.
-export async function listStreams(params: ListStreamsParams = {}): Promise<StreamView[]> {
+// Fetches a page of streams from the backend, optionally filtered by party. The
+// whole envelope is returned rather than just the rows so callers can page
+// through a result set larger than the backend's default limit. Results are not
+// cached so the list reflects the latest indexed state.
+export async function listStreams(
+  params: ListStreamsParams = {},
+): Promise<StreamListResponse> {
   const url = new URL("/streams", config.apiUrl);
   if (params.sender) url.searchParams.set("sender", params.sender);
   if (params.recipient) url.searchParams.set("recipient", params.recipient);
@@ -22,8 +26,7 @@ export async function listStreams(params: ListStreamsParams = {}): Promise<Strea
     throw new Error(`Failed to load streams (${res.status})`);
   }
 
-  const data = (await res.json()) as StreamListResponse;
-  return data.streams;
+  return (await res.json()) as StreamListResponse;
 }
 
 // Fetches a single stream by id, or null if it does not exist.
