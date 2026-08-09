@@ -12,13 +12,19 @@ export interface StreamView {
   withdrawn: string;
   vested: string;
   withdrawable: string;
+  locked: string;
   startTime: string;
   endTime: string;
   cliffTime: string;
   cancelled: boolean;
   status: StreamStatus;
+  // Basis points (0 to 10000) of the total amount that has vested.
+  progress: number;
 }
 
 export interface StreamListResponse {
   streams: StreamView[];
+  total: number;
+  limit: number;
+  offset: number;
 }
