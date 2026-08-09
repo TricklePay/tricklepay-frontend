@@ -1,6 +1,6 @@
 "use client";
 
-import { useWallet } from "@/hooks/use-wallet";
+import { useWallet } from "@/components/wallet-provider";
 import { config } from "@/lib/config";
 
 function truncate(address: string): string {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useWallet } from "@/hooks/use-wallet";
+import { useWallet } from "@/components/wallet-provider";
 import { listStreams } from "@/lib/api";
 import { StreamList } from "@/components/stream-list";
 import type { StreamStatus, StreamView } from "@/types/stream";
