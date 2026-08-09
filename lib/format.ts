@@ -16,6 +16,11 @@ export function truncateAddress(address: string): string {
   return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
 
+// Renders a Unix-second timestamp string as a local date and time.
+export function formatTime(unixSeconds: string): string {
+  return new Date(Number(unixSeconds) * 1000).toLocaleString();
+}
+
 // A short human description of how long until a stream's end time, given a Unix
 // second timestamp as a string. Returns "ended" once the time has passed.
 export function timeRemaining(endTimeSeconds: string): string {

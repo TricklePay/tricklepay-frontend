@@ -3,12 +3,33 @@
 import { useState } from "react";
 import { cancel, withdraw } from "@/lib/contract";
 import { useAccrual } from "@/hooks/use-accrual";
+import { formatTime } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
 interface Props {
   stream: StreamView;
   walletAddress: string | null;
   onComplete: () => void;
+}
+
+// Why a recipient cannot withdraw right now. A cliff is the case worth naming:
+// the stream is visibly streaming and its vested figure is climbing, so without
+// the date the disabled button looks like a bug rather than a schedule.
+function blockedReason(stream: StreamView): string {
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  if (now < BigInt(stream.startTime)) {
+    return `Starts ${formatTime(stream.startTime)}.`;
+  }
+  if (now < BigInt(stream.cliffTime)) {
+    return `Locked until the cliff on ${formatTime(stream.cliffTime)}.`;
+  }
+  if (BigInt(stream.withdrawn) >= BigInt(stream.totalAmount)) {
+    return "Fully withdrawn.";
+  }
+  if (stream.cancelled) {
+    return "This stream was cancelled.";
+  }
+  return "Nothing to withdraw yet.";
 }
 
 export function StreamActions({ stream, walletAddress, onComplete }: Props) {
@@ -71,6 +92,9 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
           </button>
         )}
       </div>
+      {isRecipient && nothingToWithdraw && (
+        <p className="text-sm text-neutral-500">{blockedReason(stream)}</p>
+      )}
       {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   );

@@ -9,12 +9,8 @@ import { useWallet } from "@/components/wallet-provider";
 import { StreamActions } from "@/components/stream-actions";
 import { CopyButton } from "@/components/copy-button";
 import { ProgressBar } from "@/components/progress-bar";
-import { formatAmount, truncateAddress } from "@/lib/format";
+import { formatAmount, formatTime, truncateAddress } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
-
-function formatTime(unixSeconds: string): string {
-  return new Date(Number(unixSeconds) * 1000).toLocaleString();
-}
 
 function Field({
   label,
