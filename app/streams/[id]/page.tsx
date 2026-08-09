@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { getStream } from "@/lib/api";
 import { useAccrual } from "@/hooks/use-accrual";
-import { useWallet } from "@/hooks/use-wallet";
+import { useWallet } from "@/components/wallet-provider";
 import { StreamActions } from "@/components/stream-actions";
 import { CopyButton } from "@/components/copy-button";
 import { ProgressBar } from "@/components/progress-bar";
