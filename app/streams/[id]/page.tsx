@@ -9,6 +9,7 @@ import { useWallet } from "@/components/wallet-provider";
 import { StreamActions } from "@/components/stream-actions";
 import { CopyButton } from "@/components/copy-button";
 import { ProgressBar } from "@/components/progress-bar";
+import { StreamDetailSkeleton } from "@/components/skeleton";
 import { formatAmount, formatTime, truncateAddress } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
@@ -112,7 +113,7 @@ export default function StreamDetailPage() {
   }, [id, reloadKey]);
 
   if (loading) {
-    return <main className="mx-auto max-w-2xl px-6 py-10 text-sm text-neutral-500">Loading...</main>;
+    return <StreamDetailSkeleton />;
   }
   if (error) {
     return <main className="mx-auto max-w-2xl px-6 py-10 text-sm text-red-400">{error}</main>;
