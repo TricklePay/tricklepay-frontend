@@ -44,9 +44,6 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
   const cliffDisplay =
     stream.cliffTime === stream.startTime ? "none" : formatTime(stream.cliffTime);
 
-  const total = BigInt(stream.totalAmount);
-  const progress = total === 0n ? 10000 : Number((accrual.vested * 10000n) / total);
-
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
       <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
@@ -69,7 +66,7 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
           {formatAmount(accrual.vested.toString())} vested of {formatAmount(stream.totalAmount)} total
         </p>
         <div className="mt-4">
-          <ProgressBar value={progress} />
+          <ProgressBar value={stream.progress} />
         </div>
       </div>
 
