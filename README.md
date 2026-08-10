@@ -58,19 +58,19 @@ Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`.
 
 ```
 app/
-  layout.tsx            root layout with the header
+  layout.tsx            root layout with the wallet provider and header
   page.tsx              dashboard: incoming and outgoing streams
   create/page.tsx       create-stream form
   streams/[id]/page.tsx stream detail with live balance and actions
 components/
   header.tsx            brand, nav, wallet button
+  wallet-provider.tsx   app-wide Freighter connection state via context
   wallet-button.tsx     connect / address / network state
   stream-card.tsx       stream summary card
   stream-list.tsx       grid of cards with an empty state
   create-form.tsx       new-stream form
   stream-actions.tsx    withdraw and cancel buttons
 hooks/
-  use-wallet.ts         Freighter connection state
   use-accrual.ts        per-second vested/withdrawable recomputation
 lib/
   config.ts             client configuration

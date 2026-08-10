@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   getAddress,
   getNetwork,
@@ -27,7 +27,12 @@ function normalizeNetwork(network: string): string {
   return lower;
 }
 
-export function useWallet(): WalletState {
+const WalletContext = createContext<WalletState | null>(null);
+
+// Owns the single wallet session for the whole app. Mounted once in the root
+// layout so every consumer reads the same address and sees a disconnect, and so
+// Freighter is probed once per page load rather than once per consumer.
+export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [network, setNetwork] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
@@ -87,5 +92,16 @@ export function useWallet(): WalletState {
     setError(null);
   }, []);
 
-  return { address, network, connecting, error, connect, disconnect };
+  const value = useMemo<WalletState>(
+    () => ({ address, network, connecting, error, connect, disconnect }),
+    [address, network, connecting, error, connect, disconnect],
+  );
+
+  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
+}
+
+export function useWallet(): WalletState {
+  const wallet = useContext(WalletContext);
+  if (!wallet) throw new Error("useWallet must be used inside a WalletProvider.");
+  return wallet;
 }

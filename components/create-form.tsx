@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useWallet } from "@/hooks/use-wallet";
+import { useWallet } from "@/components/wallet-provider";
 import { createStream } from "@/lib/contract";
 
 // Converts a `datetime-local` value to Unix seconds.

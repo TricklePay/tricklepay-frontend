@@ -5,16 +5,12 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { getStream } from "@/lib/api";
 import { useAccrual } from "@/hooks/use-accrual";
-import { useWallet } from "@/hooks/use-wallet";
+import { useWallet } from "@/components/wallet-provider";
 import { StreamActions } from "@/components/stream-actions";
 import { CopyButton } from "@/components/copy-button";
 import { ProgressBar } from "@/components/progress-bar";
-import { formatAmount, truncateAddress } from "@/lib/format";
+import { formatAmount, formatTime, truncateAddress } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
-
-function formatTime(unixSeconds: string): string {
-  return new Date(Number(unixSeconds) * 1000).toLocaleString();
-}
 
 function Field({
   label,
@@ -44,9 +40,6 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
   const cliffDisplay =
     stream.cliffTime === stream.startTime ? "none" : formatTime(stream.cliffTime);
 
-  const total = BigInt(stream.totalAmount);
-  const progress = total === 0n ? 10000 : Number((accrual.vested * 10000n) / total);
-
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
       <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
@@ -69,7 +62,7 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
           {formatAmount(accrual.vested.toString())} vested of {formatAmount(stream.totalAmount)} total
         </p>
         <div className="mt-4">
-          <ProgressBar value={progress} />
+          <ProgressBar value={stream.progress} />
         </div>
       </div>
 
