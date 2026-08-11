@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <!-- Background -->
+  <rect width="180" height="180" rx="40" fill="#0a0a0a"/>
+  <!-- Letter T -->
+  <rect x="50" y="45" width="80" height="18" rx="9" fill="#e5e5e5"/>
+  <rect x="81" y="63" width="18" height="52" rx="9" fill="#e5e5e5"/>
+  <!-- Trickle drop below the stem -->
+  <ellipse cx="90" cy="135" rx="12" ry="14" fill="#6366f1"/>
+  <path d="M90 115 L79 128 Q90 121 101 128 Z" fill="#6366f1"/>
+</svg>
