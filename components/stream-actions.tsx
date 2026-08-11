@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { cancel, withdraw } from "@/lib/contract";
+import { useEffect, useState } from "react";
+import { cancel, withdraw, withdrawAmount } from "@/lib/contract";
 import { useAccrual } from "@/hooks/use-accrual";
-import { formatTime } from "@/lib/format";
+import { formatAmount, formatTime } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
 interface Props {
@@ -32,10 +32,44 @@ function blockedReason(stream: StreamView): string {
   return "Nothing to withdraw yet.";
 }
 
+// Parses a human decimal amount (e.g. "12.5") into 7-decimal base units,
+// matching the convention in create-form.tsx. Returns null on invalid input.
+function parseAmount(human: string): bigint | null {
+  const trimmed = human.trim();
+  if (!trimmed || !/^\d+(\.\d+)?$/.test(trimmed)) return null;
+  const [whole, frac = ""] = trimmed.split(".");
+  const fracPadded = (frac + "0000000").slice(0, 7);
+  try {
+    return BigInt(whole || "0") * 10_000_000n + BigInt(fracPadded);
+  } catch {
+    return null;
+  }
+}
+
 export function StreamActions({ stream, walletAddress, onComplete }: Props) {
   const [busy, setBusy] = useState<"withdraw" | "cancel" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [amountInput, setAmountInput] = useState("");
+  const [amountError, setAmountError] = useState<string | null>(null);
   const accrual = useAccrual(stream);
+
+  // Keep the amount input in sync with the live withdrawable balance so the
+  // default is always "withdraw everything available" without the user having
+  // to type anything. Only reset when the field is still showing the previous
+  // default (i.e. has not been manually edited to something else).
+  useEffect(() => {
+    const currentDefault = formatAmount(accrual.withdrawable.toString());
+    setAmountInput((prev) => {
+      // If the field is empty or already shows a stale default, update it.
+      // If the user has typed a custom value, leave it alone.
+      const prevParsed = parseAmount(prev);
+      const prevWasDefault =
+        prev === "" ||
+        (prevParsed !== null &&
+          prevParsed === parseAmount(formatAmount(accrual.withdrawable.toString())));
+      return prevWasDefault ? currentDefault : prev;
+    });
+  }, [accrual.withdrawable]);
 
   if (!walletAddress) return null;
   const caller = walletAddress;
@@ -52,19 +86,53 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
 
   if (!isRecipient && !canCancel) return null;
 
-  async function run(action: "withdraw" | "cancel") {
-    setBusy(action);
+  function validateAmount(): bigint | null {
+    const parsed = parseAmount(amountInput);
+    if (parsed === null || parsed <= 0n) {
+      setAmountError("Enter a valid amount greater than zero.");
+      return null;
+    }
+    if (parsed > accrual.withdrawable) {
+      setAmountError(
+        `Amount exceeds withdrawable balance (${formatAmount(accrual.withdrawable.toString())}).`,
+      );
+      return null;
+    }
+    setAmountError(null);
+    return parsed;
+  }
+
+  async function runWithdraw() {
+    const amount = validateAmount();
+    if (amount === null) return;
+
+    setBusy("withdraw");
     setError(null);
     try {
       const streamId = BigInt(stream.id);
-      if (action === "withdraw") {
+      // Use the full-balance shortcut when the user hasn't changed the amount,
+      // avoiding an unnecessary i128 argument on the common path.
+      if (amount === accrual.withdrawable) {
         await withdraw(caller, streamId);
       } else {
-        await cancel(caller, streamId);
+        await withdrawAmount(caller, streamId, amount);
       }
       onComplete();
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Failed to ${action}.`);
+      setError(err instanceof Error ? err.message : "Failed to withdraw.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function runCancel() {
+    setBusy("cancel");
+    setError(null);
+    try {
+      await cancel(caller, BigInt(stream.id));
+      onComplete();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to cancel.");
     } finally {
       setBusy(null);
     }
@@ -72,29 +140,54 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
 
   return (
     <div className="mt-8 flex flex-col gap-3">
-      <div className="flex gap-3">
-        {isRecipient && (
-          <button
-            onClick={() => void run("withdraw")}
-            disabled={busy !== null || nothingToWithdraw}
-            className="rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 disabled:opacity-50"
-          >
-            {busy === "withdraw" ? "Withdrawing..." : "Withdraw"}
-          </button>
-        )}
-        {canCancel && (
-          <button
-            onClick={() => void run("cancel")}
-            disabled={busy !== null}
-            className="rounded border border-red-900 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-950/40 disabled:opacity-50"
-          >
-            {busy === "cancel" ? "Cancelling..." : "Cancel stream"}
-          </button>
-        )}
-      </div>
-      {isRecipient && nothingToWithdraw && (
-        <p className="text-sm text-neutral-500">{blockedReason(stream)}</p>
+      {isRecipient && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-end gap-2">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-neutral-400">
+                Amount{" "}
+                <span className="text-neutral-600">
+                  (max {formatAmount(accrual.withdrawable.toString())})
+                </span>
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={amountInput}
+                onChange={(e) => {
+                  setAmountInput(e.target.value);
+                  setAmountError(null);
+                }}
+                disabled={busy !== null || nothingToWithdraw}
+                className="w-44 rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none disabled:opacity-50"
+                aria-label="Withdrawal amount"
+              />
+            </label>
+            <button
+              onClick={() => void runWithdraw()}
+              disabled={busy !== null || nothingToWithdraw}
+              className="rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 disabled:opacity-50"
+            >
+              {busy === "withdraw" ? "Withdrawing..." : "Withdraw"}
+            </button>
+          </div>
+          {amountError && <p className="text-sm text-red-400">{amountError}</p>}
+          {nothingToWithdraw && (
+            <p className="text-sm text-neutral-500">{blockedReason(stream)}</p>
+          )}
+        </div>
       )}
+
+      {canCancel && (
+        <button
+          onClick={() => void runCancel()}
+          disabled={busy !== null}
+          className="self-start rounded border border-red-900 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-950/40 disabled:opacity-50"
+        >
+          {busy === "cancel" ? "Cancelling..." : "Cancel stream"}
+        </button>
+      )}
+
       {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   );
