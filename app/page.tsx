@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useWallet } from "@/components/wallet-provider";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { StreamList } from "@/components/stream-list";
+import { StreamListSkeleton } from "@/components/skeleton";
 import type { StreamStatus } from "@/types/stream";
 
 const FILTERS: Array<{ label: string; value: StreamStatus | "all" }> = [
@@ -49,7 +50,7 @@ function StreamSection({
       {page.error && <p className="mb-3 text-sm text-red-400">{page.error}</p>}
 
       {page.loading ? (
-        <p className="text-sm text-neutral-500">Loading...</p>
+        <StreamListSkeleton count={2} />
       ) : (
         <StreamList streams={visible} emptyMessage={emptyText} />
       )}
@@ -61,7 +62,7 @@ function StreamSection({
           className="mt-4 rounded-full border border-neutral-800 px-4 py-1.5 text-xs text-neutral-300 hover:border-neutral-600 disabled:opacity-50"
         >
           {page.loadingMore
-            ? "Loading..."
+            ? "Loading more…"
             : `Load more (${page.total - page.streams.length} remaining)`}
         </button>
       )}
