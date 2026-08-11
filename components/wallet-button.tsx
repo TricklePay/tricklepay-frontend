@@ -1,7 +1,7 @@
 "use client";
 
 import { useWallet } from "@/components/wallet-provider";
-import { config } from "@/lib/config";
+import { useNetworkGuard } from "@/hooks/use-network-guard";
 
 function truncate(address: string): string {
   return `${address.slice(0, 4)}...${address.slice(-4)}`;
@@ -9,13 +9,21 @@ function truncate(address: string): string {
 
 export function WalletButton() {
   const wallet = useWallet();
+  const { mismatch, walletNetwork, expectedNetwork } = useNetworkGuard();
 
   if (wallet.address) {
-    const wrongNetwork = wallet.network !== null && wallet.network !== config.network;
     return (
       <div className="flex items-center gap-3">
-        {wrongNetwork && (
-          <span className="text-xs text-yellow-400">on {wallet.network}, not {config.network}</span>
+        {mismatch && (
+          <span
+            role="alert"
+            className="rounded border border-red-700 bg-red-950/60 px-2.5 py-1 text-xs font-medium text-red-300"
+          >
+            Wrong network: wallet is on{" "}
+            <strong className="font-semibold">{walletNetwork}</strong>, app expects{" "}
+            <strong className="font-semibold">{expectedNetwork}</strong>. Switch networks in
+            Freighter to sign transactions.
+          </span>
         )}
         <button
           onClick={wallet.disconnect}
