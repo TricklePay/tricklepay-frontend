@@ -7,7 +7,7 @@ import {
   TransactionBuilder,
   xdr,
 } from "@stellar/stellar-sdk";
-import { signTransaction, getNetwork } from "@stellar/freighter-api";
+import { signTransaction } from "@stellar/freighter-api";
 import { config } from "@/lib/config";
 import { parseContractError } from "@/lib/contract-errors";
 
@@ -185,6 +185,25 @@ export async function createStream(params: CreateStreamParams): Promise<string> 
 export async function withdraw(caller: string, streamId: bigint): Promise<string> {
   return invoke(caller, (contract) =>
     contract.call("withdraw", nativeToScVal(streamId, { type: "u64" })),
+  );
+}
+
+/**
+ * Withdraws a specific amount from a stream instead of the full vested balance.
+ * Maps to the contract's `withdraw_amount(id, amount)` entry point.
+ * `amount` is in base units (7 decimal places, the Stellar stroop standard).
+ */
+export async function withdrawAmount(
+  caller: string,
+  streamId: bigint,
+  amount: bigint,
+): Promise<string> {
+  return invoke(caller, (contract) =>
+    contract.call(
+      "withdraw_amount",
+      nativeToScVal(streamId, { type: "u64" }),
+      nativeToScVal(amount, { type: "i128" }),
+    ),
   );
 }
 
