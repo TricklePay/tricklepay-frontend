@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cancel, withdraw } from "@/lib/contract";
 import { useAccrual } from "@/hooks/use-accrual";
+import { useNetworkGuard } from "@/hooks/use-network-guard";
 import { formatTime } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
@@ -36,6 +37,7 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
   const [busy, setBusy] = useState<"withdraw" | "cancel" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const accrual = useAccrual(stream);
+  const { mismatch, walletNetwork, expectedNetwork } = useNetworkGuard();
 
   if (!walletAddress) return null;
   const caller = walletAddress;
@@ -56,6 +58,11 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
     setBusy(action);
     setError(null);
     try {
+      if (mismatch) {
+        throw new Error(
+          `Wrong network: wallet is on ${walletNetwork ?? "unknown"}, app expects ${expectedNetwork}. Switch networks in Freighter.`,
+        );
+      }
       const streamId = BigInt(stream.id);
       if (action === "withdraw") {
         await withdraw(caller, streamId);
@@ -72,11 +79,17 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
 
   return (
     <div className="mt-8 flex flex-col gap-3">
+      {mismatch && (
+        <p role="alert" className="rounded border border-red-700 bg-red-950/60 px-3 py-2 text-sm font-medium text-red-300">
+          Wrong network: wallet is on <strong>{walletNetwork}</strong>, app expects{" "}
+          <strong>{expectedNetwork}</strong>. Switch networks in Freighter to sign transactions.
+        </p>
+      )}
       <div className="flex gap-3">
         {isRecipient && (
           <button
             onClick={() => void run("withdraw")}
-            disabled={busy !== null || nothingToWithdraw}
+            disabled={busy !== null || nothingToWithdraw || mismatch}
             className="rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 disabled:opacity-50"
           >
             {busy === "withdraw" ? "Withdrawing..." : "Withdraw"}
@@ -85,14 +98,14 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
         {canCancel && (
           <button
             onClick={() => void run("cancel")}
-            disabled={busy !== null}
+            disabled={busy !== null || mismatch}
             className="rounded border border-red-900 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-950/40 disabled:opacity-50"
           >
             {busy === "cancel" ? "Cancelling..." : "Cancel stream"}
           </button>
         )}
       </div>
-      {isRecipient && nothingToWithdraw && (
+      {isRecipient && nothingToWithdraw && !mismatch && (
         <p className="text-sm text-neutral-500">{blockedReason(stream)}</p>
       )}
       {error && <p className="text-sm text-red-400">{error}</p>}
