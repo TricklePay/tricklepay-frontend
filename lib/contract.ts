@@ -7,7 +7,7 @@ import {
   TransactionBuilder,
   xdr,
 } from "@stellar/stellar-sdk";
-import { signTransaction } from "@stellar/freighter-api";
+import { signTransaction, getNetwork } from "@stellar/freighter-api";
 import { config } from "@/lib/config";
 import { parseContractError } from "@/lib/contract-errors";
 
@@ -29,6 +29,15 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Maps Freighter's network label to the app's lowercase names, mirroring
+// the normalisation in wallet-provider.tsx so the comparison is consistent.
+function normalizeNetwork(network: string): string {
+  const lower = network.toLowerCase();
+  if (lower.includes("test")) return "testnet";
+  if (lower.includes("public")) return "mainnet";
+  return lower;
+}
+
 // Builds, signs (via Freighter), submits, and confirms a contract invocation,
 // returning the transaction hash once it succeeds on-chain. Each step surfaces
 // a distinct error so the UI can tell the user what went wrong.
@@ -36,6 +45,21 @@ async function invoke(
   caller: string,
   buildOp: (contract: Contract) => xdr.Operation,
 ): Promise<string> {
+  // Guard: reject immediately if Freighter's active network does not match
+  // the network the app is configured for. This is a hard stop — a transaction
+  // built against the wrong network passphrase would be rejected by the RPC
+  // anyway, but checking here gives a clear, actionable error before any
+  // network round-trip or signing prompt occurs.
+  const netResult = await getNetwork();
+  if (!netResult.error) {
+    const walletNetwork = normalizeNetwork(netResult.network);
+    if (walletNetwork !== config.network) {
+      throw new Error(
+        `Wrong network: wallet is on ${walletNetwork}, app expects ${config.network}. Switch networks in Freighter.`,
+      );
+    }
+  }
+
   const srv = server();
   const contract = new Contract(config.contractId);
   const account = await srv.getAccount(caller);

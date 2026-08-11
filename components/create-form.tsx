@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@/components/wallet-provider";
+import { useNetworkGuard } from "@/hooks/use-network-guard";
 import { createStream } from "@/lib/contract";
 
 // Converts a `datetime-local` value to Unix seconds.
@@ -37,6 +38,7 @@ const inputClass =
 
 export function CreateForm() {
   const wallet = useWallet();
+  const { mismatch, walletNetwork, expectedNetwork } = useNetworkGuard();
   const router = useRouter();
 
   const [recipient, setRecipient] = useState("");
@@ -56,6 +58,13 @@ export function CreateForm() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (mismatch) {
+      setError(
+        `Wrong network: wallet is on ${walletNetwork ?? "unknown"}, app expects ${expectedNetwork}. Switch networks in Freighter.`,
+      );
+      return;
+    }
 
     if (!recipient || !token || !amount || !start || !end) {
       setError("All fields except cliff are required.");
@@ -153,7 +162,7 @@ export function CreateForm() {
 
       <button
         type="submit"
-        disabled={submitting}
+        disabled={submitting || mismatch}
         className="mt-2 rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 disabled:opacity-50"
       >
         {submitting ? "Creating..." : "Create stream"}
