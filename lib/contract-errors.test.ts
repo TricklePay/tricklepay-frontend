@@ -16,6 +16,16 @@ describe("parseContractError", () => {
     }
   });
 
+  it("covers exactly the contract's error discriminants", () => {
+    // Mirrors StreamError in the contract's error.rs. 2 is the retired
+    // Unauthorized variant, kept for contracts deployed before its removal.
+    // If the contract gains or drops a variant, this fails until the table
+    // is updated — the mapping drifted out of sync once already.
+    expect(Object.keys(CONTRACT_ERROR_MESSAGES).map(Number).sort((a, b) => a - b)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+    ]);
+  });
+
   it("maps NothingToWithdraw (7) to an actionable message", () => {
     expect(parseContractError("Error(Contract, #7)")).toBe(
       "Nothing to withdraw yet — no tokens have vested since your last withdrawal.",
@@ -24,19 +34,38 @@ describe("parseContractError", () => {
 
   it("maps InsufficientBalance (8) to an actionable message", () => {
     expect(parseContractError("Error(Contract, #8)")).toBe(
-      "The sender's account has insufficient balance to fund this stream.",
+      "That is more than you can withdraw right now.",
     );
   });
 
-  it("maps AlreadyCancelled (1) correctly", () => {
-    expect(parseContractError("Error(Contract, #1)")).toBe(
+  it("maps StreamNotFound (1) correctly", () => {
+    expect(parseContractError("Error(Contract, #1)")).toBe("Stream not found.");
+  });
+
+  it("maps InvalidTimeRange (3) correctly", () => {
+    expect(parseContractError("Error(Contract, #3)")).toBe(
+      "Invalid time range — the stream must start before it ends.",
+    );
+  });
+
+  it("maps AlreadyCancelled (6) correctly", () => {
+    expect(parseContractError("Error(Contract, #6)")).toBe(
       "This stream has already been cancelled.",
     );
   });
 
-  it("maps NotRecipient (3) correctly", () => {
-    expect(parseContractError("Error(Contract, #3)")).toBe(
-      "Only the recipient can perform this action.",
+  it("maps the codes added after the first deployment", () => {
+    expect(parseContractError("Error(Contract, #9)")).toBe(
+      "This stream has already completed and can no longer be cancelled.",
+    );
+    expect(parseContractError("Error(Contract, #10)")).toBe(
+      "That amount is too large. The total must not exceed 9223372036854775807.",
+    );
+  });
+
+  it("still maps Unauthorized (2), which older deployed contracts emit", () => {
+    expect(parseContractError("Error(Contract, #2)")).toBe(
+      "You are not authorized to perform this action.",
     );
   });
 
@@ -77,7 +106,7 @@ describe("parseContractError", () => {
     // Unlikely in practice, but regex returns the first match
     const multiMsg = "Error(Contract, #3) then Error(Contract, #4)";
     expect(parseContractError(multiMsg)).toBe(
-      "Only the recipient can perform this action.",
+      "Invalid time range — the stream must start before it ends.",
     );
   });
 });

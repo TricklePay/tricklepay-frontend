@@ -1,25 +1,34 @@
-// Maps the numeric error codes emitted by the on-chain contract (error.rs) to
-// plain-language messages a user can act on. Codes not in this table fall back
-// to a generic message that still surfaces the raw code so users can report it.
+// Maps the numeric error codes emitted by the on-chain contract to plain-language
+// messages a user can act on. Codes not in this table fall back to a generic
+// message that still surfaces the raw code so users can report it.
 //
-// error.rs enum (1-indexed):
-//   1  AlreadyCancelled
-//   2  AlreadyCompleted
-//   3  NotRecipient
-//   4  NotSender
-//   5  StreamNotFound
-//   6  InvalidInput
-//   7  NothingToWithdraw
-//   8  InsufficientBalance
+// The source of truth is StreamError in the contract's error.rs. The codes are
+// explicit discriminants there, not positions, so the gap at 2 is deliberate:
+//
+//    1  StreamNotFound
+//    3  InvalidTimeRange
+//    4  InvalidAmount
+//    5  InvalidCliff
+//    6  AlreadyCancelled
+//    7  NothingToWithdraw
+//    8  InsufficientBalance
+//    9  StreamAlreadyCompleted
+//   10  AmountTooLarge
+//
+// Code 2 was Unauthorized, removed from the contract as unreachable —
+// require_auth aborts before the contract can return it. It is still mapped
+// because contracts deployed before that change remain on-chain and can emit it.
 export const CONTRACT_ERROR_MESSAGES: Record<number, string> = {
-  1: "This stream has already been cancelled.",
-  2: "This stream has already completed.",
-  3: "Only the recipient can perform this action.",
-  4: "Only the sender can perform this action.",
-  5: "Stream not found.",
-  6: "Invalid input — check that all values are within the allowed range.",
+  1: "Stream not found.",
+  2: "You are not authorized to perform this action.",
+  3: "Invalid time range — the stream must start before it ends.",
+  4: "Invalid amount — the total must be greater than zero.",
+  5: "Invalid cliff — the cliff must fall between the start and end times.",
+  6: "This stream has already been cancelled.",
   7: "Nothing to withdraw yet — no tokens have vested since your last withdrawal.",
-  8: "The sender's account has insufficient balance to fund this stream.",
+  8: "That is more than you can withdraw right now.",
+  9: "This stream has already completed and can no longer be cancelled.",
+  10: "That amount is too large. The total must not exceed 9223372036854775807.",
 };
 
 export const GENERIC_FAILURE = "The transaction failed on-chain.";
