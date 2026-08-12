@@ -257,11 +257,14 @@ export function streamingStream(overrides: Partial<StreamView> = {}): StreamView
     withdrawn: "0",
     vested: vested.toString(),
     withdrawable: vested.toString(),
+    locked: (total - vested).toString(),
     startTime: String(now - 50),
     endTime: String(now + 50),
     cliffTime: String(now - 50),
     cancelled: false,
     status: "streaming",
+    // Half elapsed with a linear schedule: 5000 of 10000 basis points.
+    progress: 5_000,
     ...overrides,
   };
 }
