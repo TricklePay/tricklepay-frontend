@@ -7,7 +7,7 @@ import {
   TransactionBuilder,
   xdr,
 } from "@stellar/stellar-sdk";
-import { signTransaction } from "@stellar/freighter-api";
+import { getNetwork, signTransaction } from "@stellar/freighter-api";
 import { config } from "@/lib/config";
 import { parseContractError } from "@/lib/contract-errors";
 
@@ -148,7 +148,7 @@ function extractFailureString(result: rpc.Api.GetFailedTransactionResponse): str
  * returning a synthetic "Error(Contract, #N)" string if one is found.
  *
  * A Soroban host error event has the structure:
- *   topics: [Symbol("error"), ScVal(scvError, ScError{ type: Contract, code: N })]
+ *   topics: [Symbol("error"), ScVal(scvError, ScError(sceContract, code: N))]
  *   data:   string description
  */
 function findContractErrorToken(event: xdr.DiagnosticEvent): string | null {
@@ -157,7 +157,9 @@ function findContractErrorToken(event: xdr.DiagnosticEvent): string | null {
     for (const topic of body.topics()) {
       if (topic.switch().name !== "scvError") continue;
       const scError = topic.error();
-      if (scError.type().name !== "scErrorTypeContract") continue;
+      // ScError is an XDR union: `switch()` is the discriminant, and the
+      // contract-error arm is named "sceContract".
+      if (scError.switch().name !== "sceContract") continue;
       const code = scError.contractCode();
       return `Error(Contract, #${code})`;
     }
