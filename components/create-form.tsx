@@ -23,10 +23,27 @@ function toUnix(local: string): bigint {
 }
 
 // Parses a human decimal amount into 7-decimal base units.
+// Throws a descriptive error for any input that is not a non-negative decimal
+// with at most 7 fractional digits (e.g. "1e5", "1.2.3", "-5", "1.12345678"
+// are all rejected before BigInt conversion is attempted).
 function parseAmount(human: string): bigint {
-  const [whole, frac = ""] = human.trim().split(".");
-  const fracPadded = (frac + "0000000").slice(0, 7);
-  return BigInt(whole || "0") * 10_000_000n + BigInt(fracPadded || "0");
+  const trimmed = human.trim();
+
+  // Reject scientific notation, negatives, multiple dots, and anything else
+  // that isn't a plain non-negative decimal.
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+    throw new Error("Amount must be a positive number (e.g. 100 or 1.5).");
+  }
+
+  const [whole, frac = ""] = trimmed.split(".");
+
+  // Reject more than 7 decimal places explicitly rather than silently truncating.
+  if (frac.length > 7) {
+    throw new Error("Amount cannot have more than 7 decimal places.");
+  }
+
+  const fracPadded = frac.padEnd(7, "0");
+  return BigInt(whole) * 10_000_000n + BigInt(fracPadded);
 }
 
 function Field({
