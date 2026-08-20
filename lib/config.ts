@@ -2,6 +2,8 @@
 // Defaults target testnet against a local backend so the app runs with no setup
 // in development.
 
+import { StrKey } from "@stellar/stellar-sdk";
+
 const NETWORK_PASSPHRASES: Record<string, string> = {
   testnet: "Test SDF Network ; September 2015",
   mainnet: "Public Global Stellar Network ; September 2015",
@@ -26,5 +28,22 @@ export const config = {
   /** Deployed stream contract id (starts with C). */
   contractId: process.env.NEXT_PUBLIC_CONTRACT_ID ?? "",
 };
+
+// Validate contractId at module load so a missing or malformed value surfaces
+// immediately as a clear configuration error rather than an opaque SDK error
+// at the first transaction.
+const contractId = config.contractId;
+if (!contractId) {
+  throw new Error(
+    "Configuration error: NEXT_PUBLIC_CONTRACT_ID is not set. " +
+    "Add it to your .env file (it starts with C).",
+  );
+}
+if (!StrKey.isValidContract(contractId)) {
+  throw new Error(
+    `Configuration error: NEXT_PUBLIC_CONTRACT_ID "${contractId}" is not a valid Stellar contract address. ` +
+    "It must be a 56-character string starting with C.",
+  );
+}
 
 export type AppConfig = typeof config;
