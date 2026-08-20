@@ -2,9 +2,20 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { StrKey } from "@stellar/stellar-sdk";
 import { useWallet } from "@/components/wallet-provider";
 import { useNetworkGuard } from "@/hooks/use-network-guard";
 import { createStream } from "@/lib/contract";
+
+// A Stellar address is valid if it is a public key (G...) or a contract (C...).
+function isValidStellarAddress(value: string): boolean {
+  return StrKey.isValidEd25519PublicKey(value) || StrKey.isValidContract(value);
+}
+
+// A token contract id must be a contract address only (C...).
+function isValidContractAddress(value: string): boolean {
+  return StrKey.isValidContract(value);
+}
 
 // Converts a `datetime-local` value to Unix seconds.
 function toUnix(local: string): bigint {
@@ -20,21 +31,27 @@ function parseAmount(human: string): bigint {
 
 function Field({
   label,
+  error,
   children,
 }: {
   label: string;
+  error?: string;
   children: React.ReactNode;
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
       <span className="text-neutral-400">{label}</span>
       {children}
+      {error && <span className="text-xs text-red-400">{error}</span>}
     </label>
   );
 }
 
 const inputClass =
   "rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none";
+
+const inputErrorClass =
+  "rounded border border-red-500 bg-neutral-900 px-3 py-2 text-sm focus:border-red-400 focus:outline-none";
 
 export function CreateForm() {
   const wallet = useWallet();
@@ -49,6 +66,30 @@ export function CreateForm() {
   const [cliff, setCliff] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [recipientError, setRecipientError] = useState<string | undefined>();
+  const [tokenError, setTokenError] = useState<string | undefined>();
+
+  function handleRecipientChange(value: string) {
+    setRecipient(value);
+    if (value && !isValidStellarAddress(value)) {
+      setRecipientError("Must be a valid G... or C... Stellar address.");
+    } else {
+      setRecipientError(undefined);
+    }
+  }
+
+  function handleTokenChange(value: string) {
+    setToken(value);
+    if (value && !isValidContractAddress(value)) {
+      setTokenError("Must be a valid C... contract address.");
+    } else {
+      setTokenError(undefined);
+    }
+  }
+
+  const addressesValid =
+    isValidStellarAddress(recipient) && isValidContractAddress(token);
 
   if (!wallet.address) {
     return <p className="text-sm text-neutral-400">Connect your wallet to create a stream.</p>;
@@ -68,6 +109,11 @@ export function CreateForm() {
 
     if (!recipient || !token || !amount || !start || !end) {
       setError("All fields except cliff are required.");
+      return;
+    }
+
+    if (!addressesValid) {
+      setError("Fix address errors before submitting.");
       return;
     }
 
@@ -108,20 +154,24 @@ export function CreateForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <Field label="Recipient address">
+      <Field label="Recipient address" error={recipientError}>
         <input
-          className={inputClass}
+          className={recipientError ? inputErrorClass : inputClass}
           value={recipient}
-          onChange={(e) => setRecipient(e.target.value)}
+          onChange={(e) => handleRecipientChange(e.target.value)}
           placeholder="G... or C..."
+          aria-invalid={!!recipientError}
+          aria-describedby={recipientError ? "recipient-error" : undefined}
         />
       </Field>
-      <Field label="Token contract id">
+      <Field label="Token contract id" error={tokenError}>
         <input
-          className={inputClass}
+          className={tokenError ? inputErrorClass : inputClass}
           value={token}
-          onChange={(e) => setToken(e.target.value)}
+          onChange={(e) => handleTokenChange(e.target.value)}
           placeholder="C..."
+          aria-invalid={!!tokenError}
+          aria-describedby={tokenError ? "token-error" : undefined}
         />
       </Field>
       <Field label="Amount">
@@ -162,7 +212,7 @@ export function CreateForm() {
 
       <button
         type="submit"
-        disabled={submitting || mismatch}
+        disabled={submitting || mismatch || !addressesValid}
         className="mt-2 rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 disabled:opacity-50"
       >
         {submitting ? "Creating..." : "Create stream"}
