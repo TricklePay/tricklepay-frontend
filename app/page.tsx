@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 import { useWallet } from "@/components/wallet-provider";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { StreamList } from "@/components/stream-list";
@@ -72,7 +73,30 @@ function StreamSection({
 
 export default function Home() {
   const wallet = useWallet();
-  const [filter, setFilter] = useState<StreamStatus | "all">("all");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Read the filter from the URL; fall back to "all" if absent or unrecognised.
+  const rawParam = searchParams.get("filter");
+  const validValues = FILTERS.map((f) => f.value);
+  const filter: StreamStatus | "all" =
+    rawParam && (validValues as string[]).includes(rawParam)
+      ? (rawParam as StreamStatus | "all")
+      : "all";
+
+  const setFilter = useCallback(
+    (value: StreamStatus | "all") => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value === "all") {
+        params.delete("filter");
+      } else {
+        params.set("filter", value);
+      }
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
   const incoming = useStreamPage("recipient", wallet.address);
   const outgoing = useStreamPage("sender", wallet.address);
 
@@ -89,7 +113,7 @@ export default function Home() {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
-      <div className="mb-8 flex flex-wrap gap-2">
+      <div className="mb-8 flex flex-wrap items-center gap-2">
         {FILTERS.map((option) => (
           <button
             key={option.value}
@@ -103,6 +127,25 @@ export default function Home() {
             {option.label}
           </button>
         ))}
+        {filter !== "all" && (
+          <button
+            onClick={() => setFilter("all")}
+            aria-label="Clear filter"
+            className="inline-flex items-center gap-1 rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300"
+          >
+            {/* × icon */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              aria-hidden="true"
+              className="h-3 w-3"
+            >
+              <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+            </svg>
+            Clear
+          </button>
+        )}
       </div>
 
       <StreamSection
