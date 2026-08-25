@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { StrKey } from "@stellar/stellar-sdk";
 import { useWallet } from "@/components/wallet-provider";
@@ -91,6 +91,14 @@ export function CreateForm() {
   const [startError, setStartError] = useState<string | undefined>();
   const [endError, setEndError] = useState<string | undefined>();
   const [cliffError, setCliffError] = useState<string | undefined>();
+
+  // Refs used to focus the first invalid field on submit
+  const recipientRef = useRef<HTMLInputElement>(null);
+  const tokenRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const startRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLInputElement>(null);
+  const cliffRef = useRef<HTMLInputElement>(null);
 
   function handleRecipientChange(value: string) {
     setRecipient(value);
@@ -203,14 +211,27 @@ export function CreateForm() {
       return;
     }
 
-    // Trigger field-level errors for any blank required fields
+    // Trigger field-level errors for any blank required fields, then focus the first invalid one.
     let hasErrors = false;
     if (!recipient) { setRecipientError("Recipient address is required."); hasErrors = true; }
     if (!token) { setTokenError("Token contract id is required."); hasErrors = true; }
     if (!amount) { setAmountError("Amount is required."); hasErrors = true; }
     if (!start) { setStartError("Start date is required."); hasErrors = true; }
     if (!end) { setEndError("End date is required."); hasErrors = true; }
-    if (hasErrors || hasFieldErrors) return;
+
+    if (hasErrors || hasFieldErrors) {
+      // Focus the first field that already has (or just received) an error.
+      const firstInvalid = [
+        { error: recipientError || (!recipient ? "x" : undefined), ref: recipientRef },
+        { error: tokenError     || (!token     ? "x" : undefined), ref: tokenRef },
+        { error: amountError    || (!amount    ? "x" : undefined), ref: amountRef },
+        { error: startError     || (!start     ? "x" : undefined), ref: startRef },
+        { error: endError       || (!end       ? "x" : undefined), ref: endRef },
+        { error: cliffError,                                        ref: cliffRef },
+      ].find((f) => !!f.error);
+      firstInvalid?.ref.current?.focus();
+      return;
+    }
 
     if (!addressesValid) {
       setError("Fix address errors before submitting.");
@@ -223,10 +244,12 @@ export function CreateForm() {
 
     if (endTime <= startTime) {
       setEndError("End must be after start.");
+      endRef.current?.focus();
       return;
     }
     if (cliffTime < startTime || cliffTime > endTime) {
       setCliffError("Cliff must fall between start and end.");
+      cliffRef.current?.focus();
       return;
     }
 
@@ -235,10 +258,12 @@ export function CreateForm() {
       totalAmount = parseAmount(amount);
     } catch (err) {
       setAmountError(err instanceof Error ? err.message : "Invalid amount.");
+      amountRef.current?.focus();
       return;
     }
     if (totalAmount <= 0n) {
       setAmountError("Amount must be greater than zero.");
+      amountRef.current?.focus();
       return;
     }
 
@@ -258,6 +283,7 @@ export function CreateForm() {
       <Field label="Recipient address" error={recipientError}>
         <input
           id="field-recipient"
+          ref={recipientRef}
           className={recipientError ? inputErrorClass : inputClass}
           value={recipient}
           onChange={(e) => handleRecipientChange(e.target.value)}
@@ -269,6 +295,7 @@ export function CreateForm() {
       <Field label="Token contract id" error={tokenError}>
         <input
           id="field-token"
+          ref={tokenRef}
           className={tokenError ? inputErrorClass : inputClass}
           value={token}
           onChange={(e) => handleTokenChange(e.target.value)}
@@ -280,6 +307,7 @@ export function CreateForm() {
       <Field label="Amount" error={amountError}>
         <input
           id="field-amount"
+          ref={amountRef}
           className={amountError ? inputErrorClass : inputClass}
           value={amount}
           onChange={(e) => handleAmountChange(e.target.value)}
@@ -297,6 +325,7 @@ export function CreateForm() {
       <Field label="Start" error={startError}>
         <input
           id="field-start"
+          ref={startRef}
           className={startError ? inputErrorClass : inputClass}
           type="datetime-local"
           value={start}
@@ -308,6 +337,7 @@ export function CreateForm() {
       <Field label="End" error={endError}>
         <input
           id="field-end"
+          ref={endRef}
           className={endError ? inputErrorClass : inputClass}
           type="datetime-local"
           value={end}
@@ -319,6 +349,7 @@ export function CreateForm() {
       <Field label="Cliff (optional)" error={cliffError}>
         <input
           id="field-cliff"
+          ref={cliffRef}
           className={cliffError ? inputErrorClass : inputClass}
           type="datetime-local"
           value={cliff}
