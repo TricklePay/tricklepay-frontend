@@ -25,12 +25,18 @@ export function WalletButton() {
             Freighter to sign transactions.
           </span>
         )}
+        {/* Address badge — read-only, shows the connected account */}
+        <span className="rounded border border-neutral-700 px-3 py-1.5 font-mono text-xs text-neutral-400">
+          {truncate(wallet.address)}
+        </span>
+        {/* Explicit disconnect button */}
         <button
           onClick={wallet.disconnect}
-          title="Disconnect"
-          className="rounded border border-neutral-700 px-3 py-1.5 font-mono text-xs text-neutral-200 hover:border-neutral-500"
+          title={`Disconnect ${truncate(wallet.address)}`}
+          aria-label={`Disconnect wallet ${wallet.address}`}
+          className="rounded border border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 transition-colors hover:border-red-700 hover:bg-red-950/40 hover:text-red-300"
         >
-          {truncate(wallet.address)}
+          Disconnect
         </button>
       </div>
     );
