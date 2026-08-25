@@ -37,3 +37,9 @@ export function timeRemaining(endTimeSeconds: string): string {
   if (minutes > 0) return `ends in ${minutes}m`;
   return "ends in under a minute";
 }
+
+// Formats a maximum withdrawable amount hint string.
+export function formatMaxWithdrawHint(rawWithdrawable: string): string {
+  const formatted = formatAmount(rawWithdrawable);
+  return `Maximum withdrawable amount: ${formatted}`;
+}

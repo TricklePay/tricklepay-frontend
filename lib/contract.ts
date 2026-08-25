@@ -38,66 +38,132 @@ function normalizeNetwork(network: string): string {
   return lower;
 }
 
+export type TxStage = "preparing" | "signing" | "submitting" | "confirming";
+
+export interface TxStageInfo {
+  id: TxStage;
+  label: string;
+  detail: string;
+}
+
+export const TX_STAGES: TxStageInfo[] = [
+  { id: "preparing", label: "Prepare", detail: "Simulate transaction" },
+  { id: "signing", label: "Sign", detail: "Wallet signature" },
+  { id: "submitting", label: "Submit", detail: "Broadcast to network" },
+  { id: "confirming", label: "Confirm", detail: "On-chain confirmation" },
+];
+
+export const TX_STAGE_LABELS: Record<TxStage, string> = {
+  preparing: "Preparing transaction...",
+  signing: "Awaiting wallet signature...",
+  submitting: "Submitting to network...",
+  confirming: "Confirming on network...",
+};
+
+let isInvocationActive = false;
+
+/**
+ * Returns whether a contract transaction invocation is currently in progress.
+ */
+export function isTransactionPending(): boolean {
+  return isInvocationActive;
+}
+
 // Builds, signs (via Freighter), submits, and confirms a contract invocation,
 // returning the transaction hash once it succeeds on-chain. Each step surfaces
 // a distinct error so the UI can tell the user what went wrong.
 async function invoke(
   caller: string,
   buildOp: (contract: Contract) => xdr.Operation,
+  onStageChange?: (stage: TxStage) => void,
 ): Promise<string> {
-  // Guard: reject immediately if Freighter's active network does not match
-  // the network the app is configured for. This is a hard stop — a transaction
-  // built against the wrong network passphrase would be rejected by the RPC
-  // anyway, but checking here gives a clear, actionable error before any
-  // network round-trip or signing prompt occurs.
-  const netResult = await getNetwork();
-  if (!netResult.error) {
-    const walletNetwork = normalizeNetwork(netResult.network);
-    if (walletNetwork !== config.network) {
-      throw new Error(
-        `Wrong network: wallet is on ${walletNetwork}, app expects ${config.network}. Switch networks in Freighter.`,
-      );
-    }
+  if (isInvocationActive) {
+    throw new Error("A transaction is already in progress. Please wait for it to complete.");
   }
 
-  const srv = server();
-  const contract = new Contract(config.contractId);
-  const account = await srv.getAccount(caller);
-
-  const tx = new TransactionBuilder(account, {
-    fee: BASE_FEE,
-    networkPassphrase: config.networkPassphrase,
-  })
-    .addOperation(buildOp(contract))
-    .setTimeout(60)
-    .build();
-
-  // Simulate and assemble the Soroban resource footprint before signing.
-  // prepareTransaction throws if simulation reverts; its message contains the
-  // "Error(Contract, #N)" token so we translate it here.
-  let prepared: Awaited<ReturnType<typeof srv.prepareTransaction>>;
+  isInvocationActive = true;
   try {
-    prepared = await srv.prepareTransaction(tx);
-  } catch (err) {
-    const raw = err instanceof Error ? err.message : String(err);
-    throw new Error(parseContractError(raw));
-  }
+    // Guard: reject immediately if Freighter's active network does not match
+    // the network the app is configured for. This is a hard stop — a transaction
+    // built against the wrong network passphrase would be rejected by the RPC
+    // anyway, but checking here gives a clear, actionable error before any
+    // network round-trip or signing prompt occurs.
+    const netResult = await getNetwork();
+    if (!netResult.error) {
+      const walletNetwork = normalizeNetwork(netResult.network);
+      if (walletNetwork !== config.network) {
+        throw new Error(
+          `Wrong network: wallet is on ${walletNetwork}, app expects ${config.network}. Switch networks in Freighter.`,
+        );
+      }
+    }
 
-  const signed = await signTransaction(prepared.toXDR(), {
-    networkPassphrase: config.networkPassphrase,
-    address: caller,
-  });
-  if (signed.error) {
-    throw new Error("Signing was rejected in the wallet.");
-  }
+    onStageChange?.("preparing");
+    const srv = server();
+    const contract = new Contract(config.contractId);
+    const account = await srv.getAccount(caller);
 
-  const signedTx = TransactionBuilder.fromXDR(signed.signedTxXdr, config.networkPassphrase);
-  const sent = await srv.sendTransaction(signedTx);
-  if (sent.status === "ERROR") {
-    throw new Error("The network rejected the transaction.");
-  }
+    const tx = new TransactionBuilder(account, {
+      fee: BASE_FEE,
+      networkPassphrase: config.networkPassphrase,
+    })
+      .addOperation(buildOp(contract))
+      .setTimeout(60)
+      .build();
 
-  return confirm(srv, sent.hash);
+    // Simulate and assemble the Soroban resource footprint before signing.
+    // prepareTransaction throws if simulation reverts; its message contains the
+    // "Error(Contract, #N)" token so we translate it here.
+    let prepared: Awaited<ReturnType<typeof srv.prepareTransaction>>;
+    try {
+      prepared = await srv.prepareTransaction(tx);
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err);
+      throw new Error(parseContractError(raw));
+    }
+
+    onStageChange?.("signing");
+    const signed = await signTransaction(prepared.toXDR(), {
+      networkPassphrase: config.networkPassphrase,
+      address: caller,
+    });
+    if (signed.error) {
+      throw new Error("Signing was rejected in the wallet.");
+    }
+
+    onStageChange?.("submitting");
+    const signedTx = TransactionBuilder.fromXDR(signed.signedTxXdr, config.networkPassphrase);
+    const sent = await srv.sendTransaction(signedTx);
+    if (sent.status === "ERROR") {
+      throw new Error("The network rejected the transaction.");
+    }
+
+    onStageChange?.("confirming");
+    return await confirm(srv, sent.hash);
+  } finally {
+    isInvocationActive = false;
+  }
+}
+
+export class TransactionTimeoutError extends Error {
+  txHash: string;
+  constructor(txHash: string, message = "Timed out waiting for confirmation.") {
+    super(message);
+    this.name = "TransactionTimeoutError";
+    this.txHash = txHash;
+  }
+}
+
+/**
+ * Re-checks an in-flight transaction confirmation status by hash.
+ */
+export async function confirmTransaction(
+  hash: string,
+  onStageChange?: (stage: TxStage) => void,
+): Promise<string> {
+  onStageChange?.("confirming");
+  const srv = server();
+  return confirm(srv, hash);
 }
 
 async function confirm(srv: rpc.Server, hash: string): Promise<string> {
@@ -115,7 +181,7 @@ async function confirm(srv: rpc.Server, hash: string): Promise<string> {
     }
     await sleep(1000);
   }
-  throw new Error("Timed out waiting for confirmation.");
+  throw new TransactionTimeoutError(hash);
 }
 
 /**
@@ -169,24 +235,36 @@ function findContractErrorToken(event: xdr.DiagnosticEvent): string | null {
   return null;
 }
 
-export async function createStream(params: CreateStreamParams): Promise<string> {
-  return invoke(params.sender, (contract) =>
-    contract.call(
-      "create_stream",
-      new Address(params.sender).toScVal(),
-      new Address(params.recipient).toScVal(),
-      new Address(params.token).toScVal(),
-      nativeToScVal(params.totalAmount, { type: "i128" }),
-      nativeToScVal(params.startTime, { type: "u64" }),
-      nativeToScVal(params.endTime, { type: "u64" }),
-      nativeToScVal(params.cliffTime, { type: "u64" }),
-    ),
+export async function createStream(
+  params: CreateStreamParams,
+  onStageChange?: (stage: TxStage) => void,
+): Promise<string> {
+  return invoke(
+    params.sender,
+    (contract) =>
+      contract.call(
+        "create_stream",
+        new Address(params.sender).toScVal(),
+        new Address(params.recipient).toScVal(),
+        new Address(params.token).toScVal(),
+        nativeToScVal(params.totalAmount, { type: "i128" }),
+        nativeToScVal(params.startTime, { type: "u64" }),
+        nativeToScVal(params.endTime, { type: "u64" }),
+        nativeToScVal(params.cliffTime, { type: "u64" }),
+      ),
+    onStageChange,
   );
 }
 
-export async function withdraw(caller: string, streamId: bigint): Promise<string> {
-  return invoke(caller, (contract) =>
-    contract.call("withdraw", nativeToScVal(streamId, { type: "u64" })),
+export async function withdraw(
+  caller: string,
+  streamId: bigint,
+  onStageChange?: (stage: TxStage) => void,
+): Promise<string> {
+  return invoke(
+    caller,
+    (contract) => contract.call("withdraw", nativeToScVal(streamId, { type: "u64" })),
+    onStageChange,
   );
 }
 
@@ -199,18 +277,28 @@ export async function withdrawAmount(
   caller: string,
   streamId: bigint,
   amount: bigint,
+  onStageChange?: (stage: TxStage) => void,
 ): Promise<string> {
-  return invoke(caller, (contract) =>
-    contract.call(
-      "withdraw_amount",
-      nativeToScVal(streamId, { type: "u64" }),
-      nativeToScVal(amount, { type: "i128" }),
-    ),
+  return invoke(
+    caller,
+    (contract) =>
+      contract.call(
+        "withdraw_amount",
+        nativeToScVal(streamId, { type: "u64" }),
+        nativeToScVal(amount, { type: "i128" }),
+      ),
+    onStageChange,
   );
 }
 
-export async function cancel(caller: string, streamId: bigint): Promise<string> {
-  return invoke(caller, (contract) =>
-    contract.call("cancel", nativeToScVal(streamId, { type: "u64" })),
+export async function cancel(
+  caller: string,
+  streamId: bigint,
+  onStageChange?: (stage: TxStage) => void,
+): Promise<string> {
+  return invoke(
+    caller,
+    (contract) => contract.call("cancel", nativeToScVal(streamId, { type: "u64" })),
+    onStageChange,
   );
 }

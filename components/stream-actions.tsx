@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { cancel, withdraw, withdrawAmount } from "@/lib/contract";
+import { cancel, withdraw, withdrawAmount, confirmTransaction, TransactionTimeoutError, type TxStage } from "@/lib/contract";
+import { TransactionProgress } from "@/components/transaction-progress";
 import { useAccrual } from "@/hooks/use-accrual";
 import { config } from "@/lib/config";
 import { txExplorerUrl } from "@/lib/explorer";
-import { formatAmount, formatTime } from "@/lib/format";
+import { formatAmount, formatMaxWithdrawHint, formatTime } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
 interface Props {
@@ -50,6 +51,8 @@ function parseAmount(human: string): bigint | null {
 
 export function StreamActions({ stream, walletAddress, onComplete }: Props) {
   const [busy, setBusy] = useState<"withdraw" | "cancel" | null>(null);
+  const [stage, setStage] = useState<TxStage | null>(null);
+  const [timeoutHash, setTimeoutHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [amountInput, setAmountInput] = useState("");
   const [amountError, setAmountError] = useState<string | null>(null);
@@ -107,10 +110,12 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
   }
 
   async function runWithdraw() {
+    if (busy !== null) return;
     const amount = validateAmount();
     if (amount === null) return;
 
     setBusy("withdraw");
+    setStage("preparing");
     setError(null);
     setLastTxHash(null);
     try {
@@ -119,35 +124,104 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
       // avoiding an unnecessary i128 argument on the common path.
       const hash =
         amount === accrual.withdrawable
-          ? await withdraw(caller, streamId)
-          : await withdrawAmount(caller, streamId, amount);
+          ? await withdraw(caller, streamId, (s) => setStage(s))
+          : await withdrawAmount(caller, streamId, amount, (s) => setStage(s));
       setLastTxHash(hash);
+      setTimeoutHash(null);
       onComplete();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to withdraw.");
+      if (err instanceof TransactionTimeoutError) {
+        setTimeoutHash(err.txHash);
+        setError("Confirmation timed out. The transaction was submitted to the network.");
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to withdraw.");
+      }
     } finally {
       setBusy(null);
+      setStage(null);
     }
   }
 
   async function runCancel() {
+    if (busy !== null) return;
     setBusy("cancel");
+    setStage("preparing");
     setError(null);
     setLastTxHash(null);
     try {
-      const hash = await cancel(caller, BigInt(stream.id));
+      const hash = await cancel(caller, BigInt(stream.id), (s) => setStage(s));
       setLastTxHash(hash);
+      setTimeoutHash(null);
       onComplete();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to cancel.");
+      if (err instanceof TransactionTimeoutError) {
+        setTimeoutHash(err.txHash);
+        setError("Confirmation timed out. The transaction was submitted to the network.");
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to cancel.");
+      }
     } finally {
       setBusy(null);
+      setStage(null);
       setConfirmingCancel(false);
+    }
+  }
+
+  async function handleRecoverTimeout() {
+    if (!timeoutHash) return;
+    setBusy("withdraw");
+    setStage("confirming");
+    setError(null);
+    try {
+      await confirmTransaction(timeoutHash, (s) => setStage(s));
+      setLastTxHash(timeoutHash);
+      setTimeoutHash(null);
+      onComplete();
+    } catch (err) {
+      if (err instanceof TransactionTimeoutError) {
+        setError("Confirmation timed out again. Check explorer or try again later.");
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to confirm transaction.");
+      }
+    } finally {
+      setBusy(null);
+      setStage(null);
     }
   }
 
   return (
     <div className="mt-8 flex flex-col gap-3">
+      <TransactionProgress stage={stage} />
+      {timeoutHash && (
+        <div
+          role="alert"
+          className="my-2 rounded-lg border border-amber-800/60 bg-amber-950/30 p-3 text-xs text-amber-200"
+        >
+          <p className="font-semibold">Transaction confirmation timed out</p>
+          <p className="mt-1 text-neutral-400">
+            The transaction was submitted on-chain. You can re-check its status without re-submitting.
+          </p>
+          <div className="mt-2.5 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void handleRecoverTimeout()}
+              disabled={busy !== null}
+              className="rounded bg-amber-400 px-2.5 py-1 font-semibold text-neutral-950 hover:bg-amber-300 disabled:opacity-50"
+            >
+              Re-check status
+            </button>
+            <a
+              href={txExplorerUrl(timeoutHash, config.network)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-300 underline hover:text-amber-100"
+            >
+              View on Stellar Expert
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </div>
+        </div>
+      )}
       {isRecipient && (
         <div className="flex flex-col gap-2">
           <div className="flex items-end gap-2">
@@ -169,8 +243,21 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
                 disabled={busy !== null || nothingToWithdraw}
                 className="w-44 rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none disabled:opacity-50"
                 aria-label="Withdrawal amount"
+                aria-describedby={!nothingToWithdraw ? "withdraw-max-hint" : undefined}
               />
             </label>
+            <button
+              type="button"
+              onClick={() => {
+                setAmountInput(formatAmount(accrual.withdrawable.toString()));
+                setAmountError(null);
+              }}
+              disabled={busy !== null || nothingToWithdraw}
+              className="rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm font-medium text-neutral-200 hover:bg-neutral-700 disabled:opacity-50"
+              aria-label="Set maximum withdraw amount"
+            >
+              Max
+            </button>
             <button
               onClick={() => void runWithdraw()}
               disabled={busy !== null || nothingToWithdraw}
@@ -179,6 +266,21 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
               {busy === "withdraw" ? "Withdrawing..." : "Withdraw"}
             </button>
           </div>
+          {!nothingToWithdraw && (
+            <p id="withdraw-max-hint" className="text-xs text-neutral-400">
+              {formatMaxWithdrawHint(accrual.withdrawable.toString())}{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setAmountInput(formatAmount(accrual.withdrawable.toString()));
+                  setAmountError(null);
+                }}
+                className="font-medium text-emerald-400 underline hover:text-emerald-300 ml-1"
+              >
+                Set max
+              </button>
+            </p>
+          )}
           {amountError && <p className="text-sm text-red-400">{amountError}</p>}
           {nothingToWithdraw && (
             <p className="text-sm text-neutral-500">{blockedReason(stream)}</p>
