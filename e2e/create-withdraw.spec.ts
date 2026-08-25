@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { installFreighterStub, TEST_ADDRESS } from "./fixtures/freighter";
 import {
   TOKEN_ID,
+  TX_HASH,
   stubApi,
   stubChain,
   streamingStream,
@@ -59,6 +60,18 @@ test.describe("create then withdraw", () => {
     const card = page.getByRole("link", { name: /#1/ }).first();
     await expect(card).toBeVisible();
 
+    // A dismissible success notice appears once, linking out to the tx.
+    const notice = page.getByRole("status");
+    await expect(notice).toContainText("Stream created.");
+    await expect(notice.getByRole("link", { name: /view transaction/i })).toHaveAttribute(
+      "href",
+      `https://stellar.expert/explorer/testnet/tx/${TX_HASH}`,
+    );
+    await notice.getByRole("button", { name: "Dismiss notice" }).click();
+    await expect(notice).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole("status")).toHaveCount(0);
+
     // The create call really went through sign -> submit -> confirm.
     expect(chain.methods).toContain("simulateTransaction");
     expect(chain.sendCount).toBe(1);
@@ -105,6 +118,13 @@ test.describe("create then withdraw", () => {
     // The withdrawal is reflected in the UI once the stream reloads: 500000000
     // base units of the 7-decimal token renders as 50.
     await expect(page.locator('dt:has-text("Withdrawn") + dd')).toHaveText("50");
+
+    // The withdrawal links out to the transaction on Stellar Expert.
+    const explorerLink = page.getByRole("link", { name: /view transaction/i });
+    await expect(explorerLink).toHaveAttribute(
+      "href",
+      `https://stellar.expert/explorer/testnet/tx/${TX_HASH}`,
+    );
   });
 });
 

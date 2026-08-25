@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { cancel, withdraw, withdrawAmount } from "@/lib/contract";
 import { useAccrual } from "@/hooks/use-accrual";
+import { config } from "@/lib/config";
+import { txExplorerUrl } from "@/lib/explorer";
 import { formatAmount, formatTime } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
@@ -51,6 +53,8 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [amountInput, setAmountInput] = useState("");
   const [amountError, setAmountError] = useState<string | null>(null);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [lastTxHash, setLastTxHash] = useState<string | null>(null);
   const accrual = useAccrual(stream);
 
   // Keep the amount input in sync with the live withdrawable balance so the
@@ -108,15 +112,16 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
 
     setBusy("withdraw");
     setError(null);
+    setLastTxHash(null);
     try {
       const streamId = BigInt(stream.id);
       // Use the full-balance shortcut when the user hasn't changed the amount,
       // avoiding an unnecessary i128 argument on the common path.
-      if (amount === accrual.withdrawable) {
-        await withdraw(caller, streamId);
-      } else {
-        await withdrawAmount(caller, streamId, amount);
-      }
+      const hash =
+        amount === accrual.withdrawable
+          ? await withdraw(caller, streamId)
+          : await withdrawAmount(caller, streamId, amount);
+      setLastTxHash(hash);
       onComplete();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to withdraw.");
@@ -128,13 +133,16 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
   async function runCancel() {
     setBusy("cancel");
     setError(null);
+    setLastTxHash(null);
     try {
-      await cancel(caller, BigInt(stream.id));
+      const hash = await cancel(caller, BigInt(stream.id));
+      setLastTxHash(hash);
       onComplete();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to cancel.");
     } finally {
       setBusy(null);
+      setConfirmingCancel(false);
     }
   }
 
@@ -178,17 +186,61 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
         </div>
       )}
 
-      {canCancel && (
+      {canCancel && !confirmingCancel && (
         <button
-          onClick={() => void runCancel()}
+          onClick={() => setConfirmingCancel(true)}
           disabled={busy !== null}
           className="self-start rounded border border-red-900 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-950/40 disabled:opacity-50"
         >
-          {busy === "cancel" ? "Cancelling..." : "Cancel stream"}
+          Cancel stream
         </button>
       )}
 
+      {canCancel && confirmingCancel && (
+        <div
+          role="alertdialog"
+          aria-labelledby="cancel-confirm-heading"
+          className="flex flex-col gap-3 self-start rounded border border-red-900 bg-red-950/20 p-4"
+        >
+          <p id="cancel-confirm-heading" className="text-sm text-red-200">
+            Cancel this stream? Streaming stops immediately and any unstreamed
+            balance returns to the sender. This cannot be undone.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => void runCancel()}
+              disabled={busy !== null}
+              className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+            >
+              {busy === "cancel" ? "Cancelling..." : "Yes, cancel stream"}
+            </button>
+            <button
+              onClick={() => setConfirmingCancel(false)}
+              disabled={busy !== null}
+              className="rounded border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300 hover:bg-neutral-900 disabled:opacity-50"
+            >
+              Keep streaming
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && <p className="text-sm text-red-400">{error}</p>}
+
+      {lastTxHash && (
+        <p className="text-sm text-neutral-500">
+          Confirmed.{" "}
+          <a
+            href={txExplorerUrl(lastTxHash, config.network)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-neutral-300 underline hover:text-neutral-100"
+          >
+            View transaction on Stellar Expert
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </p>
+      )}
     </div>
   );
 }

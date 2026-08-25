@@ -120,7 +120,24 @@ export default function StreamDetailPage() {
   }
   if (!stream) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-10 text-sm text-neutral-500">Stream not found.</main>
+      <main className="mx-auto max-w-2xl px-6 py-10">
+        <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
+          &larr; Back
+        </Link>
+        <div className="mt-3">
+          <h1 className="text-xl font-semibold">Stream not found</h1>
+          <p className="mt-2 text-sm text-neutral-400">
+            We couldn&rsquo;t find a stream with id &ldquo;{id}&rdquo;. Double-check the
+            link, or it may no longer exist.
+          </p>
+          <Link
+            href="/"
+            className="mt-6 inline-block rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900"
+          >
+            Go to your streams
+          </Link>
+        </div>
+      </main>
     );
   }
 
