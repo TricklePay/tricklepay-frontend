@@ -18,6 +18,7 @@ export interface StreamPage {
   error: string | null;
   hasMore: boolean;
   loadMore: () => void;
+  refresh: () => void;
 }
 
 function pageQuery(role: StreamRole, address: string, offset: number): ListStreamsParams {
@@ -74,6 +75,33 @@ export function useStreamPage(role: StreamRole, address: string | null): StreamP
 
   const hasMore = fetched < total;
 
+  const refresh = useCallback(() => {
+    generation.current += 1;
+    const gen = generation.current;
+
+    setStreams([]);
+    setTotal(0);
+    setFetched(0);
+    setError(null);
+    if (!address) return;
+
+    setLoading(true);
+    listStreams(pageQuery(role, address, 0))
+      .then((page) => {
+        if (generation.current !== gen) return;
+        setStreams(page.streams);
+        setTotal(page.total);
+        setFetched(page.streams.length);
+      })
+      .catch((err: unknown) => {
+        if (generation.current !== gen) return;
+        setError(err instanceof Error ? err.message : "Failed to load streams");
+      })
+      .finally(() => {
+        if (generation.current === gen) setLoading(false);
+      });
+  }, [role, address]);
+
   const loadMore = useCallback(() => {
     if (!address || loading || loadingMore || !hasMore) return;
     const gen = generation.current;
@@ -104,5 +132,5 @@ export function useStreamPage(role: StreamRole, address: string | null): StreamP
       });
   }, [address, role, fetched, hasMore, loading, loadingMore]);
 
-  return { streams, total, loading, loadingMore, error, hasMore, loadMore };
+  return { streams, total, loading, loadingMore, error, hasMore, loadMore, refresh };
 }
