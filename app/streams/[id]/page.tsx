@@ -116,7 +116,22 @@ export default function StreamDetailPage() {
     return <StreamDetailSkeleton />;
   }
   if (error) {
-    return <main className="mx-auto max-w-2xl px-6 py-10 text-sm text-red-400">{error}</main>;
+    return (
+      <main className="mx-auto max-w-2xl px-6 py-10">
+        <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
+          &larr; Back
+        </Link>
+        <div className="mt-6 flex items-center gap-4">
+          <p className="text-sm text-red-400">{error}</p>
+          <button
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="rounded border border-neutral-700 px-2 py-0.5 text-xs text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+          >
+            Retry
+          </button>
+        </div>
+      </main>
+    );
   }
   if (!stream) {
     return (
