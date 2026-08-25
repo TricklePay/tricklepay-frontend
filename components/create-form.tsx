@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { StrKey } from "@stellar/stellar-sdk";
 import { useWallet } from "@/components/wallet-provider";
@@ -85,8 +85,21 @@ export function CreateForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Field-level errors
   const [recipientError, setRecipientError] = useState<string | undefined>();
   const [tokenError, setTokenError] = useState<string | undefined>();
+  const [amountError, setAmountError] = useState<string | undefined>();
+  const [startError, setStartError] = useState<string | undefined>();
+  const [endError, setEndError] = useState<string | undefined>();
+  const [cliffError, setCliffError] = useState<string | undefined>();
+
+  // Refs used to focus the first invalid field on submit
+  const recipientRef = useRef<HTMLInputElement>(null);
+  const tokenRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const startRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLInputElement>(null);
+  const cliffRef = useRef<HTMLInputElement>(null);
 
   function handleRecipientChange(value: string) {
     setRecipient(value);
@@ -106,8 +119,82 @@ export function CreateForm() {
     }
   }
 
+  function handleAmountChange(value: string) {
+    setAmount(value);
+    if (!value) {
+      setAmountError(undefined);
+      return;
+    }
+    try {
+      const parsed = parseAmount(value);
+      if (parsed <= 0n) {
+        setAmountError("Amount must be greater than zero.");
+      } else {
+        setAmountError(undefined);
+      }
+    } catch (err) {
+      setAmountError(err instanceof Error ? err.message : "Invalid amount.");
+    }
+  }
+
+  function handleStartChange(value: string) {
+    setStart(value);
+    setStartError(value ? undefined : "Start date is required.");
+    // Re-validate end and cliff against the new start
+    if (value && end) validateEndAgainstStart(value, end);
+    if (value && cliff) validateCliff(value, end, cliff);
+  }
+
+  function handleEndChange(value: string) {
+    setEnd(value);
+    if (!value) {
+      setEndError("End date is required.");
+      return;
+    }
+    validateEndAgainstStart(start, value);
+    if (cliff) validateCliff(start, value, cliff);
+  }
+
+  function handleCliffChange(value: string) {
+    setCliff(value);
+    if (value) validateCliff(start, end, value);
+    else setCliffError(undefined);
+  }
+
+  function validateEndAgainstStart(startVal: string, endVal: string) {
+    if (startVal && endVal && toUnix(endVal) <= toUnix(startVal)) {
+      setEndError("End must be after start.");
+    } else {
+      setEndError(undefined);
+    }
+  }
+
+  function validateCliff(startVal: string, endVal: string, cliffVal: string) {
+    if (!startVal || !endVal || !cliffVal) {
+      setCliffError(undefined);
+      return;
+    }
+    const s = toUnix(startVal);
+    const e = toUnix(endVal);
+    const c = toUnix(cliffVal);
+    if (c < s || c > e) {
+      setCliffError("Cliff must fall between start and end.");
+    } else {
+      setCliffError(undefined);
+    }
+  }
+
   const addressesValid =
     isValidStellarAddress(recipient) && isValidContractAddress(token);
+
+  const hasFieldErrors = !!(
+    recipientError ||
+    tokenError ||
+    amountError ||
+    startError ||
+    endError ||
+    cliffError
+  );
 
   if (!wallet.address) {
     return <p className="text-sm text-neutral-400">Connect your wallet to create a stream.</p>;
@@ -125,8 +212,25 @@ export function CreateForm() {
       return;
     }
 
-    if (!recipient || !token || !amount || !start || !end) {
-      setError("All fields except cliff are required.");
+    // Trigger field-level errors for any blank required fields, then focus the first invalid one.
+    let hasErrors = false;
+    if (!recipient) { setRecipientError("Recipient address is required."); hasErrors = true; }
+    if (!token) { setTokenError("Token contract id is required."); hasErrors = true; }
+    if (!amount) { setAmountError("Amount is required."); hasErrors = true; }
+    if (!start) { setStartError("Start date is required."); hasErrors = true; }
+    if (!end) { setEndError("End date is required."); hasErrors = true; }
+
+    if (hasErrors || hasFieldErrors) {
+      // Focus the first field that already has (or just received) an error.
+      const firstInvalid = [
+        { error: recipientError || (!recipient ? "x" : undefined), ref: recipientRef },
+        { error: tokenError     || (!token     ? "x" : undefined), ref: tokenRef },
+        { error: amountError    || (!amount    ? "x" : undefined), ref: amountRef },
+        { error: startError     || (!start     ? "x" : undefined), ref: startRef },
+        { error: endError       || (!end       ? "x" : undefined), ref: endRef },
+        { error: cliffError,                                        ref: cliffRef },
+      ].find((f) => !!f.error);
+      firstInvalid?.ref.current?.focus();
       return;
     }
 
@@ -138,24 +242,29 @@ export function CreateForm() {
     const startTime = toUnix(start);
     const endTime = toUnix(end);
     const cliffTime = cliff ? toUnix(cliff) : startTime;
+
     if (endTime <= startTime) {
-      setError("End must be after start.");
+      setEndError("End must be after start.");
+      endRef.current?.focus();
       return;
     }
     if (cliffTime < startTime || cliffTime > endTime) {
-      setError("Cliff must fall between start and end.");
+      setCliffError("Cliff must fall between start and end.");
+      cliffRef.current?.focus();
       return;
     }
 
     let totalAmount: bigint;
     try {
       totalAmount = parseAmount(amount);
-    } catch {
-      setError("Invalid amount.");
+    } catch (err) {
+      setAmountError(err instanceof Error ? err.message : "Invalid amount.");
+      amountRef.current?.focus();
       return;
     }
     if (totalAmount <= 0n) {
-      setError("Amount must be greater than zero.");
+      setAmountError("Amount must be greater than zero.");
+      amountRef.current?.focus();
       return;
     }
 
@@ -183,6 +292,8 @@ export function CreateForm() {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <Field label="Recipient address" error={recipientError}>
         <input
+          id="field-recipient"
+          ref={recipientRef}
           className={recipientError ? inputErrorClass : inputClass}
           value={recipient}
           onChange={(e) => handleRecipientChange(e.target.value)}
@@ -193,6 +304,8 @@ export function CreateForm() {
       </Field>
       <Field label="Token contract id" error={tokenError}>
         <input
+          id="field-token"
+          ref={tokenRef}
           className={tokenError ? inputErrorClass : inputClass}
           value={token}
           onChange={(e) => handleTokenChange(e.target.value)}
@@ -201,37 +314,58 @@ export function CreateForm() {
           aria-describedby={tokenError ? "token-error" : undefined}
         />
       </Field>
-      <Field label="Amount">
+      <Field label="Amount" error={amountError}>
         <input
-          className={inputClass}
+          id="field-amount"
+          ref={amountRef}
+          className={amountError ? inputErrorClass : inputClass}
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={(e) => handleAmountChange(e.target.value)}
           placeholder="100"
           inputMode="decimal"
+          aria-invalid={!!amountError}
+          aria-describedby={amountError ? "amount-error" : "amount-hint"}
         />
+        {!amountError && (
+          <span id="amount-hint" className="text-xs text-neutral-500">
+            Up to 7 decimal places (e.g. 1.0000001)
+          </span>
+        )}
       </Field>
-      <Field label="Start">
+      <Field label="Start" error={startError}>
         <input
-          className={inputClass}
+          id="field-start"
+          ref={startRef}
+          className={startError ? inputErrorClass : inputClass}
           type="datetime-local"
           value={start}
-          onChange={(e) => setStart(e.target.value)}
+          onChange={(e) => handleStartChange(e.target.value)}
+          aria-invalid={!!startError}
+          aria-describedby={startError ? "start-error" : undefined}
         />
       </Field>
-      <Field label="End">
+      <Field label="End" error={endError}>
         <input
-          className={inputClass}
+          id="field-end"
+          ref={endRef}
+          className={endError ? inputErrorClass : inputClass}
           type="datetime-local"
           value={end}
-          onChange={(e) => setEnd(e.target.value)}
+          onChange={(e) => handleEndChange(e.target.value)}
+          aria-invalid={!!endError}
+          aria-describedby={endError ? "end-error" : undefined}
         />
       </Field>
-      <Field label="Cliff (optional)">
+      <Field label="Cliff (optional)" error={cliffError}>
         <input
-          className={inputClass}
+          id="field-cliff"
+          ref={cliffRef}
+          className={cliffError ? inputErrorClass : inputClass}
           type="datetime-local"
           value={cliff}
-          onChange={(e) => setCliff(e.target.value)}
+          onChange={(e) => handleCliffChange(e.target.value)}
+          aria-invalid={!!cliffError}
+          aria-describedby={cliffError ? "cliff-error" : undefined}
         />
       </Field>
 
