@@ -6,6 +6,8 @@ import { useWallet } from "@/components/wallet-provider";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { StreamList } from "@/components/stream-list";
 import { StreamListSkeleton } from "@/components/skeleton";
+import { TransactionNotice } from "@/components/transaction-notice";
+import { takePendingNotice, type PendingNotice } from "@/lib/pending-notice";
 import type { StreamStatus } from "@/types/stream";
 
 const FILTERS: Array<{ label: string; value: StreamStatus | "all" }> = [
@@ -151,6 +153,13 @@ export default function Home() {
   const incoming = useStreamPage("recipient", wallet.address);
   const outgoing = useStreamPage("sender", wallet.address);
   const counts = useStatusCounts(incoming, outgoing);
+
+  // Picked up once per mount, e.g. after a redirect from a successful create.
+  // takePendingNotice clears it from storage immediately, so a refresh never
+  // repeats it.
+  useEffect(() => {
+    setNotice(takePendingNotice());
+  }, []);
 
   if (!wallet.address) {
     return (

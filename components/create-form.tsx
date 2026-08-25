@@ -6,6 +6,7 @@ import { StrKey } from "@stellar/stellar-sdk";
 import { useWallet } from "@/components/wallet-provider";
 import { useNetworkGuard } from "@/hooks/use-network-guard";
 import { createStream } from "@/lib/contract";
+import { setPendingNotice } from "@/lib/pending-notice";
 
 // A Stellar address is valid if it is a public key (G...) or a contract (C...).
 function isValidStellarAddress(value: string): boolean {
@@ -160,7 +161,16 @@ export function CreateForm() {
 
     setSubmitting(true);
     try {
-      await createStream({ sender, recipient, token, totalAmount, startTime, endTime, cliffTime });
+      const hash = await createStream({
+        sender,
+        recipient,
+        token,
+        totalAmount,
+        startTime,
+        endTime,
+        cliffTime,
+      });
+      setPendingNotice({ message: "Stream created.", hash });
       router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create stream.");
