@@ -198,7 +198,11 @@ export function CreateForm() {
           onChange={(e) => setAmount(e.target.value)}
           placeholder="100"
           inputMode="decimal"
+          aria-describedby="amount-hint"
         />
+        <span id="amount-hint" className="text-xs text-neutral-500">
+          Up to 7 decimal places (e.g. 1.0000001)
+        </span>
       </Field>
       <Field label="Start">
         <input
