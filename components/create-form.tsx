@@ -4,9 +4,12 @@ import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { StrKey } from "@stellar/stellar-sdk";
 import { useWallet } from "@/components/wallet-provider";
+import { TransactionProgress } from "@/components/transaction-progress";
 import { useNetworkGuard } from "@/hooks/use-network-guard";
-import { createStream } from "@/lib/contract";
+import { createStream, confirmTransaction, TransactionTimeoutError, type TxStage } from "@/lib/contract";
 import { setPendingNotice } from "@/lib/pending-notice";
+import { config } from "@/lib/config";
+import { txExplorerUrl } from "@/lib/explorer";
 
 // A Stellar address is valid if it is a public key (G...) or a contract (C...).
 function isValidStellarAddress(value: string): boolean {
@@ -83,6 +86,8 @@ export function CreateForm() {
   const [end, setEnd] = useState("");
   const [cliff, setCliff] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [stage, setStage] = useState<TxStage | null>(null);
+  const [timeoutHash, setTimeoutHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Field-level errors
@@ -203,6 +208,7 @@ export function CreateForm() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (submitting) return;
     setError(null);
 
     if (mismatch) {
@@ -269,22 +275,55 @@ export function CreateForm() {
     }
 
     setSubmitting(true);
+    setStage("preparing");
     try {
-      const hash = await createStream({
-        sender,
-        recipient,
-        token,
-        totalAmount,
-        startTime,
-        endTime,
-        cliffTime,
-      });
+      const hash = await createStream(
+        {
+          sender,
+          recipient,
+          token,
+          totalAmount,
+          startTime,
+          endTime,
+          cliffTime,
+        },
+        (s) => setStage(s),
+      );
       setPendingNotice({ message: "Stream created.", hash });
+      setTimeoutHash(null);
       router.push("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create stream.");
+      if (err instanceof TransactionTimeoutError) {
+        setTimeoutHash(err.txHash);
+        setError("Confirmation timed out. The transaction was submitted to the network.");
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to create stream.");
+      }
     } finally {
       setSubmitting(false);
+      setStage(null);
+    }
+  }
+
+  async function handleRecoverTimeout() {
+    if (!timeoutHash) return;
+    setSubmitting(true);
+    setStage("confirming");
+    setError(null);
+    try {
+      await confirmTransaction(timeoutHash, (s) => setStage(s));
+      setPendingNotice({ message: "Stream created.", hash: timeoutHash });
+      setTimeoutHash(null);
+      router.push("/");
+    } catch (err) {
+      if (err instanceof TransactionTimeoutError) {
+        setError("Confirmation timed out again. Check explorer or try again later.");
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to confirm transaction.");
+      }
+    } finally {
+      setSubmitting(false);
+      setStage(null);
     }
   }
 
@@ -368,6 +407,39 @@ export function CreateForm() {
           aria-describedby={cliffError ? "cliff-error" : undefined}
         />
       </Field>
+
+      <TransactionProgress stage={stage} />
+
+      {timeoutHash && (
+        <div
+          role="alert"
+          className="my-2 rounded-lg border border-amber-800/60 bg-amber-950/30 p-3 text-xs text-amber-200"
+        >
+          <p className="font-semibold">Transaction confirmation timed out</p>
+          <p className="mt-1 text-neutral-400">
+            The transaction was submitted on-chain. You can re-check its status without re-submitting.
+          </p>
+          <div className="mt-2.5 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void handleRecoverTimeout()}
+              disabled={submitting}
+              className="rounded bg-amber-400 px-2.5 py-1 font-semibold text-neutral-950 hover:bg-amber-300 disabled:opacity-50"
+            >
+              Re-check status
+            </button>
+            <a
+              href={txExplorerUrl(timeoutHash, config.network)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-300 underline hover:text-amber-100"
+            >
+              View on Stellar Expert
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </div>
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 

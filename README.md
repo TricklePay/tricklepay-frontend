@@ -21,7 +21,10 @@ to the stream contract directly over Soroban RPC.
 - **Create** a stream with a recipient, token, amount, time window, and optional
   cliff.
 - **Withdraw** as the recipient and **cancel** as the sender, each built, signed,
-  submitted, and confirmed on-chain.
+  submitted, and confirmed on-chain with step-by-step transaction progress stages (Preparing -> Sign -> Submit -> Confirm).
+- **Duplicate submission protection** — in-flight invocation guards in contract utilities and components prevent double-submitting active transactions.
+- **Transaction timeout recovery** — explicit recovery UI allows re-checking confirmation by transaction hash if network confirmation times out without re-submitting.
+- **Maximum withdraw amount hint** — accessible hint and quick "Max" action fill the withdrawal input directly with the live vested balance.
 
 ## Stack
 
@@ -70,12 +73,13 @@ components/
   stream-list.tsx       grid of cards with an empty state
   create-form.tsx       new-stream form
   stream-actions.tsx    withdraw and cancel buttons
+  transaction-progress.tsx transaction progress stage indicator
 hooks/
   use-accrual.ts        per-second vested/withdrawable recomputation
 lib/
   config.ts             client configuration
   api.ts                backend API client
-  contract.ts           build, sign, submit, confirm contract calls
+  contract.ts           build, sign, submit, confirm contract calls with stage tracking
   vesting.ts            linear vesting math, mirroring the contract
   format.ts             amount and address formatting
 types/
