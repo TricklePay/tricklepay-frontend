@@ -7,6 +7,7 @@ import { useAccrual } from "@/hooks/use-accrual";
 import { config } from "@/lib/config";
 import { txExplorerUrl } from "@/lib/explorer";
 import { formatAmount, formatMaxWithdrawHint, formatTime } from "@/lib/format";
+import { parseHumanAmount, withdrawalAmountError } from "@/lib/amount";
 import type { StreamView } from "@/types/stream";
 
 interface Props {
@@ -35,15 +36,12 @@ function blockedReason(stream: StreamView): string {
   return "Nothing to withdraw yet.";
 }
 
-// Parses a human decimal amount (e.g. "12.5") into 7-decimal base units,
-// matching the convention in create-form.tsx. Returns null on invalid input.
+// Parses a human decimal amount (e.g. "12.5") into 7-decimal base units.
+// Returns null on invalid input; used only for the default-balance sync, where
+// user-facing errors come from lib/amount's validators instead.
 function parseAmount(human: string): bigint | null {
-  const trimmed = human.trim();
-  if (!trimmed || !/^\d+(\.\d+)?$/.test(trimmed)) return null;
-  const [whole, frac = ""] = trimmed.split(".");
-  const fracPadded = (frac + "0000000").slice(0, 7);
   try {
-    return BigInt(whole || "0") * 10_000_000n + BigInt(fracPadded);
+    return parseHumanAmount(human);
   } catch {
     return null;
   }
@@ -94,19 +92,25 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
   if (!isRecipient && !canCancel) return null;
 
   function validateAmount(): bigint | null {
-    const parsed = parseAmount(amountInput);
-    if (parsed === null || parsed <= 0n) {
-      setAmountError("Enter a valid amount greater than zero.");
-      return null;
-    }
-    if (parsed > accrual.withdrawable) {
-      setAmountError(
-        `Amount exceeds withdrawable balance (${formatAmount(accrual.withdrawable.toString())}).`,
-      );
+    const message = withdrawalAmountError(amountInput, accrual.withdrawable);
+    if (message !== null) {
+      setAmountError(message);
       return null;
     }
     setAmountError(null);
-    return parsed;
+    return parseAmount(amountInput);
+  }
+
+  // Live inline validation as the user types. Transient states — empty field
+  // and a trailing decimal point mid-entry — stay error-free so typing is not
+  // nagged; the submit path revalidates the final value either way.
+  function handleAmountInputChange(value: string) {
+    setAmountInput(value);
+    setAmountError(
+      !value.trim() || value.trim().endsWith(".")
+        ? null
+        : withdrawalAmountError(value, accrual.withdrawable),
+    );
   }
 
   async function runWithdraw() {
@@ -236,14 +240,19 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
                 type="text"
                 inputMode="decimal"
                 value={amountInput}
-                onChange={(e) => {
-                  setAmountInput(e.target.value);
-                  setAmountError(null);
+                onChange={(e) => handleAmountInputChange(e.target.value)}
+                onBlur={() => {
+                  if (amountInput.trim()) setAmountError(withdrawalAmountError(amountInput, accrual.withdrawable));
                 }}
                 disabled={busy !== null || nothingToWithdraw}
-                className="w-44 rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none disabled:opacity-50"
+                className={`w-44 rounded border bg-neutral-900 px-3 py-2 text-sm focus:outline-none disabled:opacity-50 ${
+                  amountError
+                    ? "border-red-500 focus:border-red-400"
+                    : "border-neutral-700 focus:border-neutral-500"
+                }`}
                 aria-label="Withdrawal amount"
-                aria-describedby={!nothingToWithdraw ? "withdraw-max-hint" : undefined}
+                aria-invalid={!!amountError}
+                aria-describedby={amountError ? "withdraw-amount-error" : nothingToWithdraw ? undefined : "withdraw-max-hint"}
               />
             </label>
             <button
@@ -260,7 +269,8 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
             </button>
             <button
               onClick={() => void runWithdraw()}
-              disabled={busy !== null || nothingToWithdraw}
+              disabled={busy !== null || nothingToWithdraw || !!amountError}
+              aria-describedby={nothingToWithdraw ? "withdraw-blocked-reason" : undefined}
               className="rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 disabled:opacity-50"
             >
               {busy === "withdraw" ? "Withdrawing..." : "Withdraw"}
@@ -281,9 +291,15 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
               </button>
             </p>
           )}
-          {amountError && <p className="text-sm text-red-400">{amountError}</p>}
+          {amountError && (
+            <p id="withdraw-amount-error" className="text-sm text-red-400">
+              {amountError}
+            </p>
+          )}
           {nothingToWithdraw && (
-            <p className="text-sm text-neutral-500">{blockedReason(stream)}</p>
+            <p id="withdraw-blocked-reason" className="text-sm text-neutral-500">
+              {blockedReason(stream)}
+            </p>
           )}
         </div>
       )}

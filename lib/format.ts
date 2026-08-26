@@ -43,3 +43,20 @@ export function formatMaxWithdrawHint(rawWithdrawable: string): string {
   const formatted = formatAmount(rawWithdrawable);
   return `Maximum withdrawable amount: ${formatted}`;
 }
+
+// A short human description of a duration in seconds, matching timeRemaining's
+// phrasing ("2d 3h", "45m", "under a minute"). Returns null for zero or
+// negative spans so callers can hide the value instead of showing something
+// misleading.
+export function formatDuration(seconds: bigint): string | null {
+  if (seconds <= 0n) return null;
+
+  const days = seconds / 86_400n;
+  const hours = (seconds % 86_400n) / 3_600n;
+  const minutes = (seconds % 3_600n) / 60n;
+
+  if (days > 0n) return `${days}d ${hours}h`;
+  if (hours > 0n) return `${hours}h ${minutes}m`;
+  if (minutes > 0n) return `${minutes}m`;
+  return "under a minute";
+}

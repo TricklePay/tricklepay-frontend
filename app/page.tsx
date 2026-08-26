@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useWallet } from "@/components/wallet-provider";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { StreamList } from "@/components/stream-list";
@@ -124,7 +124,17 @@ function StreamSection({
   );
 }
 
+// useSearchParams needs a Suspense boundary so the dashboard can prerender;
+// without one the static export bails and the build fails.
 export default function Home() {
+  return (
+    <Suspense fallback={<StreamListSkeleton count={2} />}>
+      <Dashboard />
+    </Suspense>
+  );
+}
+
+function Dashboard() {
   const wallet = useWallet();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -156,9 +166,12 @@ export default function Home() {
 
   // Picked up once per mount, e.g. after a redirect from a successful create.
   // takePendingNotice clears it from storage immediately, so a refresh never
-  // repeats it.
+  // repeats it. The functional update keeps the first read: StrictMode (dev)
+  // runs this effect twice, and a plain re-read would overwrite the notice
+  // with null once the storage entry is gone.
+  const [notice, setNotice] = useState<PendingNotice | null>(null);
   useEffect(() => {
-    setNotice(takePendingNotice());
+    setNotice((previous) => previous ?? takePendingNotice());
   }, []);
 
   if (!wallet.address) {
@@ -174,6 +187,14 @@ export default function Home() {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
+      {notice && (
+        <TransactionNotice
+          message={notice.message}
+          hash={notice.hash}
+          onDismiss={() => setNotice(null)}
+        />
+      )}
+
       <div className="mb-8 flex flex-wrap items-center gap-2">
         {FILTERS.map((option) => (
           <button

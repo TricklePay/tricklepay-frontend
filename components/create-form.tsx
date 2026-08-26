@@ -6,10 +6,13 @@ import { StrKey } from "@stellar/stellar-sdk";
 import { useWallet } from "@/components/wallet-provider";
 import { TransactionProgress } from "@/components/transaction-progress";
 import { useNetworkGuard } from "@/hooks/use-network-guard";
-import { createStream, confirmTransaction, TransactionTimeoutError, type TxStage } from "@/lib/contract";
+import { createStream, confirmTransaction, TransactionTimeoutError, type CreateStreamParams, type TxStage } from "@/lib/contract";
 import { setPendingNotice } from "@/lib/pending-notice";
 import { config } from "@/lib/config";
 import { txExplorerUrl } from "@/lib/explorer";
+import { StreamReview } from "@/components/stream-review";
+import { vestingRatePerDay } from "@/lib/vesting";
+import { formatAmount, formatDuration } from "@/lib/format";
 
 // A Stellar address is valid if it is a public key (G...) or a contract (C...).
 function isValidStellarAddress(value: string): boolean {
@@ -89,6 +92,10 @@ export function CreateForm() {
   const [stage, setStage] = useState<TxStage | null>(null);
   const [timeoutHash, setTimeoutHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Non-null once the form has been validated and the user is on the review
+  // step. Holds the exact parameters confirm will submit, so the review always
+  // shows what will actually go on-chain.
+  const [prepared, setPrepared] = useState<CreateStreamParams | null>(null);
 
   // Field-level errors
   const [recipientError, setRecipientError] = useState<string | undefined>();
@@ -192,6 +199,20 @@ export function CreateForm() {
   const addressesValid =
     isValidStellarAddress(recipient) && isValidContractAddress(token);
 
+  // Live vesting-rate preview: only when amount and window are complete and
+  // error-free, so an incomplete or invalid form never shows a rate.
+  const previewRate =
+    amount && start && end && !amountError && !startError && !endError
+      ? vestingRatePerDay(parseAmount(amount), toUnix(start), toUnix(end))
+      : null;
+
+  // Live duration preview, only for a valid window; end-before-start already
+  // flags the End field, so no misleading negative or zero span is shown.
+  const previewDuration =
+    start && end && !startError && !endError
+      ? formatDuration(toUnix(end) - toUnix(start))
+      : null;
+
   const hasFieldErrors = !!(
     recipientError ||
     tokenError ||
@@ -274,19 +295,28 @@ export function CreateForm() {
       return;
     }
 
+    // Validation passed: show the review step. The transaction itself only
+    // goes out once the user confirms there.
+    setPrepared({
+      sender,
+      recipient,
+      token,
+      totalAmount,
+      startTime,
+      endTime,
+      cliffTime,
+    });
+  }
+
+  async function handleConfirm() {
+    if (!prepared || submitting) return;
+    setError(null);
+
     setSubmitting(true);
     setStage("preparing");
     try {
       const hash = await createStream(
-        {
-          sender,
-          recipient,
-          token,
-          totalAmount,
-          startTime,
-          endTime,
-          cliffTime,
-        },
+        prepared,
         (s) => setStage(s),
       );
       setPendingNotice({ message: "Stream created.", hash });
@@ -325,6 +355,61 @@ export function CreateForm() {
       setSubmitting(false);
       setStage(null);
     }
+  }
+
+  // Transaction feedback shared by both phases so progress, timeout recovery,
+  // and errors stay visible whether the user is on the form or the review.
+  const feedback = (
+    <>
+      <TransactionProgress stage={stage} />
+
+      {timeoutHash && (
+        <div
+          role="alert"
+          className="my-2 rounded-lg border border-amber-800/60 bg-amber-950/30 p-3 text-xs text-amber-200"
+        >
+          <p className="font-semibold">Transaction confirmation timed out</p>
+          <p className="mt-1 text-neutral-400">
+            The transaction was submitted on-chain. You can re-check its status without re-submitting.
+          </p>
+          <div className="mt-2.5 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void handleRecoverTimeout()}
+              disabled={submitting}
+              className="rounded bg-amber-400 px-2.5 py-1 font-semibold text-neutral-950 hover:bg-amber-300 disabled:opacity-50"
+            >
+              Re-check status
+            </button>
+            <a
+              href={txExplorerUrl(timeoutHash, config.network)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-300 underline hover:text-amber-100"
+            >
+              View on Stellar Expert
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </div>
+        </div>
+      )}
+
+      {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
+    </>
+  );
+
+  if (prepared) {
+    return (
+      <div className="flex flex-col gap-4">
+        <StreamReview
+          params={prepared}
+          submitting={submitting}
+          onBack={() => setPrepared(null)}
+          onConfirm={() => void handleConfirm()}
+        />
+        {feedback}
+      </div>
+    );
   }
 
   return (
@@ -395,6 +480,24 @@ export function CreateForm() {
           aria-describedby={endError ? "end-error" : undefined}
         />
       </Field>
+
+      {previewDuration !== null && (
+        <p className="rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-xs text-neutral-400">
+          Stream duration:{" "}
+          <span className="font-medium text-neutral-100">{previewDuration}</span>
+        </p>
+      )}
+
+      {previewRate !== null && (
+        <p className="rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-xs text-neutral-400">
+          Vesting rate:{" "}
+          <span className="font-medium text-neutral-100">
+            {formatAmount(previewRate.toString())}
+          </span>{" "}
+          tokens/day, released linearly from start to end.
+        </p>
+      )}
+
       <Field label="Cliff (optional)" error={cliffError}>
         <input
           id="field-cliff"
@@ -408,47 +511,14 @@ export function CreateForm() {
         />
       </Field>
 
-      <TransactionProgress stage={stage} />
-
-      {timeoutHash && (
-        <div
-          role="alert"
-          className="my-2 rounded-lg border border-amber-800/60 bg-amber-950/30 p-3 text-xs text-amber-200"
-        >
-          <p className="font-semibold">Transaction confirmation timed out</p>
-          <p className="mt-1 text-neutral-400">
-            The transaction was submitted on-chain. You can re-check its status without re-submitting.
-          </p>
-          <div className="mt-2.5 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void handleRecoverTimeout()}
-              disabled={submitting}
-              className="rounded bg-amber-400 px-2.5 py-1 font-semibold text-neutral-950 hover:bg-amber-300 disabled:opacity-50"
-            >
-              Re-check status
-            </button>
-            <a
-              href={txExplorerUrl(timeoutHash, config.network)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-amber-300 underline hover:text-amber-100"
-            >
-              View on Stellar Expert
-              <span className="sr-only"> (opens in a new tab)</span>
-            </a>
-          </div>
-        </div>
-      )}
-
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {feedback}
 
       <button
         type="submit"
         disabled={submitting || mismatch || !addressesValid}
         className="mt-2 rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 disabled:opacity-50"
       >
-        {submitting ? "Creating..." : "Create stream"}
+        {submitting ? "Creating..." : "Review stream"}
       </button>
     </form>
   );

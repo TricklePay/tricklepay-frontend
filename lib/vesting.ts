@@ -21,3 +21,17 @@ export function withdrawableAmount(vested: bigint, withdrawn: bigint): bigint {
   const available = vested - withdrawn;
   return available < 0n ? 0n : available;
 }
+
+// Average rate the stream releases at across its window, in 7-decimal base
+// units per day — the same linear math the contract applies per second,
+// scaled up so realistic rates stay human-readable instead of truncating to
+// zero. Returns null unless [startTime, endTime) is a valid non-empty range,
+// so previews can hide rather than mislead.
+export function vestingRatePerDay(
+  totalAmount: bigint,
+  startTime: bigint,
+  endTime: bigint,
+): bigint | null {
+  if (totalAmount <= 0n || endTime <= startTime) return null;
+  return (totalAmount * 86_400n) / (endTime - startTime);
+}

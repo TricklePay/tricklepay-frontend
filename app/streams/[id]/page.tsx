@@ -112,7 +112,10 @@ export default function StreamDetailPage() {
     };
   }, [id, reloadKey]);
 
-  if (loading) {
+  // Only the initial load gets the skeleton: a post-transaction refetch keeps
+  // the current detail (and StreamActions' confirmation state, like the
+  // explorer link for the tx just confirmed) on screen until fresh data lands.
+  if (loading && !stream) {
     return <StreamDetailSkeleton />;
   }
   if (error) {
