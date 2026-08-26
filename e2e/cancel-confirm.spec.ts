@@ -73,15 +73,9 @@ test.describe("cancel confirmation", () => {
 
     await page.getByRole("button", { name: "Yes, cancel stream" }).click();
 
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () =>
-            (window as unknown as { __signedTransactions: string[] }).__signedTransactions.length,
-        ),
-      )
-      .toBe(1);
-    expect(chain.sendCount).toBe(1);
+    // Signature lands moments before the submission does, so poll the chain
+    // counter rather than reading it once the signature shows up.
+    await expect.poll(() => chain.sendCount).toBe(1);
     await expect(page.getByRole("button", { name: "Cancel stream", exact: true })).toHaveCount(0);
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
 

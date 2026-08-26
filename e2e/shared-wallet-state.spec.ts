@@ -29,7 +29,9 @@ test.describe("shared wallet state", () => {
     await page.goto("/");
 
     // Connected: the header shows the address and the dashboard lists streams.
-    const disconnect = page.getByRole("button", { name: /\.\.\./ });
+    // The disconnect button's accessible name carries the full address, so
+    // match its stable prefix rather than the truncated badge text.
+    const disconnect = page.getByRole("button", { name: /^Disconnect wallet / });
     await expect(disconnect).toBeVisible();
     await expect(page.getByRole("link", { name: /#1/ }).first()).toBeVisible();
 
@@ -58,15 +60,16 @@ test.describe("shared wallet state", () => {
     await page.goto("/streams/1");
 
     // Recipient and sender are the same account here, so both actions render.
-    await expect(page.getByRole("button", { name: "Withdraw" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();
+    // `exact` keeps these from substring-matching the Max/"Set max" buttons.
+    await expect(page.getByRole("button", { name: "Withdraw", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Cancel stream", exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: /\.\.\./ }).click();
+    await page.getByRole("button", { name: /^Disconnect wallet / }).click();
 
     // StreamActions renders nothing without an address, so a disconnect that
     // actually propagates removes both buttons.
-    await expect(page.getByRole("button", { name: "Withdraw" })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Cancel" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Withdraw", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Cancel stream", exact: true })).toHaveCount(0);
   });
 
   test("probes Freighter once per load, not once per consumer", async ({ page }) => {
@@ -80,7 +83,7 @@ test.describe("shared wallet state", () => {
 
     // The dashboard mounts two consumers: the header button and the page.
     await page.goto("/");
-    await expect(page.getByRole("button", { name: /\.\.\./ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Disconnect wallet / })).toBeVisible();
 
     await expect
       .poll(async () =>
@@ -90,7 +93,7 @@ test.describe("shared wallet state", () => {
 
     // The create page mounts two as well: the header button and the form.
     await page.goto("/create");
-    await expect(page.getByRole("button", { name: "Create stream" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Review stream" })).toBeVisible();
 
     await expect
       .poll(async () =>

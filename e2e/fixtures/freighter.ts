@@ -77,7 +77,16 @@ export function installFreighterStub(options: FreighterStubOptions = {}): void {
       case "REQUEST_NETWORK":
         return { network, networkPassphrase };
       case "REQUEST_NETWORK_DETAILS":
-        return { network, networkPassphrase, networkUrl: "", sorobanRpcUrl: "" };
+        // @stellar/freighter-api v6 getNetwork() reads the nested
+        // `networkDetails` field off this response; older versions read the
+        // flat shape. Provide both so either client code path resolves.
+        return {
+          network,
+          networkPassphrase,
+          networkUrl: "",
+          sorobanRpcUrl: "",
+          networkDetails: { network, networkPassphrase },
+        };
       case "SUBMIT_TRANSACTION": {
         const xdr = request.transactionXdr ?? "";
         signed.push(xdr);
