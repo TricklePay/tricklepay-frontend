@@ -53,7 +53,33 @@ test.describe("create then withdraw", () => {
       }),
     ];
 
-    await page.getByRole("button", { name: "Create stream" }).click();
+    // Submitting the form opens a review step instead of signing right away.
+    await page.getByRole("button", { name: "Review stream" }).click();
+
+    const review = page.getByRole("region", { name: "Review stream" });
+    await expect(review).toBeVisible();
+    await expect(review).toContainText(truncate(TEST_ADDRESS));
+    await expect(review).toContainText(truncate(TOKEN_ID));
+    await expect(review).toContainText("100");
+
+    // Reviewing signs nothing: no simulation or submission has happened yet.
+    expect(chain.methods).not.toContain("simulateTransaction");
+    expect(chain.sendCount).toBe(0);
+
+    // Back returns to the form without losing any entered value.
+    await review.getByRole("button", { name: "Back to edit" }).click();
+    await expect(page.getByLabel("Recipient address")).toHaveValue(TEST_ADDRESS);
+    await expect(page.getByLabel("Token contract id")).toHaveValue(TOKEN_ID);
+    await expect(page.getByLabel("Amount")).toHaveValue("100");
+    await expect(page.getByLabel("Start")).toHaveValue(toLocalInput(start));
+    await expect(page.getByLabel("End", { exact: true })).toHaveValue(toLocalInput(end));
+
+    // Re-entering review and confirming proceeds through the wallet flow.
+    await page.getByRole("button", { name: "Review stream" }).click();
+    await page
+      .getByRole("region", { name: "Review stream" })
+      .getByRole("button", { name: "Confirm & create" })
+      .click();
 
     // Redirect to the dashboard is the app's own success signal.
     await expect(page).toHaveURL("/");
@@ -67,18 +93,22 @@ test.describe("create then withdraw", () => {
       "href",
       `https://stellar.expert/explorer/testnet/tx/${TX_HASH}`,
     );
-    await notice.getByRole("button", { name: "Dismiss notice" }).click();
-    await expect(notice).toHaveCount(0);
-    await page.reload();
-    await expect(page.getByRole("status")).toHaveCount(0);
 
-    // The create call really went through sign -> submit -> confirm.
+    // The create call really went through sign -> submit -> confirm. Read the
+    // recorded signature before the reload below: reinstalling the wallet stub
+    // on reload starts a fresh recording.
     expect(chain.methods).toContain("simulateTransaction");
     expect(chain.sendCount).toBe(1);
     const signedAfterCreate = await page.evaluate(
       () => (window as unknown as { __signedTransactions: string[] }).__signedTransactions.length,
     );
     expect(signedAfterCreate).toBe(1);
+
+    // Dismissing removes it, and a refresh never repeats it.
+    await notice.getByRole("button", { name: "Dismiss notice" }).click();
+    await expect(notice).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole("status")).toHaveCount(0);
 
     // --- Withdraw --------------------------------------------------------
     await card.click();
@@ -89,7 +119,8 @@ test.describe("create then withdraw", () => {
     await expect(page.getByText("Withdrawable now")).toBeVisible();
 
     // After the withdrawal the backend reports the stream fully drained.
-    const withdrawButton = page.getByRole("button", { name: /withdraw/i });
+    // Exact name: /withdraw/i would also hit the Max and "Set max" buttons.
+    const withdrawButton = page.getByRole("button", { name: "Withdraw", exact: true });
     await expect(withdrawButton).toBeEnabled();
 
     store.streams = [
@@ -102,18 +133,24 @@ test.describe("create then withdraw", () => {
       }),
     ];
 
+    // Count signatures from here, not from page load: the reload above
+    // reinstalled the wallet stub and started a fresh recording.
+    const signedBeforeWithdraw = await page.evaluate(
+      () => (window as unknown as { __signedTransactions: string[] }).__signedTransactions.length,
+    );
+
     await withdrawButton.click();
 
-    // Two invocations signed and submitted in total: create, then withdraw.
+    // One more signature, and the submission follows moments later — poll the
+    // chain counter instead of reading it once the signature shows up.
     await expect
       .poll(() =>
         page.evaluate(
-          () =>
-            (window as unknown as { __signedTransactions: string[] }).__signedTransactions.length,
+          () => (window as unknown as { __signedTransactions: string[] }).__signedTransactions.length,
         ),
       )
-      .toBe(2);
-    expect(chain.sendCount).toBe(2);
+      .toBe(signedBeforeWithdraw + 1);
+    await expect.poll(() => chain.sendCount).toBe(2);
 
     // The withdrawal is reflected in the UI once the stream reloads: 500000000
     // base units of the 7-decimal token renders as 50.
@@ -135,4 +172,9 @@ function toLocalInput(date: Date): string {
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
     `T${pad(date.getHours())}:${pad(date.getMinutes())}`
   );
+}
+
+// Same truncation the review applies to long Stellar addresses.
+function truncate(address: string): string {
+  return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
