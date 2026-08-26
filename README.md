@@ -26,6 +26,7 @@ to the stream contract directly over Soroban RPC.
 - **Transaction timeout recovery** — explicit recovery UI allows re-checking confirmation by transaction hash if network confirmation times out without re-submitting.
 - **Maximum withdraw amount hint** — accessible hint and quick "Max" action fill the withdrawal input directly with the live vested balance.
 - **Keyboard focus visibility** — every interactive element gets a consistent, high-contrast focus ring when navigated to via keyboard (`:focus-visible` in `app/globals.css`), independent of any per-component focus styling.
+- **Reduced-motion support** — visitors with the OS-level "reduce motion" preference enabled get all animations and transitions (skeleton shimmer, spinners, progress pulses, hover/focus transitions) collapsed to a single frame, app-wide (`prefers-reduced-motion` in `app/globals.css`).
 
 ## Stack
 
