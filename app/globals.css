@@ -8,9 +8,36 @@
    element (links, buttons, inputs). :focus-visible only matches keyboard and
    other non-pointer focus, so mouse/touch clicks stay unaffected. */
 :focus-visible {
-  outline: 2px solid var(--color-indigo-400);
+  /* indigo-500 — the brand accent color (see the trickle-drop mark in
+     app/icon.svg) — keeps at least a 3:1 contrast ratio against both the
+     dark and light theme backgrounds below, unlike the lighter indigo-400. */
+  outline: 2px solid var(--color-indigo-500);
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+/* Light theme overrides, toggled via a `light` class on <html> (see
+   components/theme-provider.tsx and the bootstrap script in app/layout.tsx).
+   Every component styles itself with Tailwind's neutral-* utilities, and
+   Tailwind v4 compiles each of those to var(--color-neutral-*) — so
+   redefining the tokens here re-themes the whole app without editing each
+   component. The ramp is inverted (950↔50, 900↔100, …) so background,
+   surface, border, and text keep the same relative roles in both themes.
+   Semantic status colors (red/green/blue/emerald) are intentionally left
+   unchanged. */
+:root.light {
+  color-scheme: light;
+  --color-neutral-50: #0a0a0a;
+  --color-neutral-100: #171717;
+  --color-neutral-200: #262626;
+  --color-neutral-300: #404040;
+  --color-neutral-400: #525252;
+  --color-neutral-500: #737373;
+  --color-neutral-600: #a3a3a3;
+  --color-neutral-700: #d4d4d4;
+  --color-neutral-800: #e5e5e5;
+  --color-neutral-900: #f5f5f5;
+  --color-neutral-950: #fafafa;
 }
 
 /* Respect the OS-level "reduce motion" preference. Rather than chasing every

@@ -232,7 +232,7 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
             <label className="flex flex-col gap-1 text-sm">
               <span className="text-neutral-400">
                 Amount{" "}
-                <span className="text-neutral-600">
+                <span className="text-neutral-500">
                   (max {formatAmount(accrual.withdrawable.toString())})
                 </span>
               </span>

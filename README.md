@@ -27,6 +27,7 @@ to the stream contract directly over Soroban RPC.
 - **Maximum withdraw amount hint** — accessible hint and quick "Max" action fill the withdrawal input directly with the live vested balance.
 - **Keyboard focus visibility** — every interactive element gets a consistent, high-contrast focus ring when navigated to via keyboard (`:focus-visible` in `app/globals.css`), independent of any per-component focus styling.
 - **Reduced-motion support** — visitors with the OS-level "reduce motion" preference enabled get all animations and transitions (skeleton shimmer, spinners, progress pulses, hover/focus transitions) collapsed to a single frame, app-wide (`prefers-reduced-motion` in `app/globals.css`).
+- **Light theme toggle** — a header button flips the whole app between dark (default) and light, persisted in `localStorage` and applied before first paint to avoid a flash of the wrong theme. See `components/theme-toggle.tsx`, `components/theme-provider.tsx`, and `lib/theme.ts`.
 
 ## Stack
 
@@ -63,12 +64,14 @@ Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`.
 
 ```
 app/
-  layout.tsx            root layout with the wallet provider and header
+  layout.tsx            root layout: theme bootstrap script, providers, header
   page.tsx              dashboard: incoming and outgoing streams
   create/page.tsx       create-stream form
   streams/[id]/page.tsx stream detail with live balance and actions
 components/
-  header.tsx            brand, nav, wallet button
+  header.tsx            brand, nav, theme toggle, wallet button
+  theme-provider.tsx    app-wide light/dark theme state via context
+  theme-toggle.tsx      header button that flips the theme
   wallet-provider.tsx   app-wide Freighter connection state via context
   wallet-button.tsx     connect / address / network state
   stream-card.tsx       stream summary card
@@ -84,6 +87,7 @@ lib/
   contract.ts           build, sign, submit, confirm contract calls with stage tracking
   vesting.ts            linear vesting math, mirroring the contract
   format.ts             amount and address formatting
+  theme.ts              pure light/dark theme resolution logic
 types/
   stream.ts             API response types
 ```
