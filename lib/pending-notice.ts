@@ -5,6 +5,14 @@
 
 const STORAGE_KEY = "tricklepay:pending-notice";
 
+// A just-consumed notice is replayed for this long so a consumer that remounts
+// moments later (React StrictMode double effects, dev-mode hydration retries)
+// reads the same notice instead of losing it. After the window a taken notice
+// stays taken — a refresh or later navigation never repeats it.
+const REPLAY_WINDOW_MS = 1000;
+
+let lastTaken: { notice: PendingNotice; consumedAt: number } | null = null;
+
 export interface PendingNotice {
   message: string;
   hash: string;
@@ -24,10 +32,20 @@ export function setPendingNotice(notice: PendingNotice): void {
 export function takePendingNotice(): PendingNotice | null {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    sessionStorage.removeItem(STORAGE_KEY);
-    return JSON.parse(raw) as PendingNotice;
+    if (raw !== null) {
+      sessionStorage.removeItem(STORAGE_KEY);
+      lastTaken = { notice: JSON.parse(raw) as PendingNotice, consumedAt: Date.now() };
+      return lastTaken.notice;
+    }
   } catch {
-    return null;
+    // Storage unavailable or unreadable — fall through to any replayable
+    // notice already consumed in this session.
+    return lastTaken && Date.now() - lastTaken.consumedAt < REPLAY_WINDOW_MS
+      ? lastTaken.notice
+      : null;
   }
+  if (lastTaken && Date.now() - lastTaken.consumedAt < REPLAY_WINDOW_MS) {
+    return lastTaken.notice;
+  }
+  return null;
 }

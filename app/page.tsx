@@ -156,10 +156,12 @@ export default function Home() {
 
   // Picked up once per mount, e.g. after a redirect from a successful create.
   // takePendingNotice clears it from storage immediately, so a refresh never
-  // repeats it.
+  // repeats it. The functional update keeps the first read: StrictMode (dev)
+  // runs this effect twice, and a plain re-read would overwrite the notice
+  // with null once the storage entry is gone.
   const [notice, setNotice] = useState<PendingNotice | null>(null);
   useEffect(() => {
-    setNotice(takePendingNotice());
+    setNotice((previous) => previous ?? takePendingNotice());
   }, []);
 
   if (!wallet.address) {
