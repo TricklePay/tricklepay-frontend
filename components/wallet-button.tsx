@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandSpinner } from "@/components/brand-spinner";
 import { useWallet } from "@/components/wallet-provider";
 import { useNetworkGuard } from "@/hooks/use-network-guard";
 
@@ -49,7 +50,7 @@ export function WalletButton() {
         disabled={wallet.connecting}
         className="rounded bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-900 disabled:opacity-50"
       >
-        {wallet.connecting ? "Connecting..." : "Connect Wallet"}
+        {wallet.connecting ? <BrandSpinner label="Connecting" size="sm" /> : "Connect Wallet"}
       </button>
       {wallet.error && <span className="text-xs text-red-400">{wallet.error}</span>}
     </div>

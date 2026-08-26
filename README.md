@@ -28,6 +28,7 @@ to the stream contract directly over Soroban RPC.
 - **Keyboard focus visibility** — every interactive element gets a consistent, high-contrast focus ring when navigated to via keyboard (`:focus-visible` in `app/globals.css`), independent of any per-component focus styling.
 - **Reduced-motion support** — visitors with the OS-level "reduce motion" preference enabled get all animations and transitions (skeleton shimmer, spinners, progress pulses, hover/focus transitions) collapsed to a single frame, app-wide (`prefers-reduced-motion` in `app/globals.css`).
 - **Light theme toggle** — a header button flips the whole app between dark (default) and light, persisted in `localStorage` and applied before first paint to avoid a flash of the wrong theme. See `components/theme-toggle.tsx`, `components/theme-provider.tsx`, and `lib/theme.ts`.
+- **Branded loading indicator** — indeterminate loading states (route transitions, wallet connect) use `components/brand-spinner.tsx`, three bouncing indigo dots echoing the trickle-drop mark in `app/icon.svg`, instead of a generic spinner. Content-shaped loading (stream lists, stream detail) keeps the existing skeletons in `components/skeleton.tsx`.
 
 ## Stack
 
@@ -65,6 +66,7 @@ Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`.
 ```
 app/
   layout.tsx            root layout: theme bootstrap script, providers, header
+  loading.tsx           route-level branded loading fallback
   page.tsx              dashboard: incoming and outgoing streams
   create/page.tsx       create-stream form
   streams/[id]/page.tsx stream detail with live balance and actions
@@ -72,6 +74,7 @@ components/
   header.tsx            brand, nav, theme toggle, wallet button
   theme-provider.tsx    app-wide light/dark theme state via context
   theme-toggle.tsx      header button that flips the theme
+  brand-spinner.tsx     branded loading indicator (bouncing dots)
   wallet-provider.tsx   app-wide Freighter connection state via context
   wallet-button.tsx     connect / address / network state
   stream-card.tsx       stream summary card
