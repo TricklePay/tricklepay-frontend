@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/header";
+import { SkipLink } from "@/components/skip-link";
 import { WalletProvider } from "@/components/wallet-provider";
 import "./globals.css";
 
@@ -61,6 +62,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="min-h-screen bg-neutral-950 text-neutral-100 antialiased">
         <WalletProvider>
+          <SkipLink />
           <Header />
           {children}
         </WalletProvider>
