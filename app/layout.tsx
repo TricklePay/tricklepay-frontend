@@ -1,10 +1,20 @@
 import type { Metadata } from "next";
 import { Header } from "@/components/header";
 import { SkipLink } from "@/components/skip-link";
+import { ThemeProvider } from "@/components/theme-provider";
 import { WalletProvider } from "@/components/wallet-provider";
+import { THEME_STORAGE_KEY } from "@/lib/theme";
 import "./globals.css";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://tricklepay.xyz";
+
+// Applies the persisted (or OS-preferred) theme to <html> synchronously,
+// before hydration, so there is no flash of the wrong theme. Mirrors the
+// logic in lib/theme.ts's resolveInitialTheme, which is unit tested; this
+// copy has to stay inline JS since it must run before any bundle loads.
+const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem(${JSON.stringify(
+  THEME_STORAGE_KEY,
+)});var light=s==="light"||s==="dark"?s==="light":window.matchMedia("(prefers-color-scheme: light)").matches;if(light)document.documentElement.classList.add("light");}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: {
@@ -59,13 +69,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-screen bg-neutral-950 text-neutral-100 antialiased">
-        <WalletProvider>
-          <SkipLink />
-          <Header />
-          {children}
-        </WalletProvider>
+        <ThemeProvider>
+          <WalletProvider>
+            <SkipLink />
+            <Header />
+            {children}
+          </WalletProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

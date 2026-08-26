@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { WalletButton } from "@/components/wallet-button";
 
 const NAV_LINKS = [
@@ -41,8 +42,11 @@ export function Header() {
           ))}
         </nav>
 
-        {/* Right side: wallet + hamburger */}
+        {/* Right side: theme toggle + wallet + hamburger */}
         <div className="flex items-center gap-3">
+          {/* Theme toggle is always visible */}
+          <ThemeToggle />
+
           {/* Wallet button is always visible */}
           <WalletButton />
 

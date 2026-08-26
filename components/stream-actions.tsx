@@ -232,7 +232,7 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
             <label className="flex flex-col gap-1 text-sm">
               <span className="text-neutral-400">
                 Amount{" "}
-                <span className="text-neutral-600">
+                <span className="text-neutral-500">
                   (max {formatAmount(accrual.withdrawable.toString())})
                 </span>
               </span>
@@ -245,7 +245,7 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
                   if (amountInput.trim()) setAmountError(withdrawalAmountError(amountInput, accrual.withdrawable));
                 }}
                 disabled={busy !== null || nothingToWithdraw}
-                className={`w-44 rounded border bg-neutral-900 px-3 py-2 text-sm focus:outline-none disabled:opacity-50 ${
+                className={`w-44 rounded border bg-neutral-900 px-3 py-2 text-sm disabled:opacity-50 ${
                   amountError
                     ? "border-red-500 focus:border-red-400"
                     : "border-neutral-700 focus:border-neutral-500"
