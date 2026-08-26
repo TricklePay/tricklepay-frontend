@@ -25,6 +25,7 @@ to the stream contract directly over Soroban RPC.
 - **Duplicate submission protection** — in-flight invocation guards in contract utilities and components prevent double-submitting active transactions.
 - **Transaction timeout recovery** — explicit recovery UI allows re-checking confirmation by transaction hash if network confirmation times out without re-submitting.
 - **Maximum withdraw amount hint** — accessible hint and quick "Max" action fill the withdrawal input directly with the live vested balance.
+- **Keyboard focus visibility** — every interactive element gets a consistent, high-contrast focus ring when navigated to via keyboard (`:focus-visible` in `app/globals.css`), independent of any per-component focus styling.
 
 ## Stack
 

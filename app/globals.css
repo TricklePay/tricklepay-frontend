@@ -3,3 +3,12 @@
 :root {
   color-scheme: dark;
 }
+
+/* Consistent, high-contrast keyboard focus indicator for every interactive
+   element (links, buttons, inputs). :focus-visible only matches keyboard and
+   other non-pointer focus, so mouse/touch clicks stay unaffected. */
+:focus-visible {
+  outline: 2px solid var(--color-indigo-400);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
