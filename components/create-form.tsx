@@ -11,6 +11,8 @@ import { setPendingNotice } from "@/lib/pending-notice";
 import { config } from "@/lib/config";
 import { txExplorerUrl } from "@/lib/explorer";
 import { StreamReview } from "@/components/stream-review";
+import { vestingRatePerDay } from "@/lib/vesting";
+import { formatAmount } from "@/lib/format";
 
 // A Stellar address is valid if it is a public key (G...) or a contract (C...).
 function isValidStellarAddress(value: string): boolean {
@@ -196,6 +198,13 @@ export function CreateForm() {
 
   const addressesValid =
     isValidStellarAddress(recipient) && isValidContractAddress(token);
+
+  // Live vesting-rate preview: only when amount and window are complete and
+  // error-free, so an incomplete or invalid form never shows a rate.
+  const previewRate =
+    amount && start && end && !amountError && !startError && !endError
+      ? vestingRatePerDay(parseAmount(amount), toUnix(start), toUnix(end))
+      : null;
 
   const hasFieldErrors = !!(
     recipientError ||
@@ -464,6 +473,17 @@ export function CreateForm() {
           aria-describedby={endError ? "end-error" : undefined}
         />
       </Field>
+
+      {previewRate !== null && (
+        <p className="rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-xs text-neutral-400">
+          Vesting rate:{" "}
+          <span className="font-medium text-neutral-100">
+            {formatAmount(previewRate.toString())}
+          </span>{" "}
+          tokens/day, released linearly from start to end.
+        </p>
+      )}
+
       <Field label="Cliff (optional)" error={cliffError}>
         <input
           id="field-cliff"

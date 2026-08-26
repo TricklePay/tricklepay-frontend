@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { vestedAmount, withdrawableAmount } from "@/lib/vesting";
+import { vestedAmount, vestingRatePerDay, withdrawableAmount } from "@/lib/vesting";
 
 // A 100-token stream (7 decimals) running for 100 seconds, so one second of
 // elapsed time vests exactly one token.
@@ -118,5 +118,46 @@ describe("withdrawableAmount", () => {
   it("is never negative", () => {
     expect(withdrawableAmount(0n, 0n)).toBe(0n);
     expect(withdrawableAmount(0n, 1n)).toBe(0n);
+  });
+});
+
+describe("vestingRatePerDay", () => {
+  it("computes the daily rate for a known window", () => {
+    // 100 tokens over exactly 100 seconds: a day holds 864 such windows, so
+    // 864 * 100 tokens stream per day.
+    expect(vestingRatePerDay(1_000_000_000n, 1_000n, 1_100n)).toBe(864_000_000_000n);
+  });
+
+  it("scales linearly with the amount", () => {
+    const base = vestingRatePerDay(1_000_000_000n, 0n, 86_400n);
+    expect(base).toBe(1_000_000_000n);
+    expect(vestingRatePerDay(2_000_000_000n, 0n, 86_400n)).toBe(base! * 2n);
+  });
+
+  it("falls as the duration grows", () => {
+    const day = vestingRatePerDay(1_000_000_000n, 0n, 86_400n);
+    const week = vestingRatePerDay(1_000_000_000n, 0n, 86_400n * 7n);
+    expect(day).toBe(1_000_000_000n);
+    expect(week).toBe((1_000_000_000n) / 7n);
+    expect(week!).toBeLessThan(day!);
+  });
+
+  it("truncates like integer math instead of rounding", () => {
+    // 1 stroop over a 3-second window: (1 * 86400) / 3 divides evenly.
+    expect(vestingRatePerDay(1n, 0n, 3n)).toBe(28_800n);
+    // An uneven window truncates rather than rounds.
+    expect(vestingRatePerDay(10n, 0n, 86_401n)).toBe((10n * 86_400n) / 86_401n);
+  });
+
+  it("returns null for incomplete or inverted windows", () => {
+    expect(vestingRatePerDay(1_000n, 5_000n, 5_000n)).toBeNull();
+    expect(vestingRatePerDay(1_000n, 6_000n, 5_000n)).toBeNull();
+    expect(vestingRatePerDay(0n, 0n, 86_400n)).toBeNull();
+  });
+
+  it("stays exact far beyond Number.MAX_SAFE_INTEGER", () => {
+    const huge = 2n ** 100n;
+    // A one-day window streams everything in a day.
+    expect(vestingRatePerDay(huge, 0n, 86_400n)).toBe(huge);
   });
 });
