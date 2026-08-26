@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useWallet } from "@/components/wallet-provider";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { StreamList } from "@/components/stream-list";
@@ -124,7 +124,17 @@ function StreamSection({
   );
 }
 
+// useSearchParams needs a Suspense boundary so the dashboard can prerender;
+// without one the static export bails and the build fails.
 export default function Home() {
+  return (
+    <Suspense fallback={<StreamListSkeleton count={2} />}>
+      <Dashboard />
+    </Suspense>
+  );
+}
+
+function Dashboard() {
   const wallet = useWallet();
   const router = useRouter();
   const searchParams = useSearchParams();
