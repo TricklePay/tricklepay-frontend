@@ -12,7 +12,7 @@ import { config } from "@/lib/config";
 import { txExplorerUrl } from "@/lib/explorer";
 import { StreamReview } from "@/components/stream-review";
 import { vestingRatePerDay } from "@/lib/vesting";
-import { formatAmount } from "@/lib/format";
+import { formatAmount, formatDuration } from "@/lib/format";
 
 // A Stellar address is valid if it is a public key (G...) or a contract (C...).
 function isValidStellarAddress(value: string): boolean {
@@ -204,6 +204,13 @@ export function CreateForm() {
   const previewRate =
     amount && start && end && !amountError && !startError && !endError
       ? vestingRatePerDay(parseAmount(amount), toUnix(start), toUnix(end))
+      : null;
+
+  // Live duration preview, only for a valid window; end-before-start already
+  // flags the End field, so no misleading negative or zero span is shown.
+  const previewDuration =
+    start && end && !startError && !endError
+      ? formatDuration(toUnix(end) - toUnix(start))
       : null;
 
   const hasFieldErrors = !!(
@@ -473,6 +480,13 @@ export function CreateForm() {
           aria-describedby={endError ? "end-error" : undefined}
         />
       </Field>
+
+      {previewDuration !== null && (
+        <p className="rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-xs text-neutral-400">
+          Stream duration:{" "}
+          <span className="font-medium text-neutral-100">{previewDuration}</span>
+        </p>
+      )}
 
       {previewRate !== null && (
         <p className="rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-xs text-neutral-400">

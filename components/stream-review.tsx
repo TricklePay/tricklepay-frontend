@@ -1,7 +1,7 @@
 "use client";
 
 import type { CreateStreamParams } from "@/lib/contract";
-import { formatAmount, formatTime, truncateAddress } from "@/lib/format";
+import { formatAmount, formatDuration, formatTime, truncateAddress } from "@/lib/format";
 import { vestingRatePerDay } from "@/lib/vesting";
 import { CopyButton } from "@/components/copy-button";
 
@@ -64,6 +64,9 @@ export function StreamReview({ params, submitting, onBack, onConfirm }: Props) {
           </Row>
           <Row label="Vesting rate">
             {`${formatAmount(vestingRatePerDay(params.totalAmount, params.startTime, params.endTime)?.toString() ?? "0")} tokens/day`}
+          </Row>
+          <Row label="Duration">
+            {formatDuration(params.endTime - params.startTime) ?? "—"}
           </Row>
           <Row label="Start">{formatTime(params.startTime.toString())}</Row>
           <Row label="End">{formatTime(params.endTime.toString())}</Row>

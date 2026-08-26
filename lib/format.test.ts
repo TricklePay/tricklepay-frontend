@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatAmount, timeRemaining, truncateAddress } from "@/lib/format";
+import { formatAmount, formatDuration, timeRemaining, truncateAddress } from "@/lib/format";
 
 describe("formatAmount", () => {
   it("formats whole amounts without a decimal point", () => {
@@ -106,5 +106,35 @@ describe("timeRemaining", () => {
     freeze();
     expect(timeRemaining(at(86400 * 3))).toBe("ends in 3d 0h");
     expect(timeRemaining(at(3600 * 2))).toBe("ends in 2h 0m");
+  });
+});
+
+describe("formatDuration", () => {
+  it("formats known spans with the larger units first", () => {
+    expect(formatDuration(60n)).toBe("1m");
+    expect(formatDuration(3600n * 5n + 60n * 30n)).toBe("5h 30m");
+    expect(formatDuration(86_400n * 2n + 3_600n * 3n)).toBe("2d 3h");
+  });
+
+  it("keeps a zero smaller unit for legibility", () => {
+    expect(formatDuration(3600n * 2n)).toBe("2h 0m");
+    expect(formatDuration(86_400n * 3n)).toBe("3d 0h");
+  });
+
+  it("collapses sub-minute spans", () => {
+    expect(formatDuration(59n)).toBe("under a minute");
+    expect(formatDuration(1n)).toBe("under a minute");
+  });
+
+  it("drops seconds from minute-and-above spans", () => {
+    expect(formatDuration(100n)).toBe("1m");
+    expect(formatDuration(3661n)).toBe("1h 1m");
+    expect(formatDuration(90_000n)).toBe("1d 1h");
+  });
+
+  it("returns null for zero and negative spans", () => {
+    expect(formatDuration(0n)).toBeNull();
+    expect(formatDuration(-1n)).toBeNull();
+    expect(formatDuration(-86_400n)).toBeNull();
   });
 });
