@@ -39,12 +39,14 @@ function StreamSection({
   page,
   filter,
   emptyMessage,
+  showCreateLink = false,
   className,
 }: {
   title: string;
   page: StreamPage;
   filter: StreamStatus | "all";
   emptyMessage: string;
+  showCreateLink?: boolean;
   className?: string;
 }) {
   // The status filter runs over the rows fetched so far, so say so rather than
@@ -54,6 +56,10 @@ function StreamSection({
     filter === "all" || page.streams.length === 0
       ? emptyMessage
       : `No ${filter} streams among the ${page.streams.length} loaded.`;
+
+  // Only show the create link on the true "no streams at all" empty state, not
+  // when a status filter simply returns zero results from a non-empty page.
+  const showCreate = showCreateLink && (filter === "all" || page.streams.length === 0);
 
   return (
     <section className={className}>
@@ -106,7 +112,7 @@ function StreamSection({
       {page.loading ? (
         <StreamListSkeleton count={2} />
       ) : (
-        <StreamList streams={visible} emptyMessage={emptyText} />
+        <StreamList streams={visible} emptyMessage={emptyText} showCreateLink={showCreate} />
       )}
 
       {page.hasMore && (
@@ -176,17 +182,24 @@ function Dashboard() {
 
   if (!wallet.address) {
     return (
-      <main className="mx-auto max-w-4xl px-6 py-16">
+      <main id="main-content" className="mx-auto max-w-4xl px-6 py-16">
         <h1 className="text-2xl font-semibold">Your streams</h1>
         <p className="mt-2 text-sm text-neutral-400">
           Connect your wallet to view incoming and outgoing streams.
+        </p>
+        <p className="mt-1 text-sm text-neutral-500">
+          Once connected you can also{" "}
+          <a href="/create" className="text-neutral-300 underline underline-offset-2 hover:text-neutral-100">
+            create a new stream
+          </a>
+          .
         </p>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
+    <main id="main-content" className="mx-auto max-w-4xl px-6 py-10">
       {notice && (
         <TransactionNotice
           message={notice.message}
@@ -254,6 +267,7 @@ function Dashboard() {
         page={outgoing}
         filter={filter}
         emptyMessage="No outgoing streams."
+        showCreateLink
       />
     </main>
   );

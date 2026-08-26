@@ -42,7 +42,7 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
     stream.cliffTime === stream.startTime ? "none" : formatTime(stream.cliffTime);
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
+    <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
       <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
         &larr; Back
       </Link>
@@ -120,7 +120,7 @@ export default function StreamDetailPage() {
   }
   if (error) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-10">
+      <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
         <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
           &larr; Back
         </Link>
@@ -138,7 +138,7 @@ export default function StreamDetailPage() {
   }
   if (!stream) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-10">
+      <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
         <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
           &larr; Back
         </Link>
