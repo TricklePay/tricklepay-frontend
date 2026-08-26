@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@/components/wallet-provider";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { StreamList } from "@/components/stream-list";
@@ -157,6 +157,7 @@ export default function Home() {
   // Picked up once per mount, e.g. after a redirect from a successful create.
   // takePendingNotice clears it from storage immediately, so a refresh never
   // repeats it.
+  const [notice, setNotice] = useState<PendingNotice | null>(null);
   useEffect(() => {
     setNotice(takePendingNotice());
   }, []);
@@ -174,6 +175,14 @@ export default function Home() {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
+      {notice && (
+        <TransactionNotice
+          message={notice.message}
+          hash={notice.hash}
+          onDismiss={() => setNotice(null)}
+        />
+      )}
+
       <div className="mb-8 flex flex-wrap items-center gap-2">
         {FILTERS.map((option) => (
           <button
