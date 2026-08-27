@@ -18,14 +18,8 @@ export interface WalletState {
   disconnect: () => void;
 }
 
-// Maps Freighter's network label ("TESTNET", "PUBLIC") to the app's lowercase
-// names so it can be compared against the configured network.
-function normalizeNetwork(network: string): string {
-  const lower = network.toLowerCase();
-  if (lower.includes("test")) return "testnet";
-  if (lower.includes("public")) return "mainnet";
-  return lower;
-}
+import { normalizeNetwork } from "@/lib/wallet-utils";
+export { normalizeNetwork };
 
 const WalletContext = createContext<WalletState | null>(null);
 
