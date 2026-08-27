@@ -35,7 +35,15 @@ to the stream contract directly over Soroban RPC.
 - [Next.js 15](https://nextjs.org) (App Router) + TypeScript
 - [Tailwind CSS v4](https://tailwindcss.com)
 - [@stellar/stellar-sdk](https://github.com/stellar/js-stellar-sdk) for the write path
-- [@stellar/freighter-api](https://github.com/stellar/freighter) for wallet signing
+## Browser Support
+
+TricklePay is designed for modern desktop browsers with the [Freighter](https://www.freighter.app) wallet extension installed:
+- **Google Chrome** (version 100+)
+- **Brave Browser**
+- **Mozilla Firefox** (version 100+)
+- **Microsoft Edge** (Chromium-based)
+
+Mobile browsers and browsers without extension support can view public stream information but require a supported desktop browser to sign and execute transactions.
 
 ## Running locally
 

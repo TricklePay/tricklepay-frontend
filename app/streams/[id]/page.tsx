@@ -170,6 +170,39 @@ export default function StreamDetailPage() {
     };
   }, [id, reloadKey]);
 
+  // Periodic and window-focus background refetch so counterparty actions (e.g. withdrawal or cancellation)
+  // become immediately visible without a manual browser page reload.
+  useEffect(() => {
+    let cancelled = false;
+
+    const silentRefetch = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      getStream(id)
+        .then((s) => {
+          if (!cancelled && s) setStream(s);
+        })
+        .catch(() => {
+          // Ignore background fetch failures and retain current data
+        });
+    };
+
+    const onFocus = () => silentRefetch();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") silentRefetch();
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    const interval = setInterval(silentRefetch, 10000);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      clearInterval(interval);
+    };
+  }, [id]);
+
   // Only the initial load gets the skeleton: a post-transaction refetch keeps
   // the current detail (and StreamActions' confirmation state, like the
   // explorer link for the tx just confirmed) on screen until fresh data lands.

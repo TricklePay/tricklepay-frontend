@@ -11,5 +11,8 @@ export default defineConfig({
     // Unit tests cover the pure modules in lib/. Playwright owns e2e/.
     include: ["lib/**/*.test.ts"],
     environment: "node",
+    env: {
+      NEXT_PUBLIC_CONTRACT_ID: "CAAQCAIBAEAQCAIBAEAQCAIBAEAQCAIBAEAQCAIBAEAQCAIBAEAQC526",
+    },
   },
 });
