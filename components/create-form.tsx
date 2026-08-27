@@ -13,45 +13,12 @@ import { txExplorerUrl } from "@/lib/explorer";
 import { StreamReview } from "@/components/stream-review";
 import { vestingRatePerDay } from "@/lib/vesting";
 import { formatAmount, formatDuration } from "@/lib/format";
-
-// A Stellar address is valid if it is a public key (G...) or a contract (C...).
-function isValidStellarAddress(value: string): boolean {
-  return StrKey.isValidEd25519PublicKey(value) || StrKey.isValidContract(value);
-}
-
-// A token contract id must be a contract address only (C...).
-function isValidContractAddress(value: string): boolean {
-  return StrKey.isValidContract(value);
-}
-
-// Converts a `datetime-local` value to Unix seconds.
-function toUnix(local: string): bigint {
-  return BigInt(Math.floor(new Date(local).getTime() / 1000));
-}
-
-// Parses a human decimal amount into 7-decimal base units.
-// Throws a descriptive error for any input that is not a non-negative decimal
-// with at most 7 fractional digits (e.g. "1e5", "1.2.3", "-5", "1.12345678"
-// are all rejected before BigInt conversion is attempted).
-function parseAmount(human: string): bigint {
-  const trimmed = human.trim();
-
-  // Reject scientific notation, negatives, multiple dots, and anything else
-  // that isn't a plain non-negative decimal.
-  if (!/^\d+(\.\d+)?$/.test(trimmed)) {
-    throw new Error("Amount must be a positive number (e.g. 100 or 1.5).");
-  }
-
-  const [whole, frac = ""] = trimmed.split(".");
-
-  // Reject more than 7 decimal places explicitly rather than silently truncating.
-  if (frac.length > 7) {
-    throw new Error("Amount cannot have more than 7 decimal places.");
-  }
-
-  const fracPadded = frac.padEnd(7, "0");
-  return BigInt(whole) * 10_000_000n + BigInt(fracPadded);
-}
+import {
+  isValidStellarAddress,
+  isValidContractAddress,
+  toUnix,
+  parseAmount,
+} from "@/lib/validation";
 
 function Field({
   label,
