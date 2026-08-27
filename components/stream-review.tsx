@@ -3,6 +3,7 @@
 import type { CreateStreamParams } from "@/lib/contract";
 import { formatAmount, formatDuration, formatTime, truncateAddress } from "@/lib/format";
 import { vestingRatePerDay } from "@/lib/vesting";
+import { formatUtcFromUnixSeconds, resolvedTimeZoneLabel } from "@/lib/timezone";
 import { CopyButton } from "@/components/copy-button";
 
 interface Props {
@@ -42,6 +43,23 @@ function AddressRow({ label, address }: { label: string; address: string }) {
   );
 }
 
+// A Start/End/Cliff row, with the UTC equivalent echoed underneath in muted
+// text — this is the last screen before signing, so it's the most
+// consequential place to remove any doubt about which instant a local time
+// actually resolves to.
+function TimeRow({ label, unixSeconds }: { label: string; unixSeconds: bigint }) {
+  return (
+    <Row label={label}>
+      <div className="flex flex-col items-start gap-0.5 sm:items-end">
+        <span>{formatTime(unixSeconds.toString())}</span>
+        <span className="text-xs font-normal text-neutral-500">
+          {formatUtcFromUnixSeconds(unixSeconds.toString())}
+        </span>
+      </div>
+    </Row>
+  );
+}
+
 // The confirmation step between filling the create form and signing. Renders
 // the same CreateStreamParams instance the confirm handler passes to
 // createStream, so what the user reviews is exactly what goes on-chain.
@@ -52,8 +70,13 @@ export function StreamReview({ params, submitting, onBack, onConfirm }: Props) {
         <h2 id="review-heading" className="mb-1 text-base font-semibold">
           Review stream
         </h2>
-        <p className="mb-2 text-xs text-neutral-500">
+        <p className="mb-1 text-xs text-neutral-500">
           Check the details below before signing. Nothing is submitted until you confirm.
+        </p>
+        <p className="mb-2 text-xs text-neutral-500">
+          Start, end, and cliff are in your local timezone —{" "}
+          <span className="text-neutral-400">{resolvedTimeZoneLabel()}</span>; the UTC equivalent
+          is shown underneath each.
         </p>
         <dl className="divide-y divide-neutral-800">
           <AddressRow label="Sender" address={params.sender} />
@@ -68,13 +91,13 @@ export function StreamReview({ params, submitting, onBack, onConfirm }: Props) {
           <Row label="Duration">
             {formatDuration(params.endTime - params.startTime) ?? "—"}
           </Row>
-          <Row label="Start">{formatTime(params.startTime.toString())}</Row>
-          <Row label="End">{formatTime(params.endTime.toString())}</Row>
-          <Row label="Cliff">
-            {params.cliffTime === params.startTime
-              ? "None (streams from the start)"
-              : formatTime(params.cliffTime.toString())}
-          </Row>
+          <TimeRow label="Start" unixSeconds={params.startTime} />
+          <TimeRow label="End" unixSeconds={params.endTime} />
+          {params.cliffTime === params.startTime ? (
+            <Row label="Cliff">None (streams from the start)</Row>
+          ) : (
+            <TimeRow label="Cliff" unixSeconds={params.cliffTime} />
+          )}
         </dl>
       </div>
 

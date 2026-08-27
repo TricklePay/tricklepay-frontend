@@ -69,6 +69,14 @@ Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`.
 | `NEXT_PUBLIC_RPC_URL` | Soroban RPC endpoint. Defaults to the network's public endpoint. |
 | `NEXT_PUBLIC_CONTRACT_ID` | Deployed stream contract id. |
 
+## API contract
+
+The frontend integrates with two independent backends — the read-only
+tricklepay-backend REST API (`lib/api.ts`) and the Soroban stream contract,
+invoked directly (`lib/contract.ts`). Request/response shapes, amount and
+time encoding, the write transaction lifecycle, and the on-chain error-code
+mapping are all documented in [docs/api-contract.md](docs/api-contract.md).
+
 ## Project structure
 
 ```

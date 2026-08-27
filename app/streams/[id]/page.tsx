@@ -11,6 +11,7 @@ import { CopyButton } from "@/components/copy-button";
 import { ProgressBar } from "@/components/progress-bar";
 import { StreamDetailSkeleton } from "@/components/skeleton";
 import { formatAmount, formatTime, relativeTime, truncateAddress } from "@/lib/format";
+import { formatUtcFromUnixSeconds, resolvedTimeZoneLabel } from "@/lib/timezone";
 import type { StreamView } from "@/types/stream";
 
 function Field({
@@ -19,24 +20,30 @@ function Field({
   mono,
   copyValue,
   countdown,
+  utc,
 }: {
   label: string;
   value: string;
   mono?: boolean;
   copyValue?: string;
   countdown?: string;
+  /** UTC equivalent, shown on its own line — for Start/End/Cliff only. */
+  utc?: string;
 }) {
   return (
     <div>
       <dt className="text-neutral-500">{label}</dt>
-      <dd className={`flex flex-wrap items-center gap-2 text-neutral-200 ${mono ? "font-mono" : ""}`}>
-        <span>{value}</span>
-        {copyValue && <CopyButton value={copyValue} label={label} />}
-        {countdown && (
-          <span className="rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] leading-none text-neutral-400">
-            {countdown}
-          </span>
-        )}
+      <dd className={`text-neutral-200 ${mono ? "font-mono" : ""}`}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span>{value}</span>
+          {copyValue && <CopyButton value={copyValue} label={label} />}
+          {countdown && (
+            <span className="rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] leading-none text-neutral-400">
+              {countdown}
+            </span>
+          )}
+        </div>
+        {utc && <span className="mt-0.5 block text-xs text-neutral-500">{utc}</span>}
       </dd>
     </div>
   );
@@ -118,11 +125,13 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
           label="Start"
           value={formatTime(stream.startTime)}
           countdown={relativeTime(stream.startTime, "starts")}
+          utc={formatUtcFromUnixSeconds(stream.startTime)}
         />
         <Field
           label="End"
           value={formatTime(stream.endTime)}
           countdown={relativeTime(stream.endTime, "ends")}
+          utc={formatUtcFromUnixSeconds(stream.endTime)}
         />
         <Field
           label="Cliff"
@@ -132,8 +141,17 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
               ? relativeTime(stream.cliffTime, "cliff")
               : undefined
           }
+          utc={
+            stream.cliffTime !== stream.startTime
+              ? formatUtcFromUnixSeconds(stream.cliffTime)
+              : undefined
+          }
         />
       </dl>
+      <p className="mt-2 text-xs text-neutral-500">
+        Times above are shown in your local timezone —{" "}
+        <span className="text-neutral-400">{resolvedTimeZoneLabel()}</span>.
+      </p>
 
       <StreamActions stream={stream} walletAddress={wallet.address} onComplete={onComplete} />
     </main>
