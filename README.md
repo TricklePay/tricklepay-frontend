@@ -35,7 +35,15 @@ to the stream contract directly over Soroban RPC.
 - [Next.js 15](https://nextjs.org) (App Router) + TypeScript
 - [Tailwind CSS v4](https://tailwindcss.com)
 - [@stellar/stellar-sdk](https://github.com/stellar/js-stellar-sdk) for the write path
-- [@stellar/freighter-api](https://github.com/stellar/freighter) for wallet signing
+## Browser Support
+
+TricklePay is designed for modern desktop browsers with the [Freighter](https://www.freighter.app) wallet extension installed:
+- **Google Chrome** (version 100+)
+- **Brave Browser**
+- **Mozilla Firefox** (version 100+)
+- **Microsoft Edge** (Chromium-based)
+
+Mobile browsers and browsers without extension support can view public stream information but require a supported desktop browser to sign and execute transactions.
 
 ## Running locally
 
@@ -60,6 +68,14 @@ Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`.
 | `NEXT_PUBLIC_NETWORK` | `testnet` or `mainnet`. |
 | `NEXT_PUBLIC_RPC_URL` | Soroban RPC endpoint. Defaults to the network's public endpoint. |
 | `NEXT_PUBLIC_CONTRACT_ID` | Deployed stream contract id. |
+
+## API contract
+
+The frontend integrates with two independent backends — the read-only
+tricklepay-backend REST API (`lib/api.ts`) and the Soroban stream contract,
+invoked directly (`lib/contract.ts`). Request/response shapes, amount and
+time encoding, the write transaction lifecycle, and the on-chain error-code
+mapping are all documented in [docs/api-contract.md](docs/api-contract.md).
 
 ## Project structure
 

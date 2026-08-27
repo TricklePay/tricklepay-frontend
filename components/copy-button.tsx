@@ -22,13 +22,15 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
       onClick={() => void copy()}
       title={copied ? `Copied ${label ?? "value"}!` : `Copy ${label ?? "value"}`}
       aria-label={copied ? `Copied ${label ?? "value"}` : `Copy ${label ?? "value"}`}
-      aria-live="polite"
-      className={`inline-flex items-center gap-1 text-xs transition-colors duration-150 ${
+      className={`inline-flex items-center gap-1 rounded px-1 py-0.5 text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-1 ${
         copied
           ? "text-green-400"
           : "text-neutral-500 hover:text-neutral-300"
       }`}
     >
+      <span className="sr-only" role="status" aria-live="polite">
+        {copied ? `Copied ${label ?? "value"} to clipboard` : ""}
+      </span>
       {copied ? (
         <>
           {/* Checkmark icon */}

@@ -19,6 +19,7 @@ import {
   toUnix,
   parseAmount,
 } from "@/lib/validation";
+import { formatUtcFromLocalInput, resolvedTimeZoneLabel } from "@/lib/timezone";
 
 function Field({
   label,
@@ -423,6 +424,11 @@ export function CreateForm() {
           </span>
         )}
       </Field>
+      <p className="text-xs text-neutral-500">
+        Start, end, and cliff below use your local timezone —{" "}
+        <span className="text-neutral-400">{resolvedTimeZoneLabel()}</span>.
+      </p>
+
       <Field label="Start" error={startError}>
         <input
           id="field-start"
@@ -432,8 +438,15 @@ export function CreateForm() {
           value={start}
           onChange={(e) => handleStartChange(e.target.value)}
           aria-invalid={!!startError}
-          aria-describedby={startError ? "start-error" : undefined}
+          aria-describedby={
+            startError ? "start-error" : formatUtcFromLocalInput(start) ? "start-utc" : undefined
+          }
         />
+        {!startError && formatUtcFromLocalInput(start) && (
+          <span id="start-utc" className="text-xs text-neutral-500">
+            {formatUtcFromLocalInput(start)}
+          </span>
+        )}
       </Field>
       <Field label="End" error={endError}>
         <input
@@ -444,8 +457,15 @@ export function CreateForm() {
           value={end}
           onChange={(e) => handleEndChange(e.target.value)}
           aria-invalid={!!endError}
-          aria-describedby={endError ? "end-error" : undefined}
+          aria-describedby={
+            endError ? "end-error" : formatUtcFromLocalInput(end) ? "end-utc" : undefined
+          }
         />
+        {!endError && formatUtcFromLocalInput(end) && (
+          <span id="end-utc" className="text-xs text-neutral-500">
+            {formatUtcFromLocalInput(end)}
+          </span>
+        )}
       </Field>
 
       {previewDuration !== null && (
@@ -474,8 +494,15 @@ export function CreateForm() {
           value={cliff}
           onChange={(e) => handleCliffChange(e.target.value)}
           aria-invalid={!!cliffError}
-          aria-describedby={cliffError ? "cliff-error" : undefined}
+          aria-describedby={
+            cliffError ? "cliff-error" : formatUtcFromLocalInput(cliff) ? "cliff-utc" : undefined
+          }
         />
+        {!cliffError && formatUtcFromLocalInput(cliff) && (
+          <span id="cliff-utc" className="text-xs text-neutral-500">
+            {formatUtcFromLocalInput(cliff)}
+          </span>
+        )}
       </Field>
 
       {feedback}

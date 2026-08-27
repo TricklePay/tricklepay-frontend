@@ -3,10 +3,17 @@ import type { StreamStatus, StreamView } from "@/types/stream";
 import { formatAmount, timeRemaining, truncateAddress } from "@/lib/format";
 
 const STATUS_STYLES: Record<StreamStatus, string> = {
-  pending: "bg-neutral-800 text-neutral-300",
-  streaming: "bg-green-900/40 text-green-300",
-  completed: "bg-blue-900/40 text-blue-300",
-  cancelled: "bg-red-900/40 text-red-300",
+  pending: "border border-neutral-700 bg-neutral-800 text-neutral-300",
+  streaming: "border border-green-700/50 bg-green-950/40 text-green-300",
+  completed: "border border-blue-700/50 bg-blue-950/40 text-blue-300",
+  cancelled: "border border-red-700/50 bg-red-950/40 text-red-300",
+};
+
+const STATUS_ICONS: Record<StreamStatus, string> = {
+  pending: "⏳",
+  streaming: "●",
+  completed: "✓",
+  cancelled: "✕",
 };
 
 export function StreamTable({ streams }: { streams: StreamView[] }) {
@@ -71,16 +78,19 @@ export function StreamTable({ streams }: { streams: StreamView[] }) {
               <td className="px-4 py-3">
                 <Link
                   href={`/streams/${stream.id}`}
-                  className="font-mono text-neutral-300 hover:text-neutral-100 hover:underline"
+                  className="font-mono text-neutral-300 hover:text-neutral-100 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 rounded"
                 >
                   #{stream.id}
                 </Link>
               </td>
               <td className="px-4 py-3">
                 <span
-                  className={`rounded px-2 py-0.5 text-xs capitalize ${STATUS_STYLES[stream.status]}`}
+                  className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[stream.status]}`}
                 >
-                  {stream.status}
+                  <span aria-hidden="true" className="text-[10px]">
+                    {STATUS_ICONS[stream.status]}
+                  </span>
+                  <span>{stream.status}</span>
                 </span>
               </td>
               <td className="px-4 py-3 font-mono text-xs text-neutral-300">
