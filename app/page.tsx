@@ -6,6 +6,7 @@ import { useWallet } from "@/components/wallet-provider";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { StreamList } from "@/components/stream-list";
 import { StreamListSkeleton } from "@/components/skeleton";
+import { StreamStatusLegend } from "@/components/stream-status-legend";
 import { TransactionNotice } from "@/components/transaction-notice";
 import { takePendingNotice, type PendingNotice } from "@/lib/pending-notice";
 import type { StreamStatus } from "@/types/stream";
@@ -252,6 +253,10 @@ function Dashboard() {
             Clear
           </button>
         )}
+      </div>
+
+      <div className="mb-6">
+        <StreamStatusLegend />
       </div>
 
       <StreamSection
