@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listStreams, type ListStreamsParams } from "@/lib/api";
-import type { StreamView } from "@/types/stream";
+import type { StreamStatus, StreamView } from "@/types/stream";
 
 // Rows per request. Kept under the backend's 50-row default so a large account
 // arrives in visible increments instead of one long stall.
@@ -21,16 +21,25 @@ export interface StreamPage {
   refresh: () => void;
 }
 
-function pageQuery(role: StreamRole, address: string, offset: number): ListStreamsParams {
+function pageQuery(
+  role: StreamRole,
+  address: string,
+  offset: number,
+  status?: StreamStatus | "all",
+): ListStreamsParams {
   const party: ListStreamsParams =
     role === "sender" ? { sender: address } : { recipient: address };
-  return { ...party, limit: PAGE_SIZE, offset };
+  return { ...party, limit: PAGE_SIZE, offset, status };
 }
 
 // Loads the streams an address is party to one page at a time, appending each
 // page to the rows already on screen. Incoming and outgoing page independently,
 // so each call site owns its own copy of this state.
-export function useStreamPage(role: StreamRole, address: string | null): StreamPage {
+export function useStreamPage(
+  role: StreamRole,
+  address: string | null,
+  status: StreamStatus | "all" = "all",
+): StreamPage {
   const [streams, setStreams] = useState<StreamView[]>([]);
   const [total, setTotal] = useState(0);
   // Rows fetched so far, which is the offset of the next page. Tracked apart
@@ -57,7 +66,7 @@ export function useStreamPage(role: StreamRole, address: string | null): StreamP
     if (!address) return;
 
     setLoading(true);
-    listStreams(pageQuery(role, address, 0))
+    listStreams(pageQuery(role, address, 0, status))
       .then((page) => {
         if (generation.current !== gen) return;
         setStreams(page.streams);
@@ -71,7 +80,7 @@ export function useStreamPage(role: StreamRole, address: string | null): StreamP
       .finally(() => {
         if (generation.current === gen) setLoading(false);
       });
-  }, [role, address]);
+  }, [role, address, status]);
 
   const hasMore = fetched < total;
 
@@ -86,7 +95,7 @@ export function useStreamPage(role: StreamRole, address: string | null): StreamP
     if (!address) return;
 
     setLoading(true);
-    listStreams(pageQuery(role, address, 0))
+    listStreams(pageQuery(role, address, 0, status))
       .then((page) => {
         if (generation.current !== gen) return;
         setStreams(page.streams);
@@ -100,7 +109,46 @@ export function useStreamPage(role: StreamRole, address: string | null): StreamP
       .finally(() => {
         if (generation.current === gen) setLoading(false);
       });
-  }, [role, address]);
+  }, [role, address, status]);
+
+  const silentRefresh = useCallback(() => {
+    if (!address || (typeof document !== "undefined" && document.visibilityState === "hidden")) return;
+    const gen = generation.current;
+    listStreams(pageQuery(role, address, 0, status))
+      .then((page) => {
+        if (generation.current !== gen) return;
+        setStreams(page.streams);
+        setTotal(page.total);
+        setFetched(page.streams.length);
+      })
+      .catch(() => {
+        // Background refresh failure: retain existing on-screen rows
+      });
+  }, [role, address, status]);
+
+  // Periodic and window-focus auto-refresh to reflect counterparty actions
+  useEffect(() => {
+    if (!address || typeof window === "undefined") return;
+
+    const onFocus = () => {
+      silentRefresh();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        silentRefresh();
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    const interval = setInterval(silentRefresh, 15000);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      clearInterval(interval);
+    };
+  }, [address, silentRefresh]);
 
   const loadMore = useCallback(() => {
     if (!address || loading || loadingMore || !hasMore) return;
@@ -108,7 +156,7 @@ export function useStreamPage(role: StreamRole, address: string | null): StreamP
     setLoadingMore(true);
     setError(null);
 
-    listStreams(pageQuery(role, address, fetched))
+    listStreams(pageQuery(role, address, fetched, status))
       .then((page) => {
         if (generation.current !== gen) return;
         // A stream created since the first page shifts every later row by one,
@@ -130,7 +178,7 @@ export function useStreamPage(role: StreamRole, address: string | null): StreamP
       .finally(() => {
         if (generation.current === gen) setLoadingMore(false);
       });
-  }, [address, role, fetched, hasMore, loading, loadingMore]);
+  }, [address, role, fetched, hasMore, loading, loadingMore, status]);
 
   return { streams, total, loading, loadingMore, error, hasMore, loadMore, refresh };
 }

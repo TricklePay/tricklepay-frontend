@@ -8,6 +8,7 @@ import { StreamList } from "@/components/stream-list";
 import { StreamListSkeleton } from "@/components/skeleton";
 import { StreamStatusLegend } from "@/components/stream-status-legend";
 import { TransactionNotice } from "@/components/transaction-notice";
+import { BrowserSupportNote } from "@/components/browser-support-note";
 import { takePendingNotice, type PendingNotice } from "@/lib/pending-notice";
 import type { StreamStatus } from "@/types/stream";
 
@@ -18,22 +19,6 @@ const FILTERS: Array<{ label: string; value: StreamStatus | "all" }> = [
   { label: "Completed", value: "completed" },
   { label: "Cancelled", value: "cancelled" },
 ];
-
-// Returns per-status counts aggregated across two pages (incoming + outgoing).
-// "all" is the total number of loaded streams across both pages.
-function useStatusCounts(
-  incoming: StreamPage,
-  outgoing: StreamPage,
-): Record<StreamStatus | "all", number> {
-  const all = [...incoming.streams, ...outgoing.streams];
-  return {
-    all: all.length,
-    streaming: all.filter((s) => s.status === "streaming").length,
-    pending: all.filter((s) => s.status === "pending").length,
-    completed: all.filter((s) => s.status === "completed").length,
-    cancelled: all.filter((s) => s.status === "cancelled").length,
-  };
-}
 
 function StreamSection({
   title,
@@ -50,17 +35,13 @@ function StreamSection({
   showCreateLink?: boolean;
   className?: string;
 }) {
-  // The status filter runs over the rows fetched so far, so say so rather than
-  // implying the account has no streams of that status at all.
-  const visible = filter === "all" ? page.streams : page.streams.filter((s) => s.status === filter);
+  const visible = page.streams;
   const emptyText =
     filter === "all" || page.streams.length === 0
-      ? emptyMessage
-      : `No ${filter} streams among the ${page.streams.length} loaded.`;
+      ? (filter === "all" ? emptyMessage : `No ${filter} streams found.`)
+      : emptyMessage;
 
-  // Only show the create link on the true "no streams at all" empty state, not
-  // when a status filter simply returns zero results from a non-empty page.
-  const showCreate = showCreateLink && (filter === "all" || page.streams.length === 0);
+  const showCreate = showCreateLink && page.streams.length === 0;
 
   return (
     <section className={className}>
@@ -76,7 +57,7 @@ function StreamSection({
             onClick={page.refresh}
             disabled={page.loading || page.loadingMore}
             aria-label={`Refresh ${title.toLowerCase()} streams`}
-            className="inline-flex items-center gap-1 rounded border border-neutral-800 px-2 py-0.5 text-xs text-neutral-500 hover:border-neutral-600 hover:text-neutral-300 disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded border border-neutral-800 px-2 py-0.5 text-xs text-neutral-500 hover:border-neutral-600 hover:text-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-1 disabled:opacity-40"
           >
             {/* refresh / rotate icon */}
             <svg
@@ -103,7 +84,7 @@ function StreamSection({
           <button
             onClick={page.refresh}
             disabled={page.loading}
-            className="rounded border border-neutral-700 px-2 py-0.5 text-xs text-neutral-400 hover:border-neutral-500 hover:text-neutral-200 disabled:opacity-40"
+            className="rounded border border-neutral-700 px-2 py-0.5 text-xs text-neutral-400 hover:border-neutral-500 hover:text-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-1 disabled:opacity-40"
           >
             Retry
           </button>
@@ -120,7 +101,7 @@ function StreamSection({
         <button
           onClick={page.loadMore}
           disabled={page.loadingMore}
-          className="mt-4 rounded-full border border-neutral-800 px-4 py-1.5 text-xs text-neutral-300 hover:border-neutral-600 disabled:opacity-50"
+          className="mt-4 rounded-full border border-neutral-800 px-4 py-1.5 text-xs text-neutral-300 hover:border-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 disabled:opacity-50"
         >
           {page.loadingMore
             ? "Loading more…"
@@ -167,9 +148,8 @@ function Dashboard() {
     [router, searchParams],
   );
 
-  const incoming = useStreamPage("recipient", wallet.address);
-  const outgoing = useStreamPage("sender", wallet.address);
-  const counts = useStatusCounts(incoming, outgoing);
+  const incoming = useStreamPage("recipient", wallet.address, filter);
+  const outgoing = useStreamPage("sender", wallet.address, filter);
 
   // Picked up once per mount, e.g. after a redirect from a successful create.
   // takePendingNotice clears it from storage immediately, so a refresh never
@@ -190,11 +170,15 @@ function Dashboard() {
         </p>
         <p className="mt-1 text-sm text-neutral-500">
           Once connected you can also{" "}
-          <a href="/create" className="text-neutral-300 underline underline-offset-2 hover:text-neutral-100">
+          <a
+            href="/create"
+            className="text-neutral-300 underline underline-offset-2 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400"
+          >
             create a new stream
           </a>
           .
         </p>
+        <BrowserSupportNote className="mt-8" />
       </main>
     );
   }
@@ -209,36 +193,30 @@ function Dashboard() {
         />
       )}
 
-      <div className="mb-8 flex flex-wrap items-center gap-2">
+      <div
+        role="group"
+        aria-label="Filter streams by status"
+        className="mb-8 flex flex-wrap items-center gap-2"
+      >
         {FILTERS.map((option) => (
           <button
             key={option.value}
             onClick={() => setFilter(option.value)}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs ${
+            aria-pressed={filter === option.value}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 ${
               filter === option.value
                 ? "border-neutral-400 bg-neutral-800 text-neutral-100"
                 : "border-neutral-800 text-neutral-400 hover:border-neutral-600"
             }`}
           >
             {option.label}
-            {counts[option.value] > 0 && (
-              <span
-                className={`rounded-full px-1.5 py-0.5 tabular-nums text-[10px] leading-none ${
-                  filter === option.value
-                    ? "bg-neutral-700 text-neutral-200"
-                    : "bg-neutral-800 text-neutral-500"
-                }`}
-              >
-                {counts[option.value]}
-              </span>
-            )}
           </button>
         ))}
         {filter !== "all" && (
           <button
             onClick={() => setFilter("all")}
             aria-label="Clear filter"
-            className="inline-flex items-center gap-1 rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300"
+            className="inline-flex items-center gap-1 rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2"
           >
             {/* × icon */}
             <svg

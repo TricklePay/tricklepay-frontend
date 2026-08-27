@@ -1,14 +1,15 @@
 import { config } from "@/lib/config";
-import type { StreamListResponse, StreamView } from "@/types/stream";
+import type { StreamListResponse, StreamStatus, StreamView } from "@/types/stream";
 
 export interface ListStreamsParams {
   sender?: string;
   recipient?: string;
   limit?: number;
   offset?: number;
+  status?: StreamStatus | "all";
 }
 
-// Fetches a page of streams from the backend, optionally filtered by party. The
+// Fetches a page of streams from the backend, optionally filtered by party and status. The
 // whole envelope is returned rather than just the rows so callers can page
 // through a result set larger than the backend's default limit. Results are not
 // cached so the list reflects the latest indexed state.
@@ -18,6 +19,7 @@ export async function listStreams(
   const url = new URL("/streams", config.apiUrl);
   if (params.sender) url.searchParams.set("sender", params.sender);
   if (params.recipient) url.searchParams.set("recipient", params.recipient);
+  if (params.status && params.status !== "all") url.searchParams.set("status", params.status);
   if (params.limit !== undefined) url.searchParams.set("limit", String(params.limit));
   if (params.offset !== undefined) url.searchParams.set("offset", String(params.offset));
 

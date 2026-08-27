@@ -35,7 +35,7 @@ export function WalletButton() {
           onClick={wallet.disconnect}
           title={`Disconnect ${truncate(wallet.address)}`}
           aria-label={`Disconnect wallet ${wallet.address}`}
-          className="rounded border border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 transition-colors hover:border-red-700 hover:bg-red-950/40 hover:text-red-300"
+          className="rounded border border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 transition-colors hover:border-red-700 hover:bg-red-950/40 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-1"
         >
           Disconnect
         </button>
@@ -48,11 +48,22 @@ export function WalletButton() {
       <button
         onClick={() => void wallet.connect()}
         disabled={wallet.connecting}
-        className="rounded bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-900 disabled:opacity-50"
+        className="rounded bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 disabled:opacity-50"
       >
         {wallet.connecting ? <BrandSpinner label="Connecting" size="sm" /> : "Connect Wallet"}
       </button>
-      {wallet.error && <span className="text-xs text-red-400">{wallet.error}</span>}
+      {wallet.error && (
+        <div className="text-right">
+          <span role="alert" className="text-xs text-red-400">
+            {wallet.error}
+          </span>
+          {wallet.error.includes("Freighter") && (
+            <p className="mt-0.5 text-[10px] text-neutral-500">
+              Supported on desktop Chrome, Brave, Firefox, and Edge.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
