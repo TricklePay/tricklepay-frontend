@@ -44,6 +44,40 @@ export function formatMaxWithdrawHint(rawWithdrawable: string): string {
   return `Maximum withdrawable amount: ${formatted}`;
 }
 
+// Returns a relative countdown string for any Unix-second timestamp, labelled
+// by the caller-supplied verb (e.g. "starts", "ends", "cliff").
+//
+//   relativeTime("1234567890", "starts") → "starts in 2d 3h"
+//   relativeTime("1234567890", "ends")   → "ended"   (past)
+//   relativeTime("1234567890", "cliff")  → "cliff in 45m"
+//
+// The past-tense suffix is derived automatically: verbs ending in "s" strip the
+// trailing "s" and append "ed" (starts→started, ends→ended); others get "ed"
+// appended directly (cliff→cliffed is intentionally avoided — pass "cliff
+// passed" as verb for that case, or rely on the "passed" fallback below).
+export function relativeTime(unixSeconds: string, verb: string): string {
+  const diffMs = Number(unixSeconds) * 1000 - Date.now();
+  const seconds = Math.floor(Math.abs(diffMs) / 1000);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  if (diffMs <= 0) {
+    // Build a simple past-tense label.
+    if (verb === "ends") return "ended";
+    if (verb === "starts") return "started";
+    return `${verb} passed`;
+  }
+
+  let span: string;
+  if (days > 0) span = `${days}d ${hours}h`;
+  else if (hours > 0) span = `${hours}h ${minutes}m`;
+  else if (minutes > 0) span = `${minutes}m`;
+  else span = "under a minute";
+
+  return `${verb} in ${span}`;
+}
+
 // A short human description of a duration in seconds, matching timeRemaining's
 // phrasing ("2d 3h", "45m", "under a minute"). Returns null for zero or
 // negative spans so callers can hide the value instead of showing something

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatAmount, formatDuration, timeRemaining, truncateAddress } from "@/lib/format";
+import { formatAmount, formatDuration, relativeTime, timeRemaining, truncateAddress } from "@/lib/format";
 
 describe("formatAmount", () => {
   it("formats whole amounts without a decimal point", () => {
@@ -136,5 +136,44 @@ describe("formatDuration", () => {
     expect(formatDuration(0n)).toBeNull();
     expect(formatDuration(-1n)).toBeNull();
     expect(formatDuration(-86_400n)).toBeNull();
+  });
+});
+
+describe("relativeTime", () => {
+  const NOW = Date.UTC(2026, 0, 1, 12, 0, 0);
+  const at = (offsetSeconds: number) => String(Math.floor(NOW / 1000) + offsetSeconds);
+
+  function freeze() {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+  }
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("returns future countdown with the supplied verb", () => {
+    freeze();
+    expect(relativeTime(at(86400 * 2 + 3600 * 3), "starts")).toBe("starts in 2d 3h");
+    expect(relativeTime(at(3600 * 5 + 60 * 30), "ends")).toBe("ends in 5h 30m");
+    expect(relativeTime(at(60 * 45), "cliff")).toBe("cliff in 45m");
+  });
+
+  it("collapses sub-minute future spans", () => {
+    freeze();
+    expect(relativeTime(at(59), "starts")).toBe("starts in under a minute");
+    expect(relativeTime(at(1), "cliff")).toBe("cliff in under a minute");
+  });
+
+  it("returns the past-tense form for ends and starts", () => {
+    freeze();
+    expect(relativeTime(at(0), "ends")).toBe("ended");
+    expect(relativeTime(at(-1), "ends")).toBe("ended");
+    expect(relativeTime(at(-100), "starts")).toBe("started");
+  });
+
+  it("returns a generic past form for other verbs", () => {
+    freeze();
+    expect(relativeTime(at(-1), "cliff")).toBe("cliff passed");
   });
 });
