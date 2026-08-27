@@ -10,7 +10,7 @@ import { StreamActions } from "@/components/stream-actions";
 import { CopyButton } from "@/components/copy-button";
 import { ProgressBar } from "@/components/progress-bar";
 import { StreamDetailSkeleton } from "@/components/skeleton";
-import { formatAmount, formatTime, truncateAddress } from "@/lib/format";
+import { formatAmount, formatTime, relativeTime, truncateAddress } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
 function Field({
@@ -18,18 +18,25 @@ function Field({
   value,
   mono,
   copyValue,
+  countdown,
 }: {
   label: string;
   value: string;
   mono?: boolean;
   copyValue?: string;
+  countdown?: string;
 }) {
   return (
     <div>
       <dt className="text-neutral-500">{label}</dt>
-      <dd className={`flex items-center gap-2 text-neutral-200 ${mono ? "font-mono" : ""}`}>
+      <dd className={`flex flex-wrap items-center gap-2 text-neutral-200 ${mono ? "font-mono" : ""}`}>
         <span>{value}</span>
         {copyValue && <CopyButton value={copyValue} label={label} />}
+        {countdown && (
+          <span className="rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] leading-none text-neutral-400">
+            {countdown}
+          </span>
+        )}
       </dd>
     </div>
   );
@@ -54,14 +61,45 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
         </span>
       </div>
 
+      {/* Cancelled-stream balance explanation banner */}
+      {stream.status === "cancelled" && (
+        <div
+          role="note"
+          className="mb-6 rounded-lg border border-red-900/50 bg-red-950/20 px-4 py-3 text-xs text-red-200"
+        >
+          <p className="font-semibold text-red-300">Stream cancelled</p>
+          <p className="mt-1 text-neutral-400">
+            Streaming stopped early. The vested portion (
+            <span className="tabular-nums text-neutral-200">{formatAmount(stream.vested)}</span>)
+            is split between what was already withdrawn and what the recipient can still claim.
+            {BigInt(stream.locked) > 0n && (
+              <>
+                {" "}The unvested balance (
+                <span className="tabular-nums text-neutral-200">{formatAmount(stream.locked)}</span>)
+                has been returned to the sender.
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
       <div className="mb-8 rounded-lg border border-neutral-800 p-6">
-        <p className="text-sm text-neutral-500">Withdrawable now</p>
+        <p className="text-sm text-neutral-500">
+          {stream.status === "cancelled" ? "Remaining withdrawable" : "Withdrawable now"}
+        </p>
         <p className="mt-1 font-mono text-4xl tabular-nums text-neutral-100">
           {formatAmount(accrual.withdrawable.toString())}
         </p>
         <p className="mt-1 text-xs text-neutral-500">
           {formatAmount(accrual.vested.toString())} vested of {formatAmount(stream.totalAmount)} total
         </p>
+        {/* Locked amount — for active streams: not yet vested; for cancelled: returned to sender */}
+        {BigInt(stream.locked) > 0n && stream.status !== "cancelled" && (
+          <p className="mt-1 text-xs text-neutral-500">
+            <span className="text-amber-400/80">{formatAmount(stream.locked)}</span>
+            {" locked (not yet vested)"}
+          </p>
+        )}
         <div className="mt-4">
           <ProgressBar value={stream.progress} />
         </div>
@@ -72,9 +110,29 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
         <Field label="To" value={truncateAddress(stream.recipient)} mono copyValue={stream.recipient} />
         <Field label="Token" value={truncateAddress(stream.token)} mono copyValue={stream.token} />
         <Field label="Withdrawn" value={formatAmount(stream.withdrawn)} />
-        <Field label="Start" value={formatTime(stream.startTime)} />
-        <Field label="End" value={formatTime(stream.endTime)} />
-        <Field label="Cliff" value={cliffDisplay} />
+        <Field
+          label={stream.status === "cancelled" ? "Returned to sender" : "Locked"}
+          value={formatAmount(stream.locked)}
+        />
+        <Field
+          label="Start"
+          value={formatTime(stream.startTime)}
+          countdown={relativeTime(stream.startTime, "starts")}
+        />
+        <Field
+          label="End"
+          value={formatTime(stream.endTime)}
+          countdown={relativeTime(stream.endTime, "ends")}
+        />
+        <Field
+          label="Cliff"
+          value={cliffDisplay}
+          countdown={
+            stream.cliffTime !== stream.startTime
+              ? relativeTime(stream.cliffTime, "cliff")
+              : undefined
+          }
+        />
       </dl>
 
       <StreamActions stream={stream} walletAddress={wallet.address} onComplete={onComplete} />
