@@ -1,6 +1,8 @@
 // Client configuration, read from NEXT_PUBLIC_* variables at build time.
-// Defaults target testnet against a local backend so the app runs with no setup
-// in development.
+// Next.js inlines those values into the client bundle when the app is built,
+// so they are fixed at build time: changing .env.local and restarting a running
+// server without rebuilding has no effect. Defaults target testnet against a
+// local backend so the app runs with no setup in development.
 
 import { StrKey } from "@stellar/stellar-sdk";
 
