@@ -38,6 +38,7 @@ export default function Error({
         {/* A plain anchor rather than next/link: if the crash left client
             state corrupted, this forces a full reload instead of a
             client-side transition that could carry the broken state along. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a
           href="/"
           className="rounded border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300 hover:border-neutral-500 hover:text-neutral-100"
