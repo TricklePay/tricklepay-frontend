@@ -22,7 +22,12 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) and connect your
 [Freighter](https://www.freighter.app) wallet on testnet.
 
-See [Running locally](#running-locally) for detailed setup instructions,
+New to the project? [docs/local-setup.md](docs/local-setup.md) is the
+start-to-finish local environment guide — prerequisites, every variable and
+where its value comes from, the frontend/backend port clash, how to verify the
+setup, and what the common first-run errors mean.
+
+See also [Running locally](#running-locally) for the short version,
 [Configuration](#configuration) for environment variables, and
 [Wallet Requirement](#wallet-requirement) for the Freighter wallet walkthrough.
 
@@ -37,6 +42,7 @@ See [Running locally](#running-locally) for detailed setup instructions,
 - [Testing](#testing)
   - [Running unit tests (Vitest)](#running-unit-tests-vitest)
   - [Running end-to-end tests (Playwright)](#running-end-to-end-tests-playwright)
+  - [Full local setup guide](docs/local-setup.md)
 - [Configuration](#configuration)
   - [Switching Contracts](#switching-contracts)
 - [Troubleshooting](#troubleshooting)
@@ -178,10 +184,33 @@ npx playwright install chromium
 
 See [End-to-end tests](e2e/README.md) for exactly what the suite proves — and
 what it deliberately does not.
+> [!NOTE]
+> `tricklepay-backend` also defaults to port 3000. Run one of them elsewhere —
+> `npm run dev -- --port 3001` moves the frontend and leaves
+> `NEXT_PUBLIC_API_URL` at its default.
+
+`NEXT_PUBLIC_CONTRACT_ID` is validated as the app boots, so a missing or
+malformed value stops it with a configuration error instead of failing at the
+first transaction.
+
+### Full local setup guide
+
+[docs/local-setup.md](docs/local-setup.md) covers the whole path in detail:
+
+- prerequisites and how to check them,
+- `.env.local` vs `.env`, and why `NEXT_PUBLIC_*` edits need a restart,
+- what every variable means and where to obtain its value,
+- choosing ports for the frontend and backend,
+- installing, funding, and network-matching Freighter,
+- a step-by-step way to verify the setup works,
+- the errors a first run tends to produce, and what each one means,
+- the full command reference, including the Playwright browser download.
 
 ## Configuration
 
-Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`.
+Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`, and
+[docs/local-setup.md](docs/local-setup.md#4-fill-in-each-variable) for where
+each value comes from.
 
 | Variable | Description | Required | Default |
 | --- | --- | --- | --- |
@@ -189,6 +218,7 @@ Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`.
 | `NEXT_PUBLIC_API_URL` | Base URL of the backend read API. | No | `http://localhost:3000` |
 | `NEXT_PUBLIC_NETWORK` | Stellar network (`testnet` or `mainnet`). | No | `testnet` |
 | `NEXT_PUBLIC_RPC_URL` | Soroban RPC endpoint for submitting transactions. | No | `https://soroban-testnet.stellar.org` |
+| `NEXT_PUBLIC_API_TIMEOUT_MS` | Milliseconds a backend read may take before it is aborted. `0` disables the timeout. | No | `10000` |
 
 ### Switching Contracts
 
@@ -202,7 +232,10 @@ To switch the application to interact with a different stream contract:
 
 ## Troubleshooting
 
-Common local setup issues and their resolutions:
+Common local setup issues and their resolutions. For first-run problems
+specifically, see
+[docs/local-setup.md](docs/local-setup.md#9-common-setup-failures), which also
+covers port clashes, contract-id validation errors, and Node version failures.
 
 ### Wallet Network Mismatch
 - **What you see:** A warning banner appears stating *"Wallet Network Mismatch: Connected to PUBLIC, but app expects testnet"*, and stream creation/management buttons are disabled.
@@ -211,6 +244,10 @@ Common local setup issues and their resolutions:
 ### Backend API Not Running or Unreachable
 - **What you see:** Dashboard stream lists fail to load, showing error messages or infinite loading skeletons, and the browser console logs `ERR_CONNECTION_REFUSED` or `Failed to fetch` requests against `NEXT_PUBLIC_API_URL`.
 - **Fix:** Start the `tricklepay-backend` service locally, or check `.env.local` to verify `NEXT_PUBLIC_API_URL` points to the correct backend host.
+
+### Backend Requests Timing Out
+- **What you see:** Stream lists and detail pages fail with *"Timed out loading the stream list after 10s"* after a pause, rather than loading.
+- **Fix:** The backend is unreachable or slower than the request budget. Check it is running and reachable at `NEXT_PUBLIC_API_URL`; if it is simply slow (a cold start, a distant host), raise `NEXT_PUBLIC_API_TIMEOUT_MS` — e.g. `NEXT_PUBLIC_API_TIMEOUT_MS=30000` — and restart the dev server so the new value is compiled in.
 
 ### Stale Build Serving Old Contract ID
 - **What you see:** Transactions continue targeting a previously configured contract address even after updating `NEXT_PUBLIC_CONTRACT_ID` in `.env.local`, or transaction submissions fail with `HostError` / invalid contract invocation errors.

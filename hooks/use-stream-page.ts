@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { listStreams, type ListStreamsParams } from "@/lib/api";
+import { isAbortError, listStreams, type ListStreamsParams } from "@/lib/api";
 import type { StreamStatus, StreamView } from "@/types/stream";
 
 // Rows per request. Kept under the backend's 50-row default so a large account
@@ -55,7 +55,34 @@ export function useStreamPage(
   // append its rows to a list that has since been reset for another address.
   const generation = useRef(0);
 
-  useEffect(() => {
+  // Controllers for requests that have not settled yet. The generation check
+  // above already stops a stale response from being *written*; aborting stops
+  // it from being *waited for* — switching accounts, changing the status
+  // filter, or leaving the page drops the connection instead of holding a
+  // socket open and decoding a body nobody will read. It also matters on a slow
+  // link, where superseded page loads would otherwise queue up against the
+  // browser's per-host connection limit and delay the one that counts.
+  const inFlight = useRef<Set<AbortController>>(new Set());
+
+  const startRequest = useCallback(() => {
+    const controller = new AbortController();
+    inFlight.current.add(controller);
+    return controller;
+  }, []);
+
+  const endRequest = useCallback((controller: AbortController) => {
+    inFlight.current.delete(controller);
+  }, []);
+
+  const abortInFlight = useCallback(() => {
+    for (const controller of inFlight.current) controller.abort();
+    inFlight.current.clear();
+  }, []);
+
+  // Loads page 0 from scratch, discarding whatever is on screen. Shared by the
+  // query-change effect and the exposed refresh() so both cancel the same way.
+  const loadFirstPage = useCallback(() => {
+    abortInFlight();
     generation.current += 1;
     const gen = generation.current;
 
@@ -65,8 +92,9 @@ export function useStreamPage(
     setError(null);
     if (!address) return;
 
+    const controller = startRequest();
     setLoading(true);
-    listStreams(pageQuery(role, address, 0, status))
+    listStreams(pageQuery(role, address, 0, status), { signal: controller.signal })
       .then((page) => {
         if (generation.current !== gen) return;
         setStreams(page.streams);
@@ -74,47 +102,32 @@ export function useStreamPage(
         setFetched(page.streams.length);
       })
       .catch((err: unknown) => {
-        if (generation.current !== gen) return;
+        // A cancelled request is an expected outcome, not a failure to report.
+        if (isAbortError(err) || generation.current !== gen) return;
         setError(err instanceof Error ? err.message : "Failed to load streams");
       })
       .finally(() => {
+        endRequest(controller);
         if (generation.current === gen) setLoading(false);
       });
-  }, [role, address, status]);
+  }, [role, address, status, abortInFlight, startRequest, endRequest]);
+
+  useEffect(() => {
+    loadFirstPage();
+    // Leaving the page, or changing the query, cancels everything still open
+    // for the query being left behind.
+    return () => abortInFlight();
+  }, [loadFirstPage, abortInFlight]);
 
   const hasMore = fetched < total;
 
-  const refresh = useCallback(() => {
-    generation.current += 1;
-    const gen = generation.current;
-
-    setStreams([]);
-    setTotal(0);
-    setFetched(0);
-    setError(null);
-    if (!address) return;
-
-    setLoading(true);
-    listStreams(pageQuery(role, address, 0, status))
-      .then((page) => {
-        if (generation.current !== gen) return;
-        setStreams(page.streams);
-        setTotal(page.total);
-        setFetched(page.streams.length);
-      })
-      .catch((err: unknown) => {
-        if (generation.current !== gen) return;
-        setError(err instanceof Error ? err.message : "Failed to load streams");
-      })
-      .finally(() => {
-        if (generation.current === gen) setLoading(false);
-      });
-  }, [role, address, status]);
+  const refresh = loadFirstPage;
 
   const silentRefresh = useCallback(() => {
     if (!address || (typeof document !== "undefined" && document.visibilityState === "hidden")) return;
     const gen = generation.current;
-    listStreams(pageQuery(role, address, 0, status))
+    const controller = startRequest();
+    listStreams(pageQuery(role, address, 0, status), { signal: controller.signal })
       .then((page) => {
         if (generation.current !== gen) return;
         setStreams(page.streams);
@@ -122,9 +135,12 @@ export function useStreamPage(
         setFetched(page.streams.length);
       })
       .catch(() => {
-        // Background refresh failure: retain existing on-screen rows
+        // Background refresh failure, or cancellation: retain existing on-screen rows
+      })
+      .finally(() => {
+        endRequest(controller);
       });
-  }, [role, address, status]);
+  }, [role, address, status, startRequest, endRequest]);
 
   // Periodic and window-focus auto-refresh to reflect counterparty actions
   useEffect(() => {
@@ -153,10 +169,11 @@ export function useStreamPage(
   const loadMore = useCallback(() => {
     if (!address || loading || loadingMore || !hasMore) return;
     const gen = generation.current;
+    const controller = startRequest();
     setLoadingMore(true);
     setError(null);
 
-    listStreams(pageQuery(role, address, fetched, status))
+    listStreams(pageQuery(role, address, fetched, status), { signal: controller.signal })
       .then((page) => {
         if (generation.current !== gen) return;
         // A stream created since the first page shifts every later row by one,
@@ -172,13 +189,24 @@ export function useStreamPage(
         setTotal(page.streams.length === 0 ? fetched : page.total);
       })
       .catch((err: unknown) => {
-        if (generation.current !== gen) return;
+        if (isAbortError(err) || generation.current !== gen) return;
         setError(err instanceof Error ? err.message : "Failed to load more streams");
       })
       .finally(() => {
+        endRequest(controller);
         if (generation.current === gen) setLoadingMore(false);
       });
-  }, [address, role, fetched, hasMore, loading, loadingMore, status]);
+  }, [
+    address,
+    role,
+    fetched,
+    hasMore,
+    loading,
+    loadingMore,
+    status,
+    startRequest,
+    endRequest,
+  ]);
 
   return { streams, total, loading, loadingMore, error, hasMore, loadMore, refresh };
 }
