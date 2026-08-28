@@ -39,6 +39,10 @@ TricklePay is a real-time, continuous token payment and streaming protocol built
 
 ### Installation & Environment Setup
 
+> For the full walkthrough — prerequisites, what each variable means, the
+> frontend/backend port clash, verification steps, and first-run errors — see
+> [docs/local-setup.md](docs/local-setup.md). The short version follows.
+
 1. **Fork & Clone the Repository**:
    ```bash
    git clone https://github.com/<your-username>/tricklepay-frontend.git
@@ -68,7 +72,9 @@ TricklePay is a real-time, continuous token payment and streaming protocol built
    ```bash
    npm run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+   Open [http://localhost:3000](http://localhost:3000) in your browser. If
+   `tricklepay-backend` is already using port 3000, start the frontend on
+   another one with `npm run dev -- --port 3001`.
 
 ---
 

@@ -22,7 +22,12 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) and connect your
 [Freighter](https://www.freighter.app) wallet on testnet.
 
-See [Running locally](#running-locally) for detailed setup instructions,
+New to the project? [docs/local-setup.md](docs/local-setup.md) is the
+start-to-finish local environment guide — prerequisites, every variable and
+where its value comes from, the frontend/backend port clash, how to verify the
+setup, and what the common first-run errors mean.
+
+See also [Running locally](#running-locally) for the short version,
 [Configuration](#configuration) for environment variables, and
 [Wallet Requirement](#wallet-requirement) for the Freighter wallet walkthrough.
 
@@ -34,6 +39,7 @@ See [Running locally](#running-locally) for detailed setup instructions,
 - [Browser Support](#browser-support)
 - [Wallet Requirement](#wallet-requirement)
 - [Running locally](#running-locally)
+  - [Full local setup guide](docs/local-setup.md)
 - [Configuration](#configuration)
   - [Switching Contracts](#switching-contracts)
 - [Troubleshooting](#troubleshooting)
@@ -123,9 +129,33 @@ npm run dev
 
 Open http://localhost:3000.
 
+> [!NOTE]
+> `tricklepay-backend` also defaults to port 3000. Run one of them elsewhere —
+> `npm run dev -- --port 3001` moves the frontend and leaves
+> `NEXT_PUBLIC_API_URL` at its default.
+
+`NEXT_PUBLIC_CONTRACT_ID` is validated as the app boots, so a missing or
+malformed value stops it with a configuration error instead of failing at the
+first transaction.
+
+### Full local setup guide
+
+[docs/local-setup.md](docs/local-setup.md) covers the whole path in detail:
+
+- prerequisites and how to check them,
+- `.env.local` vs `.env`, and why `NEXT_PUBLIC_*` edits need a restart,
+- what every variable means and where to obtain its value,
+- choosing ports for the frontend and backend,
+- installing, funding, and network-matching Freighter,
+- a step-by-step way to verify the setup works,
+- the errors a first run tends to produce, and what each one means,
+- the full command reference, including the Playwright browser download.
+
 ## Configuration
 
-Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`.
+Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`, and
+[docs/local-setup.md](docs/local-setup.md#4-fill-in-each-variable) for where
+each value comes from.
 
 | Variable | Description | Required | Default |
 | --- | --- | --- | --- |
@@ -146,7 +176,10 @@ To switch the application to interact with a different stream contract:
 
 ## Troubleshooting
 
-Common local setup issues and their resolutions:
+Common local setup issues and their resolutions. For first-run problems
+specifically, see
+[docs/local-setup.md](docs/local-setup.md#9-common-setup-failures), which also
+covers port clashes, contract-id validation errors, and Node version failures.
 
 ### Wallet Network Mismatch
 - **What you see:** A warning banner appears stating *"Wallet Network Mismatch: Connected to PUBLIC, but app expects testnet"*, and stream creation/management buttons are disabled.
