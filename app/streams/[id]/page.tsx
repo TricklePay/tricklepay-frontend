@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { getStream } from "@/lib/api";
+import { getStream, isAbortError } from "@/lib/api";
 import { useAccrual } from "@/hooks/use-accrual";
 import { useWallet } from "@/components/wallet-provider";
 import { StreamActions } from "@/components/stream-actions";
@@ -174,16 +174,22 @@ export default function StreamDetailPage() {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    // Navigating away (or retrying) cancels the request outright rather than
+    // just ignoring its result, so the browser drops the connection instead of
+    // decoding a stream nobody is looking at any more.
+    const controller = new AbortController();
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    getStream(id)
+    getStream(id, { signal: controller.signal })
       .then((s) => {
         if (!cancelled) setStream(s);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load stream");
+        // A cancelled request is an expected outcome, not a failure to report.
+        if (cancelled || isAbortError(err)) return;
+        setError(err instanceof Error ? err.message : "Failed to load stream");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -191,6 +197,7 @@ export default function StreamDetailPage() {
 
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [id, reloadKey]);
 
@@ -198,15 +205,23 @@ export default function StreamDetailPage() {
   // become immediately visible without a manual browser page reload.
   useEffect(() => {
     let cancelled = false;
+    // Every background refetch still open, so leaving the page cancels them all
+    // instead of letting a poll started seconds ago run to completion.
+    const inFlight = new Set<AbortController>();
 
     const silentRefetch = () => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-      getStream(id)
+      const controller = new AbortController();
+      inFlight.add(controller);
+      getStream(id, { signal: controller.signal })
         .then((s) => {
           if (!cancelled && s) setStream(s);
         })
         .catch(() => {
-          // Ignore background fetch failures and retain current data
+          // Ignore background fetch failures (and cancellations) and retain current data
+        })
+        .finally(() => {
+          inFlight.delete(controller);
         });
     };
 
@@ -224,6 +239,8 @@ export default function StreamDetailPage() {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       clearInterval(interval);
+      for (const controller of inFlight) controller.abort();
+      inFlight.clear();
     };
   }, [id]);
 

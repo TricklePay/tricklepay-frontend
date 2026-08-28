@@ -131,6 +131,36 @@ A body that is not JSON at all (an HTML error page from a proxy, an empty
 mode for "the backend did not answer with what it promised" — distinct from
 the plain `Error` thrown for a non-2xx status.
 
+### Request cancellation
+
+Both read calls accept a `RequestOptions` argument carrying an optional
+`AbortSignal` (`listStreams(params, { signal })`, `getStream(id, { signal })`),
+which is handed straight to `fetch`. Every caller in the app supplies one and
+aborts it when the result stops being wanted:
+
+- `hooks/use-stream-page.ts` keeps the controllers for its unsettled requests
+  in a set and aborts them when the query changes (a different address, role,
+  or status filter), when `refresh()` starts a replacement load, and on
+  unmount. The existing generation counter still guards *writes*; the signal
+  additionally drops the connection, which is what stops superseded page loads
+  from queueing against the browser per-host connection limit ahead of the
+  request that matters.
+- `app/streams/[id]/page.tsx` aborts the detail fetch when the id changes or
+  the page unmounts, and aborts any outstanding background poll on teardown.
+
+An abort rejects with an error named `AbortError`. Since that is an expected
+outcome rather than a failure, `isAbortError(error)` (`lib/api.ts`) identifies
+it and every caller swallows it — no error banner is shown for a request the
+app cancelled itself, and no loading flag is cleared on behalf of the request
+that superseded it. It is matched by `name` rather than `instanceof
+DOMException` so it is recognised under undici and jsdom as well as in the
+browser. An abort that lands mid-body (while `res.json()` is still reading)
+propagates as the same `AbortError`, never as an `ApiResponseError`.
+
+Cancellation is confined to these read calls: writes go through
+`lib/contract.ts`, where a submitted transaction cannot be recalled, so nothing
+in the wallet or transaction path is abortable.
+
 ## 2. On-chain contract surface
 
 The frontend calls the deployed stream contract (`NEXT_PUBLIC_CONTRACT_ID`)

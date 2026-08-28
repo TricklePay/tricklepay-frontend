@@ -16,6 +16,33 @@ export interface ListStreamsParams {
   status?: StreamStatus | "all";
 }
 
+/** Per-request options shared by every call in this module. */
+export interface RequestOptions {
+  /**
+   * Aborts the request when signalled. Callers pass the signal of a controller
+   * they abort when the result stops being wanted — the query changed, the
+   * component unmounted — so the browser drops the connection instead of
+   * decoding a response nobody will read.
+   */
+  signal?: AbortSignal;
+}
+
+/**
+ * True for the error a `fetch` rejects with once its signal is aborted.
+ *
+ * An abort is a normal outcome, not a failure: callers use this to swallow it
+ * rather than flashing "Failed to load streams" for a request they cancelled
+ * themselves. Identified by `name` rather than by `instanceof DOMException`
+ * because Node's undici and jsdom each reject with their own error class.
+ */
+export function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { name?: unknown }).name === "AbortError"
+  );
+}
+
 // Reads the response body as JSON. A body that is not JSON at all (an HTML
 // error page from a proxy, an empty 200) is reported the same way a
 // structurally wrong payload is, so callers only have one failure mode to
@@ -23,7 +50,10 @@ export interface ListStreamsParams {
 async function readJson(res: Response, what: string): Promise<unknown> {
   try {
     return await res.json();
-  } catch {
+  } catch (error) {
+    // Aborting mid-body rejects the `json()` read too; that is a cancellation,
+    // not a malformed payload, so let it through unchanged.
+    if (isAbortError(error)) throw error;
     throw new ApiResponseError(`Malformed API response: ${what} was not valid JSON.`);
   }
 }
@@ -35,6 +65,7 @@ async function readJson(res: Response, what: string): Promise<unknown> {
 // against the documented shape before it is handed back (see lib/api-schema.ts).
 export async function listStreams(
   params: ListStreamsParams = {},
+  options: RequestOptions = {},
 ): Promise<StreamListResponse> {
   const url = new URL("/streams", config.apiUrl);
   if (params.sender) url.searchParams.set("sender", params.sender);
@@ -43,7 +74,7 @@ export async function listStreams(
   if (params.limit !== undefined) url.searchParams.set("limit", String(params.limit));
   if (params.offset !== undefined) url.searchParams.set("offset", String(params.offset));
 
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(url, { cache: "no-store", signal: options.signal });
   if (!res.ok) {
     throw new Error(`Failed to load streams (${res.status})`);
   }
@@ -52,10 +83,13 @@ export async function listStreams(
 }
 
 // Fetches a single stream by id, or null if it does not exist.
-export async function getStream(id: string): Promise<StreamView | null> {
+export async function getStream(
+  id: string,
+  options: RequestOptions = {},
+): Promise<StreamView | null> {
   const url = new URL(`/streams/${id}`, config.apiUrl);
 
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(url, { cache: "no-store", signal: options.signal });
   if (res.status === 404) return null;
   if (!res.ok) {
     throw new Error(`Failed to load stream ${id} (${res.status})`);
