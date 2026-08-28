@@ -1,3 +1,12 @@
+// Builds, signs, submits, and confirms Soroban contract invocations for the
+// stream write path (create, withdraw, withdraw_amount, cancel). Every call
+// follows the same flow: fetch the account, build the transaction, simulate
+// and assemble the resource footprint, then hand the prepared XDR to Freighter
+// for signing. Signing happens in the wallet, never in the client — the
+// private key never leaves Freighter. The signed transaction is then submitted
+// over RPC and polled until it confirms on-chain, with each stage surfaced
+// through onStageChange so the UI can show progress.
+
 import {
   Address,
   BASE_FEE,
