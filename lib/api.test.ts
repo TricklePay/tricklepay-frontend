@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { listStreams, getStream } from "./api";
+import { listStreams, getStream, ApiResponseError } from "./api";
 
 describe("api client", () => {
   beforeEach(() => {
@@ -96,6 +96,55 @@ describe("api client", () => {
 
       const res = await getStream("999");
       expect(res).toBeNull();
+    });
+  });
+
+  describe("response validation", () => {
+    it("rejects a stream list whose rows do not match the contract", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ streams: [{ id: "1" }], total: 1 }),
+      });
+
+      await expect(listStreams({})).rejects.toThrow(ApiResponseError);
+    });
+
+    it("rejects a stream whose amounts arrive as JSON numbers", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: "1",
+          sender: "GA",
+          recipient: "GB",
+          token: "GC",
+          totalAmount: 1000,
+          withdrawn: "0",
+          vested: "0",
+          locked: "1000",
+          withdrawable: "0",
+          progress: 0,
+          startTime: "100",
+          endTime: "200",
+          cliffTime: "100",
+          status: "streaming",
+        }),
+      });
+
+      await expect(getStream("1")).rejects.toThrow(/totalAmount must be a string/);
+    });
+
+    it("reports a body that is not JSON at all", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => {
+          throw new SyntaxError("Unexpected token <");
+        },
+      });
+
+      await expect(listStreams({})).rejects.toThrow("Malformed API response: the stream list was not valid JSON.");
     });
   });
 });

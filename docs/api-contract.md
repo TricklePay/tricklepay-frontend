@@ -105,6 +105,32 @@ recomputes `vested`/`withdrawable` client-side every second between fetches
 streaming balance visibly climbs without polling; `progress` is only used
 for the static bar, not for that live recomputation.
 
+### Response validation
+
+Both responses are validated at the boundary before `lib/api.ts` hands them
+back — `parseStreamListResponse` and `parseStreamView` in `lib/api-schema.ts`
+check every field documented above against the contract, and throw an
+`ApiResponseError` naming the offending path (e.g. `response.streams[3].vested
+must be a decimal integer string`) when the backend drifts from it. Without
+that check a `totalAmount` sent as a JSON number instead of a string surfaces
+much later as an opaque `BigInt` conversion failure inside
+`lib/format.ts`, and a missing field renders as `undefined` in the table.
+
+Two deliberate leniencies keep older backend builds working:
+
+- `cancelled` is only type-checked when present — `status === "cancelled"`
+  already carries the same information.
+- `limit`/`offset` are only checked when present, since the frontend paginates
+  from its own counters (`hooks/use-stream-page.ts`) rather than from the
+  echoed values.
+
+Validation asserts, it never normalises: the payload is returned exactly as it
+arrived, so nothing downstream depends on having passed through the validator.
+A body that is not JSON at all (an HTML error page from a proxy, an empty
+`200`) raises the same `ApiResponseError`, so callers have a single failure
+mode for "the backend did not answer with what it promised" — distinct from
+the plain `Error` thrown for a non-2xx status.
+
 ## 2. On-chain contract surface
 
 The frontend calls the deployed stream contract (`NEXT_PUBLIC_CONTRACT_ID`)
