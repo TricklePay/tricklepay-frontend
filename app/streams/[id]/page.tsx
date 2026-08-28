@@ -7,7 +7,7 @@ import { getStream } from "@/lib/api";
 import { useAccrual } from "@/hooks/use-accrual";
 import { useWallet } from "@/components/wallet-provider";
 import { StreamActions } from "@/components/stream-actions";
-import { CopyButton } from "@/components/copy-button";
+import { CopyButton, ShareLinkButton } from "@/components/copy-button";
 import { ProgressBar } from "@/components/progress-bar";
 import { StreamDetailSkeleton } from "@/components/skeleton";
 import { formatAmount, formatTime, relativeTime, truncateAddress } from "@/lib/format";
@@ -57,9 +57,15 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
 
   return (
     <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
-      <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
-        &larr; Back
-      </Link>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
+          &larr; Back
+        </Link>
+        <ShareLinkButton
+          url={typeof window !== "undefined" ? window.location.href : ""}
+          label={`stream #${stream.id}`}
+        />
+      </div>
 
       <div className="mb-6 mt-3 flex items-center justify-between">
         <h1 className="font-mono text-xl">Stream #{stream.id}</h1>
