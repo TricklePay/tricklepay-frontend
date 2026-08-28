@@ -35,6 +35,8 @@ See [Running locally](#running-locally) for detailed setup instructions,
 - [Wallet Requirement](#wallet-requirement)
 - [Running locally](#running-locally)
 - [Configuration](#configuration)
+  - [Switching Contracts](#switching-contracts)
+- [Troubleshooting](#troubleshooting)
 - [API contract](#api-contract)
 - [Project structure](#project-structure)
   - [Module Map](#module-map)
@@ -97,8 +99,14 @@ A funded account is required to create a stream. Fund your testnet account using
 
 ## Running locally
 
-Requires Node 20+, the [Freighter](https://www.freighter.app) extension, and a
-running backend.
+### Prerequisites
+
+- **Node.js**: `v20.0.0` or higher (Node 20+ LTS). Next.js 15, React 19, and Tailwind CSS v4 build tooling require Node 20+ runtime features and module resolution; older Node versions will encounter errors during package installation or compilation.
+- **npm**: `v10.0.0` or higher.
+- **Freighter Extension**: Installed in your browser (see [Wallet Requirement](#wallet-requirement)).
+- **Backend API**: A running instance of `tricklepay-backend`.
+
+### Setup
 
 ```bash
 cp .env.example .env.local   # set NEXT_PUBLIC_CONTRACT_ID and the API URL
@@ -112,12 +120,38 @@ Open http://localhost:3000.
 
 Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`.
 
-| Variable | Description |
-| --- | --- |
-| `NEXT_PUBLIC_API_URL` | Base URL of the backend read API. |
-| `NEXT_PUBLIC_NETWORK` | `testnet` or `mainnet`. |
-| `NEXT_PUBLIC_RPC_URL` | Soroban RPC endpoint. Defaults to the network's public endpoint. |
-| `NEXT_PUBLIC_CONTRACT_ID` | Deployed stream contract id. |
+| Variable | Description | Required | Default |
+| --- | --- | --- | --- |
+| `NEXT_PUBLIC_CONTRACT_ID` | Deployed stream contract ID (starts with `C`). | Yes | *(None)* |
+| `NEXT_PUBLIC_API_URL` | Base URL of the backend read API. | No | `http://localhost:3000` |
+| `NEXT_PUBLIC_NETWORK` | Stellar network (`testnet` or `mainnet`). | No | `testnet` |
+| `NEXT_PUBLIC_RPC_URL` | Soroban RPC endpoint for submitting transactions. | No | `https://soroban-testnet.stellar.org` |
+
+### Switching Contracts
+
+To switch the application to interact with a different stream contract:
+
+1. Update `NEXT_PUBLIC_CONTRACT_ID` in `.env.local` (or your environment variable configuration) with the new contract address.
+2. Rebuild the application (`npm run build`) or restart the development server so that the change is compiled into the JavaScript bundle.
+
+> [!IMPORTANT]
+> **Rebuild Required:** Next.js inlines `NEXT_PUBLIC_*` environment variables directly into the client-side JavaScript bundle at build/compile time. Because the contract ID is fixed at build time, simply modifying `.env.local` and restarting a running production instance without rebuilding will not update the active contract ID, causing the app to continue targeting the old contract.
+
+## Troubleshooting
+
+Common local setup issues and their resolutions:
+
+### Wallet Network Mismatch
+- **What you see:** A warning banner appears stating *"Wallet Network Mismatch: Connected to PUBLIC, but app expects testnet"*, and stream creation/management buttons are disabled.
+- **Fix:** Open the Freighter extension in your browser, click the network selector at the top, and switch to **Testnet** (or the network specified by `NEXT_PUBLIC_NETWORK`).
+
+### Backend API Not Running or Unreachable
+- **What you see:** Dashboard stream lists fail to load, showing error messages or infinite loading skeletons, and the browser console logs `ERR_CONNECTION_REFUSED` or `Failed to fetch` requests against `NEXT_PUBLIC_API_URL`.
+- **Fix:** Start the `tricklepay-backend` service locally, or check `.env.local` to verify `NEXT_PUBLIC_API_URL` points to the correct backend host.
+
+### Stale Build Serving Old Contract ID
+- **What you see:** Transactions continue targeting a previously configured contract address even after updating `NEXT_PUBLIC_CONTRACT_ID` in `.env.local`, or transaction submissions fail with `HostError` / invalid contract invocation errors.
+- **Fix:** Because `NEXT_PUBLIC_*` values are inlined at build time, stop the application server and run `npm run build` (or restart `npm run dev`) to recompile the client bundle with the updated contract ID.
 
 ## API contract
 
