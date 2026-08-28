@@ -41,7 +41,7 @@
 }
 
 /* Respect the OS-level "reduce motion" preference. Rather than chasing every
-   animate-*/transition-* utility across components, collapse all animations
+   animate-* and transition-* utility across components, collapse all animations
    and transitions app-wide (skeleton shimmer, spinners, hover/focus
    transitions, progress-stage pulses) down to a single, near-instant frame. */
 @media (prefers-reduced-motion: reduce) {

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { StrKey } from "@stellar/stellar-sdk";
 import { useWallet } from "@/components/wallet-provider";
 import { TransactionProgress } from "@/components/transaction-progress";
 import { useNetworkGuard } from "@/hooks/use-network-guard";
