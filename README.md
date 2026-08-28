@@ -9,6 +9,23 @@ stream — all signed in the wallet and confirmed on-chain.
 It reads stream data from [tricklepay-backend](#related-repositories) and writes
 to the stream contract directly over Soroban RPC.
 
+## Quickstart
+
+```bash
+git clone https://github.com/TricklePay/tricklepay-frontend.git
+cd tricklepay-frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) and connect your
+[Freighter](https://www.freighter.app) wallet on testnet.
+
+See [Running locally](#running-locally) for detailed setup instructions,
+[Configuration](#configuration) for environment variables, and
+[Wallet Requirement](#wallet-requirement) for the Freighter wallet walkthrough.
+
 ## Features
 
 - **Wallet connect** via Freighter, with silent session restore and a
