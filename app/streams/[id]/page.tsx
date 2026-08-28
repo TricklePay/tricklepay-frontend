@@ -10,7 +10,7 @@ import { StreamActions } from "@/components/stream-actions";
 import { CopyButton } from "@/components/copy-button";
 import { ProgressBar } from "@/components/progress-bar";
 import { StreamDetailSkeleton } from "@/components/skeleton";
-import { formatAmount, formatTime, relativeTime, truncateAddress } from "@/lib/format";
+import { formatAmount, formatTime, formatTokenDisplay, relativeTime, truncateAddress } from "@/lib/format";
 import { formatUtcFromUnixSeconds, resolvedTimeZoneLabel } from "@/lib/timezone";
 import type { StreamView } from "@/types/stream";
 
@@ -115,7 +115,7 @@ function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: 
       <dl className="grid grid-cols-2 gap-4 text-sm">
         <Field label="From" value={truncateAddress(stream.sender)} mono copyValue={stream.sender} />
         <Field label="To" value={truncateAddress(stream.recipient)} mono copyValue={stream.recipient} />
-        <Field label="Token" value={truncateAddress(stream.token)} mono copyValue={stream.token} />
+        <Field label="Token" value={formatTokenDisplay(stream.token)} mono copyValue={stream.token} />
         <Field label="Withdrawn" value={formatAmount(stream.withdrawn)} />
         <Field
           label={stream.status === "cancelled" ? "Returned to sender" : "Locked"}
