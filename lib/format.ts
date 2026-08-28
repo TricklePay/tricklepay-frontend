@@ -1,5 +1,34 @@
 const STROOP_DECIMALS = 7n;
 
+export interface TokenMetadata {
+  name: string;
+  symbol: string;
+}
+
+const TOKEN_METADATA: Record<string, TokenMetadata> = {
+  // Known token contracts used in the app and its fixtures.
+  CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC: {
+    name: "USD Coin",
+    symbol: "USDC",
+  },
+};
+
+export function resolveTokenMetadata(tokenAddress: string): TokenMetadata | null {
+  const candidate = tokenAddress.trim();
+  if (!candidate) return null;
+
+  return TOKEN_METADATA[candidate] ?? null;
+}
+
+export function formatTokenDisplay(tokenAddress: string): string {
+  const metadata = resolveTokenMetadata(tokenAddress);
+  if (metadata) {
+    return metadata.symbol;
+  }
+
+  return truncateAddress(tokenAddress);
+}
+
 // Formats a base-unit token amount (7 decimals, the Stellar standard) as a
 // decimal string with trailing zeros trimmed.
 export function formatAmount(raw: string): string {
