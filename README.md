@@ -26,6 +26,21 @@ See [Running locally](#running-locally) for detailed setup instructions,
 [Configuration](#configuration) for environment variables, and
 [Wallet Requirement](#wallet-requirement) for the Freighter wallet walkthrough.
 
+## Table of Contents
+
+- [Quickstart](#quickstart)
+- [Features](#features)
+- [Stack](#stack)
+- [Browser Support](#browser-support)
+- [Wallet Requirement](#wallet-requirement)
+- [Running locally](#running-locally)
+- [Configuration](#configuration)
+- [API contract](#api-contract)
+- [Project structure](#project-structure)
+  - [Module Map](#module-map)
+- [Related repositories](#related-repositories)
+- [License](#license)
+
 ## Features
 
 - **Wallet connect** via Freighter, with silent session restore and a
