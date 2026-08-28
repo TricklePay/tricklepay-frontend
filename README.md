@@ -62,6 +62,24 @@ TricklePay is designed for modern desktop browsers with the [Freighter](https://
 
 Mobile browsers and browsers without extension support can view public stream information but require a supported desktop browser to sign and execute transactions.
 
+## Wallet Requirement
+
+TricklePay requires the [Freighter](https://www.freighter.app) browser extension to sign and submit transactions.
+
+### Installing Freighter
+
+1. Visit [freighter.app](https://www.freighter.app) and install the extension for your browser.
+2. Create a new wallet or import an existing Stellar keypair.
+3. Open the extension and switch the network to **Testnet** (via the network dropdown in the extension's top bar).
+
+### Network Mismatch
+
+If your Freighter wallet is on a different network than what the app expects (e.g. the wallet is on `PUBLIC` while the app is configured for `testnet`), the client displays a warning banner and disables stream creation and management actions. Switch the wallet's network to match the app's `NEXT_PUBLIC_NETWORK` setting.
+
+### Funded Account
+
+A funded account is required to create a stream. Fund your testnet account using the [Stellar Laboratory](https://laboratory.stellar.org/#account-creator?network=testnet) or the Friendbot faucet.
+
 ## Running locally
 
 Requires Node 20+, the [Freighter](https://www.freighter.app) extension, and a
