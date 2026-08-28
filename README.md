@@ -39,6 +39,9 @@ See also [Running locally](#running-locally) for the short version,
 - [Browser Support](#browser-support)
 - [Wallet Requirement](#wallet-requirement)
 - [Running locally](#running-locally)
+- [Testing](#testing)
+  - [Running unit tests (Vitest)](#running-unit-tests-vitest)
+  - [Running end-to-end tests (Playwright)](#running-end-to-end-tests-playwright)
   - [Full local setup guide](docs/local-setup.md)
 - [Configuration](#configuration)
   - [Switching Contracts](#switching-contracts)
@@ -129,6 +132,58 @@ npm run dev
 
 Open http://localhost:3000.
 
+## Testing
+
+### Running unit tests (Vitest)
+
+Unit tests cover the pure modules in `lib/` and component flows, run with
+[Vitest](https://vitest.dev/):
+
+```bash
+npm test
+```
+
+To run a single test file, pass its path to `vitest run`:
+
+```bash
+npx vitest run lib/vesting.test.ts
+```
+
+To run one test by name, add the `-t` flag with a pattern matching the test
+title:
+
+```bash
+npx vitest run lib/vesting.test.ts -t "vests the full amount at and after the end"
+```
+
+The pattern is a regular expression matched against full test names, so a
+substring like `-t "cliff"` works too. See [Testing
+Strategy](CONTRIBUTING.md#-testing-strategy) in the contribution guide for what
+each suite covers.
+
+### Running end-to-end tests (Playwright)
+
+The end-to-end suite drives the real UI in a real browser against faked chain
+and wallet fixtures:
+
+```bash
+npm run test:e2e
+```
+
+The chain and wallet are **stubbed by fixtures**, not real: `e2e/fixtures/chain.ts`
+intercepts every Soroban RPC and backend API request with `page.route`, and
+`e2e/fixtures/freighter.ts` answers the extension's `postMessage` handshake as
+an unlocked, already-authorised wallet. Nothing touches a real network, so the
+suite needs no funded account or deployed contract.
+
+On first run, install the Playwright browsers:
+
+```bash
+npx playwright install chromium
+```
+
+See [End-to-end tests](e2e/README.md) for exactly what the suite proves — and
+what it deliberately does not.
 > [!NOTE]
 > `tricklepay-backend` also defaults to port 3000. Run one of them elsewhere —
 > `npm run dev -- --port 3001` moves the frontend and leaves
