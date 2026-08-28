@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { StrKey } from "@stellar/stellar-sdk";
 import { useWallet } from "@/components/wallet-provider";
 import { TransactionProgress } from "@/components/transaction-progress";
+import { useFormNavigationWarning } from "@/hooks/use-form-navigation-warning";
 import { useNetworkGuard } from "@/hooks/use-network-guard";
 import { createStream, confirmTransaction, TransactionTimeoutError, type CreateStreamParams, type TxStage } from "@/lib/contract";
 import { setPendingNotice } from "@/lib/pending-notice";
@@ -189,6 +190,12 @@ export function CreateForm() {
     endError ||
     cliffError
   );
+
+  const hasUnsavedChanges =
+    prepared !== null ||
+    [recipient, token, amount, start, end, cliff].some((value) => value.trim().length > 0);
+
+  useFormNavigationWarning(hasUnsavedChanges && !submitting, "You have unsaved changes in this stream form. Leaving now will discard them.");
 
   if (!wallet.address) {
     return <p className="text-sm text-neutral-400">Connect your wallet to create a stream.</p>;
