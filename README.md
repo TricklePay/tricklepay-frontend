@@ -163,6 +163,7 @@ each value comes from.
 | `NEXT_PUBLIC_API_URL` | Base URL of the backend read API. | No | `http://localhost:3000` |
 | `NEXT_PUBLIC_NETWORK` | Stellar network (`testnet` or `mainnet`). | No | `testnet` |
 | `NEXT_PUBLIC_RPC_URL` | Soroban RPC endpoint for submitting transactions. | No | `https://soroban-testnet.stellar.org` |
+| `NEXT_PUBLIC_API_TIMEOUT_MS` | Milliseconds a backend read may take before it is aborted. `0` disables the timeout. | No | `10000` |
 
 ### Switching Contracts
 
@@ -188,6 +189,10 @@ covers port clashes, contract-id validation errors, and Node version failures.
 ### Backend API Not Running or Unreachable
 - **What you see:** Dashboard stream lists fail to load, showing error messages or infinite loading skeletons, and the browser console logs `ERR_CONNECTION_REFUSED` or `Failed to fetch` requests against `NEXT_PUBLIC_API_URL`.
 - **Fix:** Start the `tricklepay-backend` service locally, or check `.env.local` to verify `NEXT_PUBLIC_API_URL` points to the correct backend host.
+
+### Backend Requests Timing Out
+- **What you see:** Stream lists and detail pages fail with *"Timed out loading the stream list after 10s"* after a pause, rather than loading.
+- **Fix:** The backend is unreachable or slower than the request budget. Check it is running and reachable at `NEXT_PUBLIC_API_URL`; if it is simply slow (a cold start, a distant host), raise `NEXT_PUBLIC_API_TIMEOUT_MS` — e.g. `NEXT_PUBLIC_API_TIMEOUT_MS=30000` — and restart the dev server so the new value is compiled in.
 
 ### Stale Build Serving Old Contract ID
 - **What you see:** Transactions continue targeting a previously configured contract address even after updating `NEXT_PUBLIC_CONTRACT_ID` in `.env.local`, or transaction submissions fail with `HostError` / invalid contract invocation errors.

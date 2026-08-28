@@ -82,6 +82,7 @@ the override you want.
 | `NEXT_PUBLIC_API_URL` | No | `http://localhost:3000` | Base URL of your running `tricklepay-backend`. |
 | `NEXT_PUBLIC_NETWORK` | No | `testnet` | `testnet` or `mainnet`. Keep it on `testnet` for development — it must match the network selected in Freighter. |
 | `NEXT_PUBLIC_RPC_URL` | No | `https://soroban-testnet.stellar.org` | Soroban RPC endpoint used to submit signed transactions. The public endpoint is fine; override it only if you run your own node or hit rate limits. |
+| `NEXT_PUBLIC_API_TIMEOUT_MS` | No | `10000` | How long a backend read may run before it is aborted, in milliseconds. Raise it if your backend is slow to start or lives behind a slow link; `0` disables the timeout. Invalid values are rejected at startup. |
 
 A filled-in `.env.local` for typical local work:
 
@@ -89,6 +90,7 @@ A filled-in `.env.local` for typical local work:
 NEXT_PUBLIC_API_URL=http://localhost:3000
 NEXT_PUBLIC_NETWORK=testnet
 NEXT_PUBLIC_RPC_URL=https://soroban-testnet.stellar.org
+NEXT_PUBLIC_API_TIMEOUT_MS=10000
 NEXT_PUBLIC_CONTRACT_ID=CA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQGAXE
 ```
 
@@ -201,6 +203,14 @@ this. Copy the id again from your deploy output.
 
 Something else — most often `tricklepay-backend` — already holds the port. See
 [§5](#5-choose-your-ports).
+
+### `Timed out loading the stream list after 10s`
+
+The backend accepted the connection but did not answer in time. Usually it is
+starting up, or is genuinely unreachable; if it is merely slow, raise
+`NEXT_PUBLIC_API_TIMEOUT_MS` (for example to `30000`) and restart the dev
+server. Setting it to `0` removes the budget altogether, at the cost of a
+request that can hang indefinitely.
 
 ### Stream lists error, console shows `ERR_CONNECTION_REFUSED` / `Failed to fetch`
 

@@ -161,6 +161,38 @@ Cancellation is confined to these read calls: writes go through
 `lib/contract.ts`, where a submitted transaction cannot be recalled, so nothing
 in the wallet or transaction path is abortable.
 
+### Request timeout
+
+Every read carries a deadline, so an unreachable or stalled backend surfaces as
+an actionable error instead of a skeleton that never resolves. The budget comes
+from `NEXT_PUBLIC_API_TIMEOUT_MS` (`config.apiTimeoutMs`, default `10000`), and
+a single call can override it with `RequestOptions.timeoutMs`. `0` — in either
+place — disables the timeout.
+
+The value is parsed and validated in `lib/config.ts` at module load, alongside
+the contract id: a non-integer or negative value is a startup error naming the
+variable, not a silent fallback to the default.
+
+Exceeding the budget throws an `ApiTimeoutError` naming the resource and the
+elapsed budget ("Timed out loading stream 42 after 7.5s…"). It is deliberately
+*not* an abort: `isAbortError` returns false for it, so the callers that
+swallow cancellations still show it, while `isTimeoutError` identifies it for
+anything that wants to special-case a slow backend. The timeout covers the
+whole exchange, body decoding included, so a backend that sends headers
+promptly and then stalls mid-body still times out.
+
+Internally the timeout and the caller signal are merged into one
+`AbortController` — a request has only one signal, and either source aborting
+must abort the request. `AbortSignal.timeout()` is not used, because its
+rejection is indistinguishable from a caller abort at the catch site, which is
+exactly the distinction the two error types exist to preserve.
+
+Only the read API is affected. On-chain writes keep their own budget:
+`confirm()` in `lib/contract.ts` polls 30 times at one-second intervals and
+throws `TransactionTimeoutError` carrying the transaction hash, since a
+submitted transaction can still succeed after the frontend stops waiting and
+must stay recoverable.
+
 ## 2. On-chain contract surface
 
 The frontend calls the deployed stream contract (`NEXT_PUBLIC_CONTRACT_ID`)
@@ -252,7 +284,8 @@ debugging (`"... (error code 99)"`), rather than surfacing nothing.
 ## 4. Configuration contract
 
 Both surfaces above are pointed at their targets entirely through
-`NEXT_PUBLIC_*` environment variables, read once in `lib/config.ts`; see the
+`NEXT_PUBLIC_*` environment variables — including `NEXT_PUBLIC_API_TIMEOUT_MS`,
+the read API request budget described above — read once in `lib/config.ts`; see the
 README's [Configuration](../README.md#configuration) section for the full
 variable list and defaults. Because these are `NEXT_PUBLIC_*` vars, they're
 inlined at build time — pointing the same build at a different backend or
