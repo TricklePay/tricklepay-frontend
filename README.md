@@ -9,6 +9,38 @@ stream — all signed in the wallet and confirmed on-chain.
 It reads stream data from [tricklepay-backend](#related-repositories) and writes
 to the stream contract directly over Soroban RPC.
 
+## Quickstart
+
+```bash
+git clone https://github.com/TricklePay/tricklepay-frontend.git
+cd tricklepay-frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) and connect your
+[Freighter](https://www.freighter.app) wallet on testnet.
+
+See [Running locally](#running-locally) for detailed setup instructions,
+[Configuration](#configuration) for environment variables, and
+[Wallet Requirement](#wallet-requirement) for the Freighter wallet walkthrough.
+
+## Table of Contents
+
+- [Quickstart](#quickstart)
+- [Features](#features)
+- [Stack](#stack)
+- [Browser Support](#browser-support)
+- [Wallet Requirement](#wallet-requirement)
+- [Running locally](#running-locally)
+- [Configuration](#configuration)
+- [API contract](#api-contract)
+- [Project structure](#project-structure)
+  - [Module Map](#module-map)
+- [Related repositories](#related-repositories)
+- [License](#license)
+
 ## Features
 
 - **Wallet connect** via Freighter, with silent session restore and a
@@ -44,6 +76,24 @@ TricklePay is designed for modern desktop browsers with the [Freighter](https://
 - **Microsoft Edge** (Chromium-based)
 
 Mobile browsers and browsers without extension support can view public stream information but require a supported desktop browser to sign and execute transactions.
+
+## Wallet Requirement
+
+TricklePay requires the [Freighter](https://www.freighter.app) browser extension to sign and submit transactions.
+
+### Installing Freighter
+
+1. Visit [freighter.app](https://www.freighter.app) and install the extension for your browser.
+2. Create a new wallet or import an existing Stellar keypair.
+3. Open the extension and switch the network to **Testnet** (via the network dropdown in the extension's top bar).
+
+### Network Mismatch
+
+If your Freighter wallet is on a different network than what the app expects (e.g. the wallet is on `PUBLIC` while the app is configured for `testnet`), the client displays a warning banner and disables stream creation and management actions. Switch the wallet's network to match the app's `NEXT_PUBLIC_NETWORK` setting.
+
+### Funded Account
+
+A funded account is required to create a stream. Fund your testnet account using the [Stellar Laboratory](https://laboratory.stellar.org/#account-creator?network=testnet) or the Friendbot faucet.
 
 ## Running locally
 
@@ -110,6 +160,18 @@ lib/
 types/
   stream.ts             API response types
 ```
+
+### Module Map
+
+| Directory | Purpose |
+| --- | --- |
+| `app/` | Next.js App Router pages, layouts, and route-level loading states |
+| `components/` | Reusable React UI components and context providers |
+| `hooks/` | Custom React hooks (e.g. live balance accrual) |
+| `lib/` | Core domain logic, SDK helpers, and configuration |
+| `types/` | TypeScript type definitions for API responses |
+| `e2e/` | Playwright end-to-end and visual regression tests |
+| `docs/` | Architecture and API contract documentation |
 
 ## Related repositories
 
