@@ -146,6 +146,18 @@ types/
   stream.ts             API response types
 ```
 
+### Module Map
+
+| Directory | Purpose |
+| --- | --- |
+| `app/` | Next.js App Router pages, layouts, and route-level loading states |
+| `components/` | Reusable React UI components and context providers |
+| `hooks/` | Custom React hooks (e.g. live balance accrual) |
+| `lib/` | Core domain logic, SDK helpers, and configuration |
+| `types/` | TypeScript type definitions for API responses |
+| `e2e/` | Playwright end-to-end and visual regression tests |
+| `docs/` | Architecture and API contract documentation |
+
 ## Related repositories
 
 - **tricklepay-contracts** — the Soroban streaming contract.
