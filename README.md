@@ -155,6 +155,30 @@ substring like `-t "cliff"` works too. See [Testing
 Strategy](CONTRIBUTING.md#-testing-strategy) in the contribution guide for what
 each suite covers.
 
+### Running end-to-end tests (Playwright)
+
+The end-to-end suite drives the real UI in a real browser against faked chain
+and wallet fixtures:
+
+```bash
+npm run test:e2e
+```
+
+The chain and wallet are **stubbed by fixtures**, not real: `e2e/fixtures/chain.ts`
+intercepts every Soroban RPC and backend API request with `page.route`, and
+`e2e/fixtures/freighter.ts` answers the extension's `postMessage` handshake as
+an unlocked, already-authorised wallet. Nothing touches a real network, so the
+suite needs no funded account or deployed contract.
+
+On first run, install the Playwright browsers:
+
+```bash
+npx playwright install chromium
+```
+
+See [End-to-end tests](e2e/README.md) for exactly what the suite proves — and
+what it deliberately does not.
+
 ## Configuration
 
 Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`.
