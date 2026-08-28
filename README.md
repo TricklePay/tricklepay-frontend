@@ -34,6 +34,9 @@ See [Running locally](#running-locally) for detailed setup instructions,
 - [Browser Support](#browser-support)
 - [Wallet Requirement](#wallet-requirement)
 - [Running locally](#running-locally)
+- [Testing](#testing)
+  - [Running unit tests (Vitest)](#running-unit-tests-vitest)
+  - [Running end-to-end tests (Playwright)](#running-end-to-end-tests-playwright)
 - [Configuration](#configuration)
   - [Switching Contracts](#switching-contracts)
 - [Troubleshooting](#troubleshooting)
@@ -122,6 +125,35 @@ npm run dev
 ```
 
 Open http://localhost:3000.
+
+## Testing
+
+### Running unit tests (Vitest)
+
+Unit tests cover the pure modules in `lib/` and component flows, run with
+[Vitest](https://vitest.dev/):
+
+```bash
+npm test
+```
+
+To run a single test file, pass its path to `vitest run`:
+
+```bash
+npx vitest run lib/vesting.test.ts
+```
+
+To run one test by name, add the `-t` flag with a pattern matching the test
+title:
+
+```bash
+npx vitest run lib/vesting.test.ts -t "vests the full amount at and after the end"
+```
+
+The pattern is a regular expression matched against full test names, so a
+substring like `-t "cliff"` works too. See [Testing
+Strategy](CONTRIBUTING.md#-testing-strategy) in the contribution guide for what
+each suite covers.
 
 ## Configuration
 
