@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { formatAmount, formatDuration, relativeTime, timeRemaining, truncateAddress } from "@/lib/format";
+import {
+  formatAmount,
+  formatDuration,
+  formatTokenDisplay,
+  relativeTime,
+  timeRemaining,
+  truncateAddress,
+} from "@/lib/format";
 
 describe("formatAmount", () => {
   it("formats whole amounts without a decimal point", () => {
@@ -58,6 +65,18 @@ describe("truncateAddress", () => {
 
   it("leaves short strings recognisable", () => {
     expect(truncateAddress("GABC1234")).toBe("GABC...1234");
+  });
+});
+
+describe("formatTokenDisplay", () => {
+  it("returns the symbol for a known token contract", () => {
+    expect(
+      formatTokenDisplay("CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"),
+    ).toBe("USDC");
+  });
+
+  it("falls back to the truncated address for unknown contracts", () => {
+    expect(formatTokenDisplay("CABCDEFGHIJKLMNOPQRSTUVWXYZ234567")).toBe("CABC...4567");
   });
 });
 

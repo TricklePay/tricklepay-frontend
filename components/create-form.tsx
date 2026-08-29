@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { StrKey } from "@stellar/stellar-sdk";
 import { useWallet } from "@/components/wallet-provider";
 import { TransactionProgress } from "@/components/transaction-progress";
 import { useFormNavigationWarning } from "@/hooks/use-form-navigation-warning";
@@ -46,17 +45,79 @@ const inputClass =
 const inputErrorClass =
   "rounded border border-red-500 bg-neutral-900 px-3 py-2 text-sm focus:border-red-400";
 
+const FORM_DRAFT_STORAGE_KEY = "tricklepay-create-form-draft";
+
+type FormDraft = {
+  recipient: string;
+  token: string;
+  amount: string;
+  start: string;
+  end: string;
+  cliff: string;
+};
+
+function readFormDraft(): FormDraft | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(FORM_DRAFT_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as Partial<FormDraft>;
+
+    return {
+      recipient: parsed.recipient ?? "",
+      token: parsed.token ?? "",
+      amount: parsed.amount ?? "",
+      start: parsed.start ?? "",
+      end: parsed.end ?? "",
+      cliff: parsed.cliff ?? "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeFormDraft(values: FormDraft) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(FORM_DRAFT_STORAGE_KEY, JSON.stringify(values));
+  } catch {
+    // Ignore storage failures from private browsing or quota limits.
+  }
+}
+
+function clearFormDraft() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(FORM_DRAFT_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures from private browsing or quota limits.
+  }
+}
+
 export function CreateForm() {
   const wallet = useWallet();
   const { mismatch, walletNetwork, expectedNetwork } = useNetworkGuard();
   const router = useRouter();
 
-  const [recipient, setRecipient] = useState("");
-  const [token, setToken] = useState("");
-  const [amount, setAmount] = useState("");
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-  const [cliff, setCliff] = useState("");
+  const draft = readFormDraft();
+  const [recipient, setRecipient] = useState(draft?.recipient ?? "");
+  const [token, setToken] = useState(draft?.token ?? "");
+  const [amount, setAmount] = useState(draft?.amount ?? "");
+  const [start, setStart] = useState(draft?.start ?? "");
+  const [end, setEnd] = useState(draft?.end ?? "");
+  const [cliff, setCliff] = useState(draft?.cliff ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [stage, setStage] = useState<TxStage | null>(null);
   const [timeoutHash, setTimeoutHash] = useState<string | null>(null);
@@ -196,6 +257,17 @@ export function CreateForm() {
     [recipient, token, amount, start, end, cliff].some((value) => value.trim().length > 0);
 
   useFormNavigationWarning(hasUnsavedChanges && !submitting, "You have unsaved changes in this stream form. Leaving now will discard them.");
+  useEffect(() => {
+    const values = { recipient, token, amount, start, end, cliff };
+    const hasAnyValue = Object.values(values).some((value) => value.trim().length > 0);
+
+    if (!hasAnyValue) {
+      clearFormDraft();
+      return;
+    }
+
+    writeFormDraft(values);
+  }, [amount, cliff, end, recipient, start, token]);
 
   if (!wallet.address) {
     return <p className="text-sm text-neutral-400">Connect your wallet to create a stream.</p>;
@@ -296,6 +368,7 @@ export function CreateForm() {
       );
       setPendingNotice({ message: "Stream created.", hash });
       setTimeoutHash(null);
+      clearFormDraft();
       router.push("/");
     } catch (err) {
       if (err instanceof TransactionTimeoutError) {
@@ -319,6 +392,7 @@ export function CreateForm() {
       await confirmTransaction(timeoutHash, (s) => setStage(s));
       setPendingNotice({ message: "Stream created.", hash: timeoutHash });
       setTimeoutHash(null);
+      clearFormDraft();
       router.push("/");
     } catch (err) {
       if (err instanceof TransactionTimeoutError) {

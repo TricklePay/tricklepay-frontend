@@ -71,3 +71,52 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
     </button>
   );
 }
+
+export function ShareLinkButton({ url, label = "stream link" }: { url: string; label?: string }) {
+  const [shared, setShared] = useState(false);
+
+  async function share() {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "TricklePay stream",
+          text: `Check out this stream: ${label}`,
+          url,
+        });
+        setShared(true);
+        return;
+      }
+
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+      }
+      setShared(true);
+    } catch {
+      // Insecure contexts or user cancellation: silently ignore the failure.
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void share()}
+      title={shared ? `Share link copied` : `Share ${label}`}
+      aria-label={shared ? `Share link copied` : `Share ${label}`}
+      className="inline-flex items-center gap-2 rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-200 transition-colors hover:border-neutral-500 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-1"
+    >
+      <span className="sr-only" role="status" aria-live="polite">
+        {shared ? `Stream link copied or shared` : ""}
+      </span>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 16 16"
+        fill="currentColor"
+        aria-hidden="true"
+        className="h-4 w-4"
+      >
+        <path d="M9.5 2.5a2 2 0 0 1 1.988 2.188L9.828 6.1a2.5 2.5 0 0 1-.295.5l2.64 1.547a2 2 0 1 1-.396.91L9.137 7.5a2.5 2.5 0 0 1-2.375 1.448L6.5 11.07a2 2 0 1 1-.174-1.09l.262-.13A2.5 2.5 0 0 1 9.12 8.5l2.64-1.547A2 2 0 1 1 9.5 2.5Z"/>
+      </svg>
+      {shared ? "Link shared" : "Share link"}
+    </button>
+  );
+}
