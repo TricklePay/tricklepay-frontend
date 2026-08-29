@@ -176,6 +176,12 @@ export async function confirmTransaction(
 }
 
 async function confirm(srv: rpc.Server, hash: string): Promise<string> {
+  // Soroban transactions are not confirmed synchronously upon submission. The
+  // network must first include the transaction in a ledger, so the client must
+  // poll `getTransaction` until the status changes from PENDING.
+  //
+  // This polling loop checks once per second for up to 30 seconds. If the
+  // transaction is still not confirmed, it throws a TransactionTimeoutError.
   for (let attempt = 0; attempt < 30; attempt++) {
     const result = await srv.getTransaction(hash);
     if (result.status === rpc.Api.GetTransactionStatus.SUCCESS) {
