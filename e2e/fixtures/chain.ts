@@ -8,6 +8,15 @@
 // assembleTransaction parses it and applies it to the transaction — a
 // hand-written placeholder fails to decode. It is built here with the SDK so it
 // stays valid rather than being pasted in as an opaque fixture.
+//
+// What is stubbed:
+// - Soroban RPC interactions (`simulateTransaction`, `sendTransaction`, etc.).
+// - The backend API for listing and fetching streams.
+//
+// What is not stubbed:
+// - Real smart contract execution (no read/write sets are applied).
+// - Validations of the submitted transaction envelope (the signature is ignored).
+// - Horizon requests (which the app does not make directly).
 
 import { Keypair, xdr } from "@stellar/stellar-sdk";
 import type { Page, Route } from "@playwright/test";

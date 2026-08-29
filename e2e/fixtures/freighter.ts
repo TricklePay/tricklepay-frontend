@@ -11,6 +11,15 @@
 // it to the RPC server, both of which are faked here, so a real signature would
 // not be checked by anything. See e2e/README.md for what that does and does not
 // prove.
+//
+// What is stubbed:
+// - Connection status, network details, and access requests.
+// - Transaction signing (echoes the transaction back without signing).
+//
+// What is not stubbed:
+// - Actual cryptographic signature generation.
+// - Prompts for user confirmation (always auto-approves).
+// - Other Freighter API features not used by the app.
 
 export const TEST_ADDRESS = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
 
