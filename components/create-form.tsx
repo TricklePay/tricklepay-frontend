@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet } from "@/components/wallet-provider";
 import { TransactionProgress } from "@/components/transaction-progress";
+import { useFormNavigationWarning } from "@/hooks/use-form-navigation-warning";
 import { useNetworkGuard } from "@/hooks/use-network-guard";
 import { createStream, confirmTransaction, TransactionTimeoutError, type CreateStreamParams, type TxStage } from "@/lib/contract";
 import { setPendingNotice } from "@/lib/pending-notice";
@@ -251,6 +252,11 @@ export function CreateForm() {
     cliffError
   );
 
+  const hasUnsavedChanges =
+    prepared !== null ||
+    [recipient, token, amount, start, end, cliff].some((value) => value.trim().length > 0);
+
+  useFormNavigationWarning(hasUnsavedChanges && !submitting, "You have unsaved changes in this stream form. Leaving now will discard them.");
   useEffect(() => {
     const values = { recipient, token, amount, start, end, cliff };
     const hasAnyValue = Object.values(values).some((value) => value.trim().length > 0);
