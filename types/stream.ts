@@ -12,21 +12,52 @@
 export type StreamStatus = "pending" | "streaming" | "completed" | "cancelled";
 
 export interface StreamView {
+  /** Unique stream identifier */
   id: string;
+  
+  /** Stellar address (G...) of the stream sender */
   sender: string;
+  
+  /** Stellar address (G...) of the stream recipient */
   recipient: string;
+  
+  /** Stellar contract address of the token being streamed */
   token: string;
+  
+  /** Total stream amount in base units (stroops, 7 decimals), as a string */
   totalAmount: string;
+  
+  /** Amount already withdrawn in base units (stroops), as a string */
   withdrawn: string;
+  
+  /** Amount vested so far in base units (stroops), as a string */
   vested: string;
+  
+  /** Amount available to withdraw now in base units (stroops), as a string */
   withdrawable: string;
+  
+  /** Amount still locked (not yet vested) in base units (stroops), as a string */
   locked: string;
+  
+  /** Stream start time, Unix seconds as a string */
   startTime: string;
+  
+  /** Stream end time, Unix seconds as a string */
   endTime: string;
+  
+  /** Cliff time (earliest withdrawal time), Unix seconds as a string */
   cliffTime: string;
+  
+  /** Whether the stream has been cancelled */
   cancelled: boolean;
+  
+  /** Current stream status */
   status: StreamStatus;
-  // Basis points (0 to 10000) of the total amount that has vested.
+  
+  /**
+   * Vesting progress in basis points (0 to 10000).
+   * 10000 basis points = 100% completion.
+   */
   progress: number;
 }
 
