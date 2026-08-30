@@ -1,5 +1,13 @@
-// Mirrors the tricklepay-backend API response. Amounts are strings to preserve
-// 128-bit precision; times are Unix-second strings for the same reason.
+// Mirrors the tricklepay-backend API response. Amounts are held as strings
+// because Soroban uses 128-bit integers for balances, which exceed JavaScript's
+// MAX_SAFE_INTEGER. Parsing an amount as a Number or using parseFloat() risks
+// silent loss of precision (e.g. truncating the lowest digits).
+//
+// To convert an amount for display, do not cast it to a Number. Instead, use
+// `formatAmount(string)` from `lib/format.ts`, which safely computes the
+// fractional representation using BigInt math.
+//
+// Times are Unix-second strings for the same precision reason.
 
 export type StreamStatus = "pending" | "streaming" | "completed" | "cancelled";
 
