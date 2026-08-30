@@ -21,10 +21,23 @@ function computeAccrual(stream: StreamView): Accrual {
   return { vested, withdrawable: withdrawableAmount(vested, BigInt(stream.withdrawn)) };
 }
 
-// Recomputes a stream's vested and withdrawable amounts once per second from the
-// current clock, so an active stream's balance visibly climbs in real time
-// without re-fetching. Only a streaming stream changes over time, so the timer
-// is skipped for pending, completed, and cancelled streams.
+/**
+ * Continuously recomputes a stream's vested and withdrawable amounts in real time.
+ *
+ * This hook mirrors the contract's vesting arithmetic client-side so balances
+ * advance on screen every second without re-fetching from the API. For a stream
+ * with status "streaming", the hook sets a 1-second interval timer to recompute
+ * the accrual using the current wall-clock time. For streams with other statuses
+ * (pending, completed, cancelled), the hook computes once and does not tick,
+ * because those streams' balances do not change over time.
+ *
+ * The 1-second tick interval balances visual responsiveness with performance:
+ * fast enough that users see continuous progress, slow enough to avoid unnecessary
+ * re-renders.
+ *
+ * @param stream - The stream to track
+ * @returns Current vested and withdrawable amounts in base units (stroops)
+ */
 export function useAccrual(stream: StreamView): Accrual {
   const [accrual, setAccrual] = useState<Accrual>(() => computeAccrual(stream));
 
