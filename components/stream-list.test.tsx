@@ -1,46 +1,29 @@
 import { describe, it, expect } from "vitest";
 import { StreamList } from "./stream-list";
-import type { StreamView } from "@/types/stream";
-
-function makeStream(overrides: Partial<StreamView> & { id: string }): StreamView {
-  return {
-    sender: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7",
-    recipient: "GBBZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7",
-    token: "USDC",
-    totalAmount: "1000",
-    withdrawn: "0",
-    vested: "0",
-    withdrawable: "0",
-    locked: "1000",
-    startTime: "1600000000",
-    endTime: "1600003600",
-    cliffTime: "0",
-    cancelled: false,
-    status: "streaming",
-    progress: 0,
-    ...overrides,
-  };
-}
 
 describe("StreamList", () => {
-  it("renders one card per stream when fewer than 5 streams", () => {
-    const streams = [
-      makeStream({ id: "100" }),
-      makeStream({ id: "200" }),
-      makeStream({ id: "300" }),
-    ];
-    const el = StreamList({ streams });
+  it("renders the default empty state when no streams are provided", () => {
+    const el = StreamList({ streams: [] });
     const json = JSON.stringify(el);
-    expect(json).toContain("#100");
-    expect(json).toContain("#200");
-    expect(json).toContain("#300");
+    expect(json).toContain("No streams yet.");
   });
 
-  it("uses more than one stream in the assertion", () => {
-    const streams = [makeStream({ id: "A" }), makeStream({ id: "B" })];
-    const el = StreamList({ streams });
+  it("renders a custom empty message when provided", () => {
+    const el = StreamList({ streams: [], emptyMessage: "Nothing to show here." });
     const json = JSON.stringify(el);
-    expect(json).toContain("#A");
-    expect(json).toContain("#B");
+    expect(json).toContain("Nothing to show here.");
+    expect(json).not.toContain("No streams yet.");
+  });
+
+  it("does not render the create link by default in the empty state", () => {
+    const el = StreamList({ streams: [] });
+    const json = JSON.stringify(el);
+    expect(json).not.toContain("Create a stream");
+  });
+
+  it("renders the create link when showCreateLink is true and the list is empty", () => {
+    const el = StreamList({ streams: [], showCreateLink: true });
+    const json = JSON.stringify(el);
+    expect(json).toContain("Create a stream");
   });
 });
