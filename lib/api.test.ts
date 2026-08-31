@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { listStreams, getStream, ApiResponseError } from "./api";
+import { config } from "./config";
 
 describe("api client", () => {
   beforeEach(() => {
@@ -23,6 +24,9 @@ describe("api client", () => {
         limit: 25,
         offset: 0,
       });
+
+      // Ensure the base URL and path are composed correctly
+      expect(requestedUrl).toContain(`${config.apiUrl}/streams`);
 
       expect(requestedUrl).toContain("sender=GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
       expect(requestedUrl).toContain("status=streaming");
@@ -78,23 +82,33 @@ describe("api client", () => {
         status: "streaming",
       };
 
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => mockStream,
+      let requestedUrl = "";
+      global.fetch = vi.fn().mockImplementation((url: URL | string) => {
+        requestedUrl = url.toString();
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => mockStream,
+        });
       });
 
       const res = await getStream("1");
+      expect(requestedUrl).toBe(`${config.apiUrl}/streams/1`);
       expect(res).toEqual(mockStream);
     });
 
     it("returns null on 404", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: false,
-        status: 404,
+      let requestedUrl = "";
+      global.fetch = vi.fn().mockImplementation((url: URL | string) => {
+        requestedUrl = url.toString();
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+        });
       });
 
       const res = await getStream("999");
+      expect(requestedUrl).toBe(`${config.apiUrl}/streams/999`);
       expect(res).toBeNull();
     });
   });
