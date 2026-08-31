@@ -23,9 +23,33 @@ export { normalizeNetwork };
 
 const WalletContext = createContext<WalletState | null>(null);
 
-// Owns the single wallet session for the whole app. Mounted once in the root
-// layout so every consumer reads the same address and sees a disconnect, and so
-// Freighter is probed once per page load rather than once per consumer.
+/**
+ * Owns the single wallet session for the whole app. This provider centralizes
+ * connection state so that every component reads the same address, sees
+ * disconnects immediately, and benefits from automatic session restoration.
+ * 
+ * The state is shared rather than per-component because:
+ * - Wallet connection is inherently global — only one address is active at a time
+ * - Multiple components need the address (header, forms, stream details)
+ * - Disconnecting in one place should update the whole UI instantly
+ * - Freighter should be probed once per page load, not once per consumer
+ * 
+ * On mount, the provider attempts to restore an existing session if Freighter
+ * has already authorized this app, so returning users remain connected across
+ * page refreshes without re-prompting.
+ * 
+ * Consumers receive:
+ * - address: the connected wallet's public key, or null when disconnected
+ * - network: the network the wallet is on (normalized to lowercase), or null
+ * - connecting: true during the connect flow
+ * - error: most recent connection error message, or null
+ * - connect(): prompts the user to authorize via Freighter
+ * - disconnect(): clears the session and resets all state
+ * 
+ * Mount this once in the root layout and access it anywhere via useWallet().
+ * 
+ * @param children - The app tree that needs wallet state.
+ */
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [network, setNetwork] = useState<string | null>(null);
