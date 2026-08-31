@@ -49,7 +49,7 @@ function Field({
   );
 }
 
-function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: () => void }) {
+export function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: () => void }) {
   const accrual = useAccrual(stream);
   const wallet = useWallet();
   const cliffDisplay =
