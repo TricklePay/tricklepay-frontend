@@ -3,11 +3,15 @@
 import { TX_STAGES, TX_STAGE_LABELS, type TxStage } from "@/lib/contract";
 
 interface Props {
+  /** Current transaction stage, or null when no transaction is in progress. */
   stage: TxStage | null;
 }
 
-// Accessible, responsive progress stage component for transaction lifecycles
-// (Preparing -> Signing -> Submitting -> Confirming).
+/**
+ * Accessible, responsive progress stage component for transaction lifecycles
+ * (Preparing -> Signing -> Submitting -> Confirming). Shows the current stage
+ * with visual progress indicators. When stage is null, renders nothing.
+ */
 export function TransactionProgress({ stage }: Props) {
   if (!stage) return null;
 
