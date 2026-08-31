@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 
-// A small button that copies a value to the clipboard and briefly confirms.
-// Used to copy full addresses that are shown truncated.
+/**
+ * A small button that copies a value to the clipboard and briefly confirms.
+ * Used to copy full addresses that are shown truncated.
+ * 
+ * @param value - The string to copy to the clipboard.
+ * @param label - Optional descriptive label for accessibility. Defaults to "value".
+ */
 export function CopyButton({ value, label }: { value: string; label?: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -72,6 +77,14 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
   );
 }
 
+/**
+ * A button that shares a stream link via the Web Share API (if available) or
+ * copies it to the clipboard as a fallback. Provides visual feedback when
+ * the action succeeds.
+ * 
+ * @param url - The URL to share or copy.
+ * @param label - Optional descriptive label for accessibility. Defaults to "stream link".
+ */
 export function ShareLinkButton({ url, label = "stream link" }: { url: string; label?: string }) {
   const [shared, setShared] = useState(false);
 

@@ -4,14 +4,19 @@ import { config } from "@/lib/config";
 import { txExplorerUrl } from "@/lib/explorer";
 
 interface Props {
+  /** Confirmation message to display in the banner. */
   message: string;
+  /** Transaction hash to link to the explorer. */
   hash: string;
+  /** Callback invoked when the user dismisses the notice. */
   onDismiss: () => void;
 }
 
-// A dismissible banner confirming a transaction landed, with a link out to
-// the explorer. `role="status"` + `aria-live="polite"` so screen readers
-// announce it without the interruption an alert would cause.
+/**
+ * A dismissible banner confirming a transaction landed, with a link out to
+ * the explorer. `role="status"` + `aria-live="polite"` so screen readers
+ * announce it without the interruption an alert would cause.
+ */
 export function TransactionNotice({ message, hash, onDismiss }: Props) {
   return (
     <div
