@@ -32,9 +32,34 @@ function pageQuery(
   return { ...party, limit: PAGE_SIZE, offset, status };
 }
 
-// Loads the streams an address is party to one page at a time, appending each
-// page to the rows already on screen. Incoming and outgoing page independently,
-// so each call site owns its own copy of this state.
+/**
+ * Coordinates fetching, refreshing, and error state for the stream detail view.
+ * Loads the streams an address is party to one page at a time, appending each
+ * page to the rows already on screen. Incoming and outgoing streams page
+ * independently, so each call site owns its own copy of this state.
+ * 
+ * Refresh is triggered manually via the exposed refresh() function or automatically
+ * on window focus, visibility change, and every 15 seconds. Background refreshes
+ * fail silently to avoid disrupting the user experience. Manual refresh resets
+ * the list to page 0 and surfaces errors.
+ * 
+ * Error state is set when a request fails due to a network or API issue, but not
+ * when a request is cancelled (e.g., when switching accounts or leaving the page).
+ * 
+ * @param role - Whether to fetch streams where the address is "sender" or "recipient"
+ * @param address - The wallet address to fetch streams for, or null if no wallet connected
+ * @param status - Filter streams by status, or "all" to fetch streams of any status
+ * 
+ * @returns {StreamPage} An object containing:
+ *   - streams: the list of streams loaded so far
+ *   - total: total number of streams matching the query
+ *   - loading: true during the initial page load
+ *   - loadingMore: true when fetching additional pages
+ *   - error: error message from the most recent failed request, or null
+ *   - hasMore: true if there are more streams to load
+ *   - loadMore: function to fetch the next page
+ *   - refresh: function to reload from page 0
+ */
 export function useStreamPage(
   role: StreamRole,
   address: string | null,

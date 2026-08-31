@@ -1,5 +1,10 @@
-// A thin progress bar. `value` is in basis points (0 to 10000), matching the
-// contract's progress figure.
+/**
+ * A thin progress bar. `value` is in basis points (0 to 10000), matching the
+ * contract's progress figure.
+ * 
+ * @param value - Progress value in basis points (0 to 10000).
+ * @param label - Accessible label for screen readers. Defaults to "Stream vesting progress".
+ */
 export function ProgressBar({
   value,
   label = "Stream vesting progress",

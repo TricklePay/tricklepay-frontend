@@ -7,9 +7,13 @@
 // Base primitive
 // ---------------------------------------------------------------------------
 
-// A single shimmering block. Use `className` to set width, height, and any
-// extra spacing. The pulse animation is applied here so every derived skeleton
-// inherits it without repetition.
+/**
+ * A single shimmering block. Use `className` to set width, height, and any
+ * extra spacing. The pulse animation is applied here so every derived skeleton
+ * inherits it without repetition.
+ * 
+ * @param className - Optional CSS classes to control size and spacing. Defaults to empty string.
+ */
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
@@ -68,7 +72,11 @@ export function StreamCardSkeleton() {
   );
 }
 
-// A grid of N card skeletons matching StreamList's grid layout.
+/**
+ * A grid of N card skeletons matching StreamList's grid layout.
+ * 
+ * @param count - Number of skeleton cards to render. Defaults to 4.
+ */
 export function StreamListSkeleton({ count = 4 }: { count?: number }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">

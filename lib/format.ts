@@ -13,6 +13,12 @@ const TOKEN_METADATA: Record<string, TokenMetadata> = {
   },
 };
 
+/**
+ * Resolves token metadata by contract address.
+ *
+ * @param tokenAddress - Stellar contract address of the token
+ * @returns Token metadata (name and symbol) if known, otherwise null
+ */
 export function resolveTokenMetadata(tokenAddress: string): TokenMetadata | null {
   const candidate = tokenAddress.trim();
   if (!candidate) return null;
@@ -20,6 +26,13 @@ export function resolveTokenMetadata(tokenAddress: string): TokenMetadata | null
   return TOKEN_METADATA[candidate] ?? null;
 }
 
+/**
+ * Formats a token contract address for display.
+ *
+ * @param tokenAddress - Stellar contract address of the token
+ * @returns Token symbol if the address is recognized, otherwise a truncated
+ *   address in the form "ABCD...WXYZ"
+ */
 export function formatTokenDisplay(tokenAddress: string): string {
   const metadata = resolveTokenMetadata(tokenAddress);
   if (metadata) {
@@ -29,8 +42,14 @@ export function formatTokenDisplay(tokenAddress: string): string {
   return truncateAddress(tokenAddress);
 }
 
-// Formats a base-unit token amount (7 decimals, the Stellar standard) as a
-// decimal string with trailing zeros trimmed.
+/**
+ * Formats a base-unit token amount (7 decimals, the Stellar standard) as a
+ * decimal string.
+ *
+ * @param raw - Token amount in base units (stroops), as a string
+ * @returns Decimal string with trailing zeros trimmed (e.g., "1234567" → "0.1234567",
+ *   "10000000" → "1"). Truncates fractional digits by division; no rounding applied.
+ */
 export function formatAmount(raw: string): string {
   const value = BigInt(raw);
   const base = 10n ** STROOP_DECIMALS;
@@ -41,17 +60,33 @@ export function formatAmount(raw: string): string {
   return `${whole}.${fracStr}`;
 }
 
+/**
+ * Truncates a Stellar address to a short display form.
+ *
+ * @param address - Full Stellar address string
+ * @returns Truncated address in the form "ABCD...WXYZ" (first 4 and last 4 characters)
+ */
 export function truncateAddress(address: string): string {
   return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
 
-// Renders a Unix-second timestamp string as a local date and time.
+/**
+ * Renders a Unix-second timestamp string as a local date and time.
+ *
+ * @param unixSeconds - Unix timestamp in seconds, as a string
+ * @returns Localized date and time string (format depends on user's locale)
+ */
 export function formatTime(unixSeconds: string): string {
   return new Date(Number(unixSeconds) * 1000).toLocaleString();
 }
 
-// A short human description of how long until a stream's end time, given a Unix
-// second timestamp as a string. Returns "ended" once the time has passed.
+/**
+ * Returns a short human description of how long until a stream's end time.
+ *
+ * @param endTimeSeconds - Unix timestamp in seconds, as a string
+ * @returns Relative time string (e.g., "ends in 2d 3h", "ends in 45m") or
+ *   "ended" if the time has passed. Fractional seconds are truncated down.
+ */
 export function timeRemaining(endTimeSeconds: string): string {
   const diffMs = Number(endTimeSeconds) * 1000 - Date.now();
   if (diffMs <= 0) return "ended";
@@ -67,23 +102,33 @@ export function timeRemaining(endTimeSeconds: string): string {
   return "ends in under a minute";
 }
 
-// Formats a maximum withdrawable amount hint string.
+/**
+ * Formats a maximum withdrawable amount hint string.
+ *
+ * @param rawWithdrawable - Withdrawable amount in base units (stroops), as a string
+ * @returns Formatted hint message (e.g., "Maximum withdrawable amount: 1.5")
+ */
 export function formatMaxWithdrawHint(rawWithdrawable: string): string {
   const formatted = formatAmount(rawWithdrawable);
   return `Maximum withdrawable amount: ${formatted}`;
 }
 
-// Returns a relative countdown string for any Unix-second timestamp, labelled
-// by the caller-supplied verb (e.g. "starts", "ends", "cliff").
-//
-//   relativeTime("1234567890", "starts") → "starts in 2d 3h"
-//   relativeTime("1234567890", "ends")   → "ended"   (past)
-//   relativeTime("1234567890", "cliff")  → "cliff in 45m"
-//
-// The past-tense suffix is derived automatically: verbs ending in "s" strip the
-// trailing "s" and append "ed" (starts→started, ends→ended); others get "ed"
-// appended directly (cliff→cliffed is intentionally avoided — pass "cliff
-// passed" as verb for that case, or rely on the "passed" fallback below).
+/**
+ * Returns a relative countdown string for any Unix-second timestamp, labelled
+ * by the caller-supplied verb.
+ *
+ * @param unixSeconds - Unix timestamp in seconds, as a string
+ * @param verb - Action verb to label the countdown (e.g., "starts", "ends", "cliff")
+ * @returns Relative time string with verb (e.g., "starts in 2d 3h", "ended").
+ *   For past times, derives past tense automatically: verbs ending in "s" become
+ *   "started"/"ended"; others get " passed" appended. Fractional seconds are
+ *   truncated down.
+ *
+ * @example
+ *   relativeTime("1234567890", "starts") → "starts in 2d 3h"
+ *   relativeTime("1234567890", "ends")   → "ended"   (past)
+ *   relativeTime("1234567890", "cliff")  → "cliff in 45m"
+ */
 export function relativeTime(unixSeconds: string, verb: string): string {
   const diffMs = Number(unixSeconds) * 1000 - Date.now();
   const seconds = Math.floor(Math.abs(diffMs) / 1000);
@@ -107,10 +152,13 @@ export function relativeTime(unixSeconds: string, verb: string): string {
   return `${verb} in ${span}`;
 }
 
-// A short human description of a duration in seconds, matching timeRemaining's
-// phrasing ("2d 3h", "45m", "under a minute"). Returns null for zero or
-// negative spans so callers can hide the value instead of showing something
-// misleading.
+/**
+ * Returns a short human description of a duration in seconds.
+ *
+ * @param seconds - Duration in seconds, as a bigint
+ * @returns Formatted duration string (e.g., "2d 3h", "45m", "under a minute") or
+ *   null for zero or negative durations. Fractional units are truncated down.
+ */
 export function formatDuration(seconds: bigint): string | null {
   if (seconds <= 0n) return null;
 

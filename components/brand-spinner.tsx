@@ -4,11 +4,16 @@ const DOT_SIZE = {
   lg: "h-2.5 w-2.5",
 };
 
-// Three bouncing indigo dots — echoing the trickle-drop mark in app/icon.svg
-// and the app's own metaphor (value trickling in over time) instead of a
-// generic spinner. Announces itself to screen readers via role="status";
-// the dots are purely decorative. Bounce timing is collapsed to a single
-// frame under prefers-reduced-motion by the global rule in app/globals.css.
+/**
+ * Three bouncing indigo dots — echoing the trickle-drop mark in app/icon.svg
+ * and the app's own metaphor (value trickling in over time) instead of a
+ * generic spinner. Announces itself to screen readers via role="status";
+ * the dots are purely decorative. Bounce timing is collapsed to a single
+ * frame under prefers-reduced-motion by the global rule in app/globals.css.
+ * 
+ * @param label - Screen reader text for the loading state. Defaults to "Loading".
+ * @param size - Size variant for the dots: "sm" | "md" | "lg". Defaults to "md".
+ */
 export function BrandSpinner({
   label = "Loading",
   size = "md",

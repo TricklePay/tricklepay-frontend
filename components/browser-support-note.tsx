@@ -1,7 +1,9 @@
 import React from "react";
 
 export interface BrowserSupportNoteProps {
+  /** Additional CSS classes to apply to the component. Defaults to empty string. */
   className?: string;
+  /** When true, renders a condensed single-line version. When false, displays full note with icon. Defaults to false. */
   compact?: boolean;
 }
 
