@@ -52,6 +52,21 @@ describe("formatAmount", () => {
   it("treats an empty string as zero, the way BigInt does", () => {
     expect(formatAmount("")).toBe("0");
   });
+
+  it("formats zero as 0", () => {
+    expect(formatAmount("0")).toBe("0");
+  });
+
+  it("formats values near the maximum i128 without precision loss", () => {
+    // Largest positive i128 value: 2^127 - 1
+    expect(formatAmount("170141183460469231731687303715884105727")).toBe(
+      "17014118346046923173168730371588.4105727",
+    );
+    // One stroop below the max i128 value
+    expect(formatAmount("170141183460469231731687303715884105726")).toBe(
+      "17014118346046923173168730371588.4105726",
+    );
+  });
 });
 
 describe("truncateAddress", () => {
