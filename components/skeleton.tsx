@@ -89,7 +89,7 @@ export function StreamListSkeleton({ count = 4 }: { count?: number }) {
 
 // ---------------------------------------------------------------------------
 // StreamDetail skeleton
-// Mirrors StreamDetailPage / StreamDetail in app/streams/[id]/page.tsx:
+// Mirrors StreamDetailPage / StreamDetail in components/stream-detail.tsx:
 //   - back link
 //   - heading row (Stream #id + status badge)
 //   - large withdrawal box (label, amount, sub-line, progress bar)
