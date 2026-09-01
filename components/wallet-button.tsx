@@ -3,10 +3,7 @@
 import { BrandSpinner } from "@/components/brand-spinner";
 import { useWallet } from "@/components/wallet-provider";
 import { useNetworkGuard } from "@/hooks/use-network-guard";
-
-function truncate(address: string): string {
-  return `${address.slice(0, 4)}...${address.slice(-4)}`;
-}
+import { truncateAddress } from "@/lib/format";
 
 export function WalletButton() {
   const wallet = useWallet();
@@ -28,12 +25,12 @@ export function WalletButton() {
         )}
         {/* Address badge — read-only, shows the connected account */}
         <span className="rounded border border-neutral-700 px-3 py-1.5 font-mono text-xs text-neutral-400">
-          {truncate(wallet.address)}
+          {truncateAddress(wallet.address)}
         </span>
         {/* Explicit disconnect button */}
         <button
           onClick={wallet.disconnect}
-          title={`Disconnect ${truncate(wallet.address)}`}
+          title={`Disconnect ${truncateAddress(wallet.address)}`}
           aria-label={`Disconnect wallet ${wallet.address}`}
           className="rounded border border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 transition-colors hover:border-red-700 hover:bg-red-950/40 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-1"
         >

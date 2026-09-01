@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { installFreighterStub, TEST_ADDRESS } from "./fixtures/freighter";
+import { truncateAddress } from "@/lib/format";
 import {
   TOKEN_ID,
   TX_HASH,
@@ -58,8 +59,8 @@ test.describe("create then withdraw", () => {
 
     const review = page.getByRole("region", { name: "Review stream" });
     await expect(review).toBeVisible();
-    await expect(review).toContainText(truncate(TEST_ADDRESS));
-    await expect(review).toContainText(truncate(TOKEN_ID));
+    await expect(review).toContainText(truncateAddress(TEST_ADDRESS));
+    await expect(review).toContainText(truncateAddress(TOKEN_ID));
     await expect(review).toContainText("100");
 
     // Reviewing signs nothing: no simulation or submission has happened yet.
@@ -172,9 +173,4 @@ function toLocalInput(date: Date): string {
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
     `T${pad(date.getHours())}:${pad(date.getMinutes())}`
   );
-}
-
-// Same truncation the review applies to long Stellar addresses.
-function truncate(address: string): string {
-  return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
