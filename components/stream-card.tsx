@@ -16,7 +16,7 @@ const STATUS_ICONS: Record<StreamStatus, string> = {
   cancelled: "✕",
 };
 
-export function StreamCard({ stream }: { stream: StreamView }) {
+export function StreamCard({ stream }: { stream: StreamView }): React.JSX.Element {
   return (
     <Link
       href={`/streams/${stream.id}`}

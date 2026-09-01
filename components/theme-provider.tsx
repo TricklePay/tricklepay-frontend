@@ -19,7 +19,7 @@ function applyThemeClass(theme: Theme) {
 // script in app/layout.tsx (so there is no flash of the wrong theme) — this
 // provider just reads that resulting DOM state and keeps it, localStorage,
 // and React state in sync from then on.
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof document === "undefined") return "dark";
     return document.documentElement.classList.contains("light") ? "light" : "dark";

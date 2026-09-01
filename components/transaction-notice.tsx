@@ -17,7 +17,7 @@ interface Props {
  * the explorer. `role="status"` + `aria-live="polite"` so screen readers
  * announce it without the interruption an alert would cause.
  */
-export function TransactionNotice({ message, hash, onDismiss }: Props) {
+export function TransactionNotice({ message, hash, onDismiss }: Props): React.JSX.Element {
   return (
     <div
       role="status"

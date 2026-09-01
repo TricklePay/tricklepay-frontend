@@ -8,7 +8,7 @@ function truncate(address: string): string {
   return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }
 
-export function WalletButton() {
+export function WalletButton(): React.JSX.Element {
   const wallet = useWallet();
   const { mismatch, walletNetwork, expectedNetwork } = useNetworkGuard();
 

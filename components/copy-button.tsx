@@ -9,7 +9,7 @@ import { useState } from "react";
  * @param value - The string to copy to the clipboard.
  * @param label - Optional descriptive label for accessibility. Defaults to "value".
  */
-export function CopyButton({ value, label }: { value: string; label?: string }) {
+export function CopyButton({ value, label }: { value: string; label?: string }): React.JSX.Element {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -85,7 +85,7 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
  * @param url - The URL to share or copy.
  * @param label - Optional descriptive label for accessibility. Defaults to "stream link".
  */
-export function ShareLinkButton({ url, label = "stream link" }: { url: string; label?: string }) {
+export function ShareLinkButton({ url, label = "stream link" }: { url: string; label?: string }): React.JSX.Element {
   const [shared, setShared] = useState(false);
 
   async function share() {

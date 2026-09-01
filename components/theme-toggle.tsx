@@ -2,7 +2,7 @@
 
 import { useTheme } from "@/components/theme-provider";
 
-export function ThemeToggle() {
+export function ThemeToggle(): React.JSX.Element {
   const { theme, toggleTheme } = useTheme();
   const isLight = theme === "light";
 

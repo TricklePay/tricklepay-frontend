@@ -15,7 +15,7 @@ export interface BrowserSupportNoteProps {
 export function BrowserSupportNote({
   className = "",
   compact = false,
-}: BrowserSupportNoteProps) {
+}: BrowserSupportNoteProps): React.JSX.Element {
   if (compact) {
     return (
       <div

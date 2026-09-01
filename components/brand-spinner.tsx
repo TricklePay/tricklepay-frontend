@@ -20,7 +20,7 @@ export function BrandSpinner({
 }: {
   label?: string;
   size?: keyof typeof DOT_SIZE;
-}) {
+}): React.JSX.Element {
   const dot = DOT_SIZE[size];
 
   return (

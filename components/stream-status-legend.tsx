@@ -31,7 +31,7 @@ const LEGEND_ITEMS: Array<{ status: StreamStatus; dot: string; label: string; de
  * A compact, accessible legend explaining what each stream status badge means.
  * Renders as a horizontal wrapping list of colour-coded dot + label pairs.
  */
-export function StreamStatusLegend() {
+export function StreamStatusLegend(): React.JSX.Element {
   return (
     <dl
       className="flex flex-wrap gap-x-5 gap-y-1"

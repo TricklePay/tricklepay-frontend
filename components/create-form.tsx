@@ -106,7 +106,7 @@ function clearFormDraft() {
   }
 }
 
-export function CreateForm() {
+export function CreateForm(): React.JSX.Element {
   const wallet = useWallet();
   const { mismatch, walletNetwork, expectedNetwork } = useNetworkGuard();
   const router = useRouter();

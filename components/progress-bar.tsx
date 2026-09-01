@@ -11,7 +11,7 @@ export function ProgressBar({
 }: {
   value: number;
   label?: string;
-}) {
+}): React.JSX.Element {
   const pct = Math.min(100, Math.max(0, value / 100));
   return (
     <div

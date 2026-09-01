@@ -11,7 +11,7 @@ const NAV_LINKS = [
   { href: "/create", label: "New stream" },
 ];
 
-export function Header() {
+export function Header(): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 

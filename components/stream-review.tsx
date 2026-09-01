@@ -63,7 +63,7 @@ function TimeRow({ label, unixSeconds }: { label: string; unixSeconds: bigint })
 // The confirmation step between filling the create form and signing. Renders
 // the same CreateStreamParams instance the confirm handler passes to
 // createStream, so what the user reviews is exactly what goes on-chain.
-export function StreamReview({ params, submitting, onBack, onConfirm }: Props) {
+export function StreamReview({ params, submitting, onBack, onConfirm }: Props): React.JSX.Element {
   return (
     <section aria-labelledby="review-heading" className="flex flex-col gap-4">
       <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">

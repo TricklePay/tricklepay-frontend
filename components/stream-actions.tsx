@@ -47,7 +47,7 @@ function parseAmount(human: string): bigint | null {
   }
 }
 
-export function StreamActions({ stream, walletAddress, onComplete }: Props) {
+export function StreamActions({ stream, walletAddress, onComplete }: Props): React.JSX.Element | null {
   const [busy, setBusy] = useState<"withdraw" | "cancel" | null>(null);
   const [stage, setStage] = useState<TxStage | null>(null);
   const [timeoutHash, setTimeoutHash] = useState<string | null>(null);

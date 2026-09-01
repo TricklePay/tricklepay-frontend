@@ -12,7 +12,7 @@ interface Props {
  * (Preparing -> Signing -> Submitting -> Confirming). Shows the current stage
  * with visual progress indicators. When stage is null, renders nothing.
  */
-export function TransactionProgress({ stage }: Props) {
+export function TransactionProgress({ stage }: Props): React.JSX.Element | null {
   if (!stage) return null;
 
   const currentIdx = TX_STAGES.findIndex((s) => s.id === stage);

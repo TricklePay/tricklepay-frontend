@@ -14,7 +14,7 @@
  * 
  * @param className - Optional CSS classes to control size and spacing. Defaults to empty string.
  */
-export function Skeleton({ className = "" }: { className?: string }) {
+export function Skeleton({ className = "" }: { className?: string }): React.JSX.Element {
   return (
     <div
       aria-hidden="true"
@@ -30,7 +30,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
 //   - 2×2 grid: From / To / Withdrawable / Total
 //   - time-remaining line at the bottom
 // ---------------------------------------------------------------------------
-export function StreamCardSkeleton() {
+export function StreamCardSkeleton(): React.JSX.Element {
   return (
     <div
       aria-label="Loading stream"
@@ -77,7 +77,7 @@ export function StreamCardSkeleton() {
  * 
  * @param count - Number of skeleton cards to render. Defaults to 4.
  */
-export function StreamListSkeleton({ count = 4 }: { count?: number }) {
+export function StreamListSkeleton({ count = 4 }: { count?: number }): React.JSX.Element {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {Array.from({ length: count }, (_, i) => (
@@ -96,7 +96,7 @@ export function StreamListSkeleton({ count = 4 }: { count?: number }) {
 //   - 7-field dl grid (From, To, Token, Withdrawn, Start, End, Cliff)
 //   - actions area (one or two buttons)
 // ---------------------------------------------------------------------------
-export function StreamDetailSkeleton() {
+export function StreamDetailSkeleton(): React.JSX.Element {
   return (
     <main className="mx-auto max-w-2xl px-6 py-10" aria-label="Loading stream details">
       {/* Back link */}

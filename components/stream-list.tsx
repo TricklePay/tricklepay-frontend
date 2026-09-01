@@ -18,7 +18,7 @@ export function StreamList({
   streams,
   emptyMessage = "No streams yet.",
   showCreateLink = false,
-}: Props) {
+}: Props): React.JSX.Element {
   if (streams.length === 0) {
     return (
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
