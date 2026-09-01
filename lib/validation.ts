@@ -1,4 +1,5 @@
 import { StrKey } from "@stellar/stellar-sdk";
+import { MS_PER_SECOND } from "@/lib/constants";
 
 /**
  * A Stellar address is valid if it is a public key (G...) or a contract (C...).
@@ -24,7 +25,7 @@ export function toUnix(local: string): bigint {
   if (isNaN(time)) {
     throw new Error("Invalid date input.");
   }
-  return BigInt(Math.floor(time / 1000));
+  return BigInt(Math.floor(time / MS_PER_SECOND));
 }
 
 /**

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { StreamView } from "@/types/stream";
+import { MS_PER_SECOND } from "@/lib/constants";
 import { vestedAmount, withdrawableAmount } from "@/lib/vesting";
 
 export interface Accrual {
@@ -10,7 +11,7 @@ export interface Accrual {
 }
 
 function computeAccrual(stream: StreamView): Accrual {
-  const now = BigInt(Math.floor(Date.now() / 1000));
+  const now = BigInt(Math.floor(Date.now() / MS_PER_SECOND));
   const vested = vestedAmount(
     BigInt(stream.totalAmount),
     BigInt(stream.startTime),
@@ -44,7 +45,7 @@ export function useAccrual(stream: StreamView): Accrual {
   useEffect(() => {
     setAccrual(computeAccrual(stream));
     if (stream.status !== "streaming") return;
-    const interval = setInterval(() => setAccrual(computeAccrual(stream)), 1000);
+    const interval = setInterval(() => setAccrual(computeAccrual(stream)), MS_PER_SECOND);
     return () => clearInterval(interval);
   }, [stream]);
 

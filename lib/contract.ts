@@ -19,6 +19,11 @@ import {
 import { getNetwork, signTransaction } from "@stellar/freighter-api";
 import { config } from "@/lib/config";
 import { parseContractError } from "@/lib/contract-errors";
+import {
+  CONFIRMATION_POLL_INTERVAL_MS,
+  MAX_CONFIRMATION_ATTEMPTS,
+  TRANSACTION_BUILDER_TIMEOUT_SECONDS,
+} from "@/lib/constants";
 
 export interface CreateStreamParams {
   sender: string;
@@ -117,7 +122,7 @@ async function invoke(
       networkPassphrase: config.networkPassphrase,
     })
       .addOperation(buildOp(contract))
-      .setTimeout(60)
+      .setTimeout(TRANSACTION_BUILDER_TIMEOUT_SECONDS)
       .build();
 
     // Simulate and assemble the Soroban resource footprint before signing.
@@ -182,7 +187,7 @@ async function confirm(srv: rpc.Server, hash: string): Promise<string> {
   //
   // This polling loop checks once per second for up to 30 seconds. If the
   // transaction is still not confirmed, it throws a TransactionTimeoutError.
-  for (let attempt = 0; attempt < 30; attempt++) {
+  for (let attempt = 0; attempt < MAX_CONFIRMATION_ATTEMPTS; attempt++) {
     const result = await srv.getTransaction(hash);
     if (result.status === rpc.Api.GetTransactionStatus.SUCCESS) {
       return hash;
@@ -194,7 +199,7 @@ async function confirm(srv: rpc.Server, hash: string): Promise<string> {
       const raw = extractFailureString(result);
       throw new Error(parseContractError(raw));
     }
-    await sleep(1000);
+    await sleep(CONFIRMATION_POLL_INTERVAL_MS);
   }
   throw new TransactionTimeoutError(hash);
 }

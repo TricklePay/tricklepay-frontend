@@ -8,6 +8,7 @@ import { config } from "@/lib/config";
 import { txExplorerUrl } from "@/lib/explorer";
 import { formatAmount, formatMaxWithdrawHint, formatTime } from "@/lib/format";
 import { parseHumanAmount, withdrawalAmountError } from "@/lib/amount";
+import { MS_PER_SECOND } from "@/lib/constants";
 import type { StreamView } from "@/types/stream";
 
 interface Props {
@@ -20,7 +21,7 @@ interface Props {
 // the stream is visibly streaming and its vested figure is climbing, so without
 // the date the disabled button looks like a bug rather than a schedule.
 function blockedReason(stream: StreamView): string {
-  const now = BigInt(Math.floor(Date.now() / 1000));
+  const now = BigInt(Math.floor(Date.now() / MS_PER_SECOND));
   if (now < BigInt(stream.startTime)) {
     return `Starts ${formatTime(stream.startTime)}.`;
   }

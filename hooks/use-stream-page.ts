@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isAbortError, listStreams, type ListStreamsParams } from "@/lib/api";
+import { STREAM_LIST_REFRESH_INTERVAL_MS } from "@/lib/constants";
 import type { StreamStatus, StreamView } from "@/types/stream";
 
 // Rows per request. Kept under the backend's 50-row default so a large account
@@ -182,7 +183,7 @@ export function useStreamPage(
 
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibilityChange);
-    const interval = setInterval(silentRefresh, 15000);
+    const interval = setInterval(silentRefresh, STREAM_LIST_REFRESH_INTERVAL_MS);
 
     return () => {
       window.removeEventListener("focus", onFocus);

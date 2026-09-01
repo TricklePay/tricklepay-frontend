@@ -7,6 +7,8 @@
 // These helpers make the resolved zone explicit and echo the UTC equivalent
 // alongside it.
 
+import { MS_PER_SECOND, SECONDS_PER_MINUTE } from "@/lib/constants";
+
 const UTC_DISPLAY_OPTIONS: Intl.DateTimeFormatOptions = {
   year: "numeric",
   month: "2-digit",
@@ -36,8 +38,8 @@ export function utcOffsetLabel(date: Date): string {
   const minutes = -date.getTimezoneOffset();
   const sign = minutes >= 0 ? "+" : "-";
   const abs = Math.abs(minutes);
-  const hh = String(Math.floor(abs / 60)).padStart(2, "0");
-  const mm = String(abs % 60).padStart(2, "0");
+  const hh = String(Math.floor(abs / SECONDS_PER_MINUTE)).padStart(2, "0");
+  const mm = String(abs % SECONDS_PER_MINUTE).padStart(2, "0");
   return `UTC${sign}${hh}:${mm}`;
 }
 
@@ -71,5 +73,5 @@ export function formatUtcFromLocalInput(local: string): string | null {
 // create-stream review step, which both already have resolved instants
 // rather than a raw `datetime-local` string.
 export function formatUtcFromUnixSeconds(unixSeconds: string): string {
-  return formatUtc(new Date(Number(unixSeconds) * 1000));
+  return formatUtc(new Date(Number(unixSeconds) * MS_PER_SECOND));
 }
