@@ -8,6 +8,10 @@ interface ThemeState {
   toggleTheme: () => void;
 }
 
+interface ThemeProviderProps {
+  children: React.ReactNode;
+};
+
 const ThemeContext = createContext<ThemeState | null>(null);
 
 function applyThemeClass(theme: Theme) {
@@ -19,7 +23,7 @@ function applyThemeClass(theme: Theme) {
 // script in app/layout.tsx (so there is no flash of the wrong theme) — this
 // provider just reads that resulting DOM state and keeps it, localStorage,
 // and React state in sync from then on.
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof document === "undefined") return "dark";
     return document.documentElement.classList.contains("light") ? "light" : "dark";

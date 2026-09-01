@@ -23,6 +23,11 @@ export { normalizeNetwork };
 
 const WalletContext = createContext<WalletState | null>(null);
 
+interface WalletProviderProps {
+  children: React.ReactNode;
+}
+
+
 /**
  * Owns the single wallet session for the whole app. This provider centralizes
  * connection state so that every component reads the same address, sees
@@ -50,7 +55,7 @@ const WalletContext = createContext<WalletState | null>(null);
  * 
  * @param children - The app tree that needs wallet state.
  */
-export function WalletProvider({ children }: { children: React.ReactNode }) {
+export function WalletProvider({ children }: WalletProviderProps) {
   const [address, setAddress] = useState<string | null>(null);
   const [network, setNetwork] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);

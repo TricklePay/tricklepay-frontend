@@ -5,13 +5,16 @@
  * @param value - Progress value in basis points (0 to 10000).
  * @param label - Accessible label for screen readers. Defaults to "Stream vesting progress".
  */
+
+interface ProgressBarProps {
+  value: number;
+  label?: string;
+}
+
 export function ProgressBar({
   value,
   label = "Stream vesting progress",
-}: {
-  value: number;
-  label?: string;
-}) {
+}: ProgressBarProps) {
   const pct = Math.min(100, Math.max(0, value / 100));
   return (
     <div

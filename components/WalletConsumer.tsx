@@ -18,6 +18,10 @@ export interface WalletState {
   disconnect: () => void;
 }
 
+interface WalletProviderProps {
+  children: React.ReactNode;
+}
+
 import { normalizeNetwork } from "@/lib/wallet-utils";
 export { normalizeNetwork };
 
@@ -50,7 +54,7 @@ const WalletContext = createContext<WalletState | null>(null);
  * 
  * @param children - The app tree that needs wallet state.
  */
-export function WalletProvider({ children }: { children: React.ReactNode }) {
+export function WalletProvider({ children }: WalletProviderProps) {
   const [address, setAddress] = useState<string | null>(null);
   const [network, setNetwork] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);

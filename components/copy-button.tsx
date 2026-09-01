@@ -9,7 +9,13 @@ import { useState } from "react";
  * @param value - The string to copy to the clipboard.
  * @param label - Optional descriptive label for accessibility. Defaults to "value".
  */
-export function CopyButton({ value, label }: { value: string; label?: string }) {
+
+interface CopyButtonProps {
+  value: string;
+  label?: string;
+}
+
+export function CopyButton({ value, label = "value" }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -25,8 +31,8 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
   return (
     <button
       onClick={() => void copy()}
-      title={copied ? `Copied ${label ?? "value"}!` : `Copy ${label ?? "value"}`}
-      aria-label={copied ? `Copied ${label ?? "value"}` : `Copy ${label ?? "value"}`}
+      title={copied ? `Copied ${label}!` : `Copy ${label}`}
+      aria-label={copied ? `Copied ${label}` : `Copy ${label}`}
       className={`inline-flex items-center gap-1 rounded px-1 py-0.5 text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-1 ${
         copied
           ? "text-green-400"
@@ -34,7 +40,7 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
       }`}
     >
       <span className="sr-only" role="status" aria-live="polite">
-        {copied ? `Copied ${label ?? "value"} to clipboard` : ""}
+        {copied ? `Copied ${label} to clipboard` : ""}
       </span>
       {copied ? (
         <>
@@ -85,7 +91,13 @@ export function CopyButton({ value, label }: { value: string; label?: string }) 
  * @param url - The URL to share or copy.
  * @param label - Optional descriptive label for accessibility. Defaults to "stream link".
  */
-export function ShareLinkButton({ url, label = "stream link" }: { url: string; label?: string }) {
+
+interface ShareLinkButtonProps {
+  url: string;
+  label?: string;
+}
+
+export function ShareLinkButton({ url, label = "stream link" }: ShareLinkButtonProps) {
   const [shared, setShared] = useState(false);
 
   async function share() {

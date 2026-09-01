@@ -14,13 +14,17 @@ const DOT_SIZE = {
  * @param label - Screen reader text for the loading state. Defaults to "Loading".
  * @param size - Size variant for the dots: "sm" | "md" | "lg". Defaults to "md".
  */
+
+interface BrandSpinnerProps {
+  label?: string;
+  size?: keyof typeof DOT_SIZE;
+}
+
 export function BrandSpinner({
   label = "Loading",
   size = "md",
-}: {
-  label?: string;
-  size?: keyof typeof DOT_SIZE;
-}) {
+}: BrandSpinnerProps
+) {
   const dot = DOT_SIZE[size];
 
   return (

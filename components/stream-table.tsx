@@ -16,7 +16,11 @@ const STATUS_ICONS: Record<StreamStatus, string> = {
   cancelled: "✕",
 };
 
-export function StreamTable({ streams }: { streams: StreamView[] }) {
+interface StreamTableProps {
+  streams: StreamView[];
+}
+
+export function StreamTable({ streams }: StreamTableProps) {
   return (
     /* Horizontal scroll on narrow viewports so columns never get crushed */
     <div className="overflow-x-auto rounded-lg border border-neutral-800">
