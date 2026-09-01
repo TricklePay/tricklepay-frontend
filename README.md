@@ -119,6 +119,7 @@ A funded account is required to create a stream. Fund your testnet account using
 
 - **Node.js**: `v20.0.0` or higher (Node 20+ LTS). Next.js 15, React 19, and Tailwind CSS v4 build tooling require Node 20+ runtime features and module resolution; older Node versions will encounter errors during package installation or compilation.
 - **npm**: `v10.0.0` or higher.
+- **.nvmrc**: If you use nvm, run `nvm use` to switch to the pinned Node 20 runtime before installing dependencies.
 - **Freighter Extension**: Installed in your browser (see [Wallet Requirement](#wallet-requirement)).
 - **Backend API**: A running instance of `tricklepay-backend`.
 
@@ -126,6 +127,7 @@ A funded account is required to create a stream. Fund your testnet account using
 
 ```bash
 cp .env.example .env.local   # set NEXT_PUBLIC_CONTRACT_ID and the API URL
+nvm use                      # optional: use the Node version pinned in .nvmrc
 npm install
 npm run dev
 ```
