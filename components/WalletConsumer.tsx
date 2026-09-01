@@ -19,7 +19,6 @@ export interface WalletState {
 }
 
 import { normalizeNetwork } from "@/lib/wallet-utils";
-export { normalizeNetwork };
 
 const WalletContext = createContext<WalletState | null>(null);
 
