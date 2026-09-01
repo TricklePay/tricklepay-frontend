@@ -16,6 +16,16 @@ interface Props {
   onComplete: () => void;
 }
 
+/** Returns whether the connected wallet is allowed to cancel this stream. */
+export function canSenderCancel(stream: StreamView, walletAddress: string | null): boolean {
+  return Boolean(
+    walletAddress &&
+      walletAddress === stream.sender &&
+      stream.status !== "cancelled" &&
+      stream.status !== "completed",
+  );
+}
+
 // Why a recipient cannot withdraw right now. A cliff is the case worth naming:
 // the stream is visibly streaming and its vested figure is climbing, so without
 // the date the disabled button looks like a bug rather than a schedule.
@@ -81,7 +91,7 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props) {
 
   const isRecipient = caller === stream.recipient;
   const isSender = caller === stream.sender;
-  const canCancel = isSender && stream.status !== "cancelled" && stream.status !== "completed";
+  const canCancel = canSenderCancel(stream, caller);
 
   // Status alone is not enough: between start and cliff a stream is already
   // "streaming" while nothing has vested, and the contract rejects that
