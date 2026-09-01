@@ -1,0 +1,4 @@
+# Global owners for the repository.
+# When a pull request modifies files that match these patterns,
+# the listed owners are automatically requested for review.
+* @Glittersup
