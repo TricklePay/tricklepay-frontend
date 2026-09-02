@@ -1,7 +1,9 @@
 "use client";
 
 import { useWallet } from "@/components/wallet-provider";
+
 import { config } from "@/lib/config";
+
 
 export interface NetworkGuard {
   /** True when the wallet is connected on the wrong network. */

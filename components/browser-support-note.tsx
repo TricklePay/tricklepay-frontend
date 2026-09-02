@@ -1,5 +1,6 @@
 import React from "react";
 
+
 export interface BrowserSupportNoteProps {
   /** Additional CSS classes to apply to the component. Defaults to empty string. */
   className?: string;

@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { cancel, withdraw, withdrawAmount, confirmTransaction, TransactionTimeoutError, type TxStage } from "@/lib/contract";
+
 import { TransactionProgress } from "@/components/transaction-progress";
+
 import { useAccrual } from "@/hooks/use-accrual";
+
+import { parseHumanAmount, withdrawalAmountError } from "@/lib/amount";
 import { config } from "@/lib/config";
+import { MS_PER_SECOND } from "@/lib/constants";
+import { cancel, withdraw, withdrawAmount, confirmTransaction, TransactionTimeoutError, type TxStage } from "@/lib/contract";
 import { txExplorerUrl } from "@/lib/explorer";
 import { formatAmount, formatMaxWithdrawHint, formatTime } from "@/lib/format";
-import { parseHumanAmount, withdrawalAmountError } from "@/lib/amount";
-import { MS_PER_SECOND } from "@/lib/constants";
+
 import type { StreamView } from "@/types/stream";
+
 
 interface Props {
   stream: StreamView;

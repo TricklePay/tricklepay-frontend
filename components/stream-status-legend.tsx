@@ -1,5 +1,6 @@
 import type { StreamStatus } from "@/types/stream";
 
+
 const LEGEND_ITEMS: Array<{ status: StreamStatus; dot: string; label: string; description: string }> = [
   {
     status: "pending",

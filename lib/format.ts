@@ -5,6 +5,7 @@ import {
   SECONDS_PER_DAY,
 } from "@/lib/constants";
 
+
 const STROOP_DECIMALS = 7n;
 
 export interface TokenMetadata {

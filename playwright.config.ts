@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
+
 // The app reads NEXT_PUBLIC_* at build time, so the dev server is started with
 // the values the fixtures intercept. Both hosts are unreachable by design:
 // every request to them is fulfilled by page.route, and anything that escapes

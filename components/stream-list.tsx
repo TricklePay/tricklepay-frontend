@@ -1,7 +1,10 @@
 import Link from "next/link";
-import type { StreamView } from "@/types/stream";
+
 import { StreamCard } from "@/components/stream-card";
 import { StreamTable } from "@/components/stream-table";
+
+import type { StreamView } from "@/types/stream";
+
 
 // Switch to the table layout once a section has this many streams.
 // Fewer items are easier to scan as cards; a table is better for large lists.

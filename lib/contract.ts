@@ -7,6 +7,7 @@
 // over RPC and polled until it confirms on-chain, with each stage surfaced
 // through onStageChange so the UI can show progress.
 
+import { getNetwork, signTransaction } from "@stellar/freighter-api";
 import {
   Address,
   BASE_FEE,
@@ -16,14 +17,15 @@ import {
   TransactionBuilder,
   xdr,
 } from "@stellar/stellar-sdk";
-import { getNetwork, signTransaction } from "@stellar/freighter-api";
+
 import { config } from "@/lib/config";
-import { parseContractError } from "@/lib/contract-errors";
 import {
   CONFIRMATION_POLL_INTERVAL_MS,
   MAX_CONFIRMATION_ATTEMPTS,
   TRANSACTION_BUILDER_TIMEOUT_SECONDS,
 } from "@/lib/constants";
+import { parseContractError } from "@/lib/contract-errors";
+
 
 export interface CreateStreamParams {
   sender: string;

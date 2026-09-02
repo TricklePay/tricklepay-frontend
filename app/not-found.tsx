@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+
 // Next's file-based 404: renders for any URL that matches no route, or
 // wherever a Server Component calls `notFound()`. Distinct from the
 // stream-specific "not found" branch in app/streams/[id]/page.tsx, which

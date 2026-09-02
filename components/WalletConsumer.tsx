@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+
 import {
   getAddress,
   getNetwork,
@@ -8,6 +9,9 @@ import {
   isConnected,
   requestAccess,
 } from "@stellar/freighter-api";
+
+import { normalizeNetwork } from "@/lib/wallet-utils";
+
 
 export interface WalletState {
   address: string | null;

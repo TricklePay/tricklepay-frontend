@@ -1,18 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { getStream, isAbortError } from "@/lib/api";
-import { useAccrual } from "@/hooks/use-accrual";
-import { useWallet } from "@/components/wallet-provider";
-import { StreamActions } from "@/components/stream-actions";
+import { useEffect, useState } from "react";
+
 import { CopyButton, ShareLinkButton } from "@/components/copy-button";
 import { ProgressBar } from "@/components/progress-bar";
 import { StreamDetailSkeleton } from "@/components/skeleton";
+import { StreamActions } from "@/components/stream-actions";
+import { useWallet } from "@/components/wallet-provider";
+
+import { useAccrual } from "@/hooks/use-accrual";
+
+import { getStream, isAbortError } from "@/lib/api";
 import { formatAmount, formatTime, formatTokenDisplay, relativeTime, truncateAddress } from "@/lib/format";
 import { formatUtcFromUnixSeconds, resolvedTimeZoneLabel } from "@/lib/timezone";
+
 import type { StreamView } from "@/types/stream";
+
 
 function Field({
   label,

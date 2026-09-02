@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
+
 import { Header } from "@/components/header";
 import { SkipLink } from "@/components/skip-link";
 import { ThemeProvider } from "@/components/theme-provider";
 import { WalletProvider } from "@/components/wallet-provider";
+
 import { THEME_STORAGE_KEY } from "@/lib/theme";
+
 import "./globals.css";
+
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://tricklepay.xyz";
 

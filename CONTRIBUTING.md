@@ -119,6 +119,24 @@ tricklepay-frontend/
 
 ---
 
+
+## 🔄 Import Ordering
+
+All TypeScript/TSX files use a single import ordering convention to keep diffs minimal:
+
+1. **React / Next.js** imports first.
+2. **External libraries** next (e.g. @stellar/stellar-sdk, @playwright/test).
+3. **Internal @/ aliases** in this order:
+   - @/components/*
+   - @/hooks/*
+   - @/lib/*
+   - @/types/*
+   - other @/*
+4. **Relative imports** (./ or ../).
+5. **Style / side-effect imports** (e.g. ./globals.css) last.
+
+Within each group, sort imports alphabetically by module path. Blank lines separate the major groups. Run 
+pm run lint after reordering imports.
 ## 🔒 State Management & Wallet Handoff
 
 - **Wallet Session**: Managed centrally by `WalletProvider` in `components/wallet-provider.tsx`.
@@ -189,3 +207,4 @@ npm run test:e2e
    - Push your branch to your fork: `git push origin feat/short-feature-description`.
    - Open a PR against `main` on the upstream repository.
    - Include issue links in your PR description: `Closes #80`, `Closes #81`, `Closes #82`, `Closes #83`.
+

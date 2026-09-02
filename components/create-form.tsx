@@ -1,25 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useWallet } from "@/components/wallet-provider";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+
+import { StreamReview } from "@/components/stream-review";
 import { TransactionProgress } from "@/components/transaction-progress";
+import { useWallet } from "@/components/wallet-provider";
+
 import { useFormNavigationWarning } from "@/hooks/use-form-navigation-warning";
 import { useNetworkGuard } from "@/hooks/use-network-guard";
-import { createStream, confirmTransaction, TransactionTimeoutError, type CreateStreamParams, type TxStage } from "@/lib/contract";
-import { setPendingNotice } from "@/lib/pending-notice";
+
 import { config } from "@/lib/config";
+import { createStream, confirmTransaction, TransactionTimeoutError, type CreateStreamParams, type TxStage } from "@/lib/contract";
 import { txExplorerUrl } from "@/lib/explorer";
-import { StreamReview } from "@/components/stream-review";
-import { vestingRatePerDay } from "@/lib/vesting";
 import { formatAmount, formatDuration } from "@/lib/format";
+import { setPendingNotice } from "@/lib/pending-notice";
+import { formatUtcFromLocalInput, resolvedTimeZoneLabel } from "@/lib/timezone";
 import {
   isValidStellarAddress,
   isValidContractAddress,
   toUnix,
   parseAmount,
 } from "@/lib/validation";
-import { formatUtcFromLocalInput, resolvedTimeZoneLabel } from "@/lib/timezone";
+import { vestingRatePerDay } from "@/lib/vesting";
+
 
 function Field({
   label,

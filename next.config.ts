@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 
+
 // Pulls the origin out of a configured URL so it can be added to the CSP's
 // connect-src. Falls back to undefined for an unset or malformed value
 // rather than throwing — next.config.ts runs at build/start time and a bad

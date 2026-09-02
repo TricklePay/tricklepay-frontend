@@ -1,6 +1,9 @@
 import Link from "next/link";
-import type { StreamStatus, StreamView } from "@/types/stream";
+
 import { formatAmount, timeRemaining, truncateAddress } from "@/lib/format";
+
+import type { StreamStatus, StreamView } from "@/types/stream";
+
 
 const STATUS_STYLES: Record<StreamStatus, string> = {
   pending: "border border-neutral-700 bg-neutral-800 text-neutral-300",

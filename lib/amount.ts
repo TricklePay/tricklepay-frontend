@@ -1,5 +1,6 @@
 import { formatAmount } from "@/lib/format";
 
+
 // Human decimal amounts are 7-decimal base units (the Stellar stroop
 // standard), matching parseAmount in create-form.tsx and the contract's i128
 // amounts.

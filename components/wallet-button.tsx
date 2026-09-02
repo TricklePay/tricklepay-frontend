@@ -2,7 +2,9 @@
 
 import { BrandSpinner } from "@/components/brand-spinner";
 import { useWallet } from "@/components/wallet-provider";
+
 import { useNetworkGuard } from "@/hooks/use-network-guard";
+
 
 function truncate(address: string): string {
   return `${address.slice(0, 4)}...${address.slice(-4)}`;

@@ -2,6 +2,7 @@
 
 import { TX_STAGES, TX_STAGE_LABELS, type TxStage } from "@/lib/contract";
 
+
 interface Props {
   /** Current transaction stage, or null when no transaction is in progress. */
   stage: TxStage | null;

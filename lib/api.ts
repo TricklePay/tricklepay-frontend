@@ -2,13 +2,15 @@
 // All requests are routed to the base URL provided by `config.apiUrl`.
 // Connection issues, timeouts, and malformed responses are surfaced as
 // rejected Promises, expecting callers to handle and display those errors.
-import { config } from "@/lib/config";
 import {
   ApiResponseError,
   parseStreamListResponse,
   parseStreamView,
 } from "@/lib/api-schema";
+import { config } from "@/lib/config";
+
 import type { StreamListResponse, StreamStatus, StreamView } from "@/types/stream";
+
 
 export { ApiResponseError } from "@/lib/api-schema";
 

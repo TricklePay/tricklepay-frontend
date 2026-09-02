@@ -1,5 +1,7 @@
 import { StrKey } from "@stellar/stellar-sdk";
+
 import { MS_PER_SECOND } from "@/lib/constants";
+
 
 /**
  * A Stellar address is valid if it is a public key (G...) or a contract (C...).

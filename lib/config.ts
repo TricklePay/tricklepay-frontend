@@ -6,6 +6,7 @@
 
 import { StrKey } from "@stellar/stellar-sdk";
 
+
 const NETWORK_PASSPHRASES: Record<string, string> = {
   testnet: "Test SDF Network ; September 2015",
   mainnet: "Public Global Stellar Network ; September 2015",
