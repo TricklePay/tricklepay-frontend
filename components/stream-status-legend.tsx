@@ -1,31 +1,5 @@
 import type { StreamStatus } from "@/types/stream";
-
-const LEGEND_ITEMS: Array<{ status: StreamStatus; dot: string; label: string; description: string }> = [
-  {
-    status: "pending",
-    dot: "bg-neutral-400",
-    label: "Pending",
-    description: "Start time not yet reached",
-  },
-  {
-    status: "streaming",
-    dot: "bg-green-400",
-    label: "Streaming",
-    description: "Tokens are actively vesting",
-  },
-  {
-    status: "completed",
-    dot: "bg-blue-400",
-    label: "Completed",
-    description: "Fully vested and ended",
-  },
-  {
-    status: "cancelled",
-    dot: "bg-red-400",
-    label: "Cancelled",
-    description: "Stopped before end time",
-  },
-];
+import { STREAM_STATUS_META } from "@/lib/stream-status";
 
 /**
  * A compact, accessible legend explaining what each stream status badge means.
@@ -37,7 +11,9 @@ export function StreamStatusLegend() {
       className="flex flex-wrap gap-x-5 gap-y-1"
       aria-label="Stream status legend"
     >
-      {LEGEND_ITEMS.map(({ status, dot, label, description }) => (
+      {(Object.keys(STREAM_STATUS_META) as StreamStatus[]).map((status) => {
+        const { dot, label, description } = STREAM_STATUS_META[status];
+        return (
         <div key={status} className="flex items-center gap-1.5">
           {/* Colour dot mirrors the badge hue used in StreamCard / StreamTable */}
           <span
@@ -47,7 +23,8 @@ export function StreamStatusLegend() {
           <dt className="text-xs font-medium text-neutral-300">{label}</dt>
           <dd className="sr-only">{description}</dd>
         </div>
-      ))}
+        );
+      })}
     </dl>
   );
 }

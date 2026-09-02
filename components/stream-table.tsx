@@ -1,20 +1,7 @@
 import Link from "next/link";
 import type { StreamStatus, StreamView } from "@/types/stream";
 import { formatAmount, timeRemaining, truncateAddress } from "@/lib/format";
-
-const STATUS_STYLES: Record<StreamStatus, string> = {
-  pending: "border border-neutral-700 bg-neutral-800 text-neutral-300",
-  streaming: "border border-green-700/50 bg-green-950/40 text-green-300",
-  completed: "border border-blue-700/50 bg-blue-950/40 text-blue-300",
-  cancelled: "border border-red-700/50 bg-red-950/40 text-red-300",
-};
-
-const STATUS_ICONS: Record<StreamStatus, string> = {
-  pending: "⏳",
-  streaming: "●",
-  completed: "✓",
-  cancelled: "✕",
-};
+import { STREAM_STATUS_META } from "@/lib/stream-status";
 
 export function StreamTable({ streams }: { streams: StreamView[] }) {
   return (
@@ -85,10 +72,10 @@ export function StreamTable({ streams }: { streams: StreamView[] }) {
               </td>
               <td className="px-4 py-3">
                 <span
-                  className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[stream.status]}`}
+                  className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium capitalize ${STREAM_STATUS_META[stream.status].style}`}
                 >
                   <span aria-hidden="true" className="text-[10px]">
-                    {STATUS_ICONS[stream.status]}
+                    {STREAM_STATUS_META[stream.status].icon}
                   </span>
                   <span>{stream.status}</span>
                 </span>
