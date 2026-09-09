@@ -1,3 +1,4 @@
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it, expect } from "vitest";
 import { StreamCard } from "./stream-card";
 import type { StreamView } from "@/types/stream";
@@ -23,21 +24,21 @@ describe("StreamCard", () => {
 
   it("renders pending status correctly", () => {
     const el = StreamCard({ stream: { ...baseStream, status: "pending" } });
-    expect(JSON.stringify(el)).toContain("pending");
+    expect(renderToStaticMarkup(el)).toContain("pending");
   });
 
   it("renders streaming status correctly", () => {
     const el = StreamCard({ stream: { ...baseStream, status: "streaming" } });
-    expect(JSON.stringify(el)).toContain("streaming");
+    expect(renderToStaticMarkup(el)).toContain("streaming");
   });
 
   it("renders completed status correctly", () => {
     const el = StreamCard({ stream: { ...baseStream, status: "completed" } });
-    expect(JSON.stringify(el)).toContain("completed");
+    expect(renderToStaticMarkup(el)).toContain("completed");
   });
 
   it("renders cancelled status correctly", () => {
     const el = StreamCard({ stream: { ...baseStream, status: "cancelled", cancelled: true } });
-    expect(JSON.stringify(el)).toContain("cancelled");
+    expect(renderToStaticMarkup(el)).toContain("cancelled");
   });
 });

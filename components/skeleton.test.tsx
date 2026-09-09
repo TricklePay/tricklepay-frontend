@@ -1,28 +1,20 @@
 import { describe, it, expect } from "vitest";
-import React, { Suspense } from "react";
-import type { ReactElement, ReactNode } from "react";
+import { Suspense } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { Skeleton } from "./skeleton";
+
+const pending = new Promise<never>(() => {});
+function Pending(): never { throw pending; }
 
 describe("Skeleton Loading States", () => {
   it("renders the skeleton while loading", () => {
-    const fallback = Skeleton({});
-    const tree = Suspense({ fallback, children: null }) as ReactElement<{
-      fallback: typeof fallback;
-      children: ReactNode;
-    }>;
-    expect(tree.props.fallback.props.className).toContain("animate-pulse");
-    expect(tree.props.fallback.props["aria-hidden"]).toBe("true");
+    const html = renderToStaticMarkup(<Suspense fallback={<Skeleton />}><Pending /></Suspense>);
+    expect(html).toContain('class="animate-pulse');
+    expect(html).toContain('aria-hidden="true"');
   });
-
-  it("is replaced once data arrives", () => {
-    const fallback = Skeleton({});
-    const dataElement = React.createElement("div", { id: "data-loaded" });
-    const tree = Suspense({ fallback, children: dataElement }) as ReactElement<{
-      fallback: typeof fallback;
-      children: typeof dataElement;
-    }>;
-
-    expect(tree.props.children).toBe(dataElement);
-    expect(tree.props.children.props.id).toBe("data-loaded");
+  it("renders available data instead of the fallback", () => {
+    const html = renderToStaticMarkup(<Suspense fallback={<Skeleton />}><div id="data-loaded" /></Suspense>);
+    expect(html).toContain('id="data-loaded"');
+    expect(html).not.toContain("animate-pulse");
   });
 });

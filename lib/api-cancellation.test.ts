@@ -47,16 +47,18 @@ describe("request cancellation", () => {
   });
 
   describe("listStreams", () => {
-    it("passes the caller signal through to fetch", async () => {
+    it("propagates caller cancellation to the fetch signal", async () => {
       const { fetch, signalOf } = abortableFetch();
       global.fetch = fetch as unknown as typeof global.fetch;
 
       const controller = new AbortController();
       const pending = listStreams({}, { signal: controller.signal });
 
-      expect(signalOf(0)).toBe(controller.signal);
+      expect(signalOf(0)).toBeDefined();
+      expect(signalOf(0)?.aborted).toBe(false);
 
       controller.abort();
+      expect(signalOf(0)?.aborted).toBe(true);
       await expect(pending).rejects.toSatisfy(isAbortError);
     });
 
@@ -84,16 +86,18 @@ describe("request cancellation", () => {
   });
 
   describe("getStream", () => {
-    it("passes the caller signal through to fetch", async () => {
+    it("propagates caller cancellation to the fetch signal", async () => {
       const { fetch, signalOf } = abortableFetch();
       global.fetch = fetch as unknown as typeof global.fetch;
 
       const controller = new AbortController();
       const pending = getStream("1", { signal: controller.signal });
 
-      expect(signalOf(0)).toBe(controller.signal);
+      expect(signalOf(0)).toBeDefined();
+      expect(signalOf(0)?.aborted).toBe(false);
 
       controller.abort();
+      expect(signalOf(0)?.aborted).toBe(true);
       await expect(pending).rejects.toSatisfy(isAbortError);
     });
 

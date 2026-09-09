@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_CONTRACT_ID: CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM
     steps:
       - uses: actions/checkout@v4
 
@@ -21,5 +23,7 @@ jobs:
       - run: npm run lint
 
       - run: npm run typecheck
+
+      - run: npm test
 
       - run: npm run build

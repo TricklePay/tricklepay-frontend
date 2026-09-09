@@ -1,3 +1,4 @@
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@/components/wallet-provider", () => ({
@@ -66,16 +67,17 @@ describe("WalletButton", () => {
       const addr = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
       mockConnected(addr);
       const el = WalletButton();
-      expect(JSON.stringify(el)).toContain("GAAA...CCWN7");
+      expect(renderToStaticMarkup(el)).toContain(">GAAZ...CWN7</span>");
     });
 
     it("truncates to first 4 and last 4 characters with ellipsis", () => {
       const addr = "GBBBI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
       mockConnected(addr);
       const el = WalletButton();
-      const json = JSON.stringify(el);
-      expect(json).toContain("GBBB...CCWN7");
-      expect(json).not.toContain(addr);
+      const html = renderToStaticMarkup(el);
+      expect(html).toContain(">GBBB...CWN7</span>");
+      expect(html).not.toContain(`>${addr}</span>`);
+      expect(html).toContain(`aria-label="Disconnect wallet ${addr}"`);
     });
   });
 });

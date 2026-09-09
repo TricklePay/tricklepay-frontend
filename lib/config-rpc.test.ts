@@ -11,7 +11,7 @@ describe("default RPC configuration", () => {
     ["mainnet", "https://mainnet.sorobanrpc.com"],
   ])("uses the documented %s RPC URL when none is configured", async (network, rpcUrl) => {
     vi.stubEnv("NEXT_PUBLIC_NETWORK", network);
-    vi.stubEnv("NEXT_PUBLIC_RPC_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_RPC_URL", undefined);
     vi.stubEnv("NEXT_PUBLIC_CONTRACT_ID", "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM");
 
     const { config } = await import("./config");

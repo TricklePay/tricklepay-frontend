@@ -2,6 +2,8 @@ import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "url";
 
 export default defineConfig({
+  // Next preserves JSX for its own compiler; Vitest must transform it.
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./", import.meta.url)),
