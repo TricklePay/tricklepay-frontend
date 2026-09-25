@@ -8,17 +8,24 @@ import { formatUtcFromLocalInput, resolvedTimeZoneLabel } from "@/lib/timezone";
 function Field({
   label,
   error,
+  errorId,
   children,
 }: {
   label: string;
   error?: string;
+  /** id to apply to the error span so aria-describedby references resolve. */
+  errorId?: string;
   children: ReactNode;
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
       <span className="text-neutral-400">{label}</span>
       {children}
-      {error && <span className="text-xs text-red-400">{error}</span>}
+      {error && (
+        <span id={errorId} role="alert" className="text-xs text-red-400">
+          {error}
+        </span>
+      )}
     </label>
   );
 }
@@ -50,7 +57,7 @@ function DateTimeField({
   const utc = formatUtcFromLocalInput(values[name]);
 
   return (
-    <Field label={label} error={error}>
+    <Field label={label} error={error} errorId={`${name}-error`}>
       <input
         id={`field-${name}`}
         ref={refs[name]}
@@ -94,7 +101,7 @@ export function CreateStreamFields({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <Field label="Recipient address" error={errors.recipient}>
+      <Field label="Recipient address" error={errors.recipient} errorId="recipient-error">
         <input
           id="field-recipient"
           ref={refs.recipient}
@@ -106,7 +113,7 @@ export function CreateStreamFields({
           aria-describedby={errors.recipient ? "recipient-error" : undefined}
         />
       </Field>
-      <Field label="Token contract id" error={errors.token}>
+      <Field label="Token contract id" error={errors.token} errorId="token-error">
         <input
           id="field-token"
           ref={refs.token}
@@ -118,7 +125,7 @@ export function CreateStreamFields({
           aria-describedby={errors.token ? "token-error" : undefined}
         />
       </Field>
-      <Field label="Amount" error={errors.amount}>
+      <Field label="Amount" error={errors.amount} errorId="amount-error">
         <input
           id="field-amount"
           ref={refs.amount}
