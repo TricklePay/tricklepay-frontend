@@ -53,7 +53,13 @@ function readApiTimeout(): number {
 export const config = {
   /** Base URL of the tricklepay-backend read API. */
   apiUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000",
-  /** Stellar network name: testnet or mainnet. */
+  /**
+   * Stellar network name: `"testnet"` or `"mainnet"`.
+   *
+   * Used as the second argument to `txExplorerUrl()` in `lib/explorer.ts`,
+   * which maps it to the correct Stellar Expert path segment. See that file
+   * for the full mapping and instructions for adding a new network.
+   */
   network,
   /** Passphrase for the selected network, used when signing transactions. */
   networkPassphrase: NETWORK_PASSPHRASES[network] ?? NETWORK_PASSPHRASES.testnet,
