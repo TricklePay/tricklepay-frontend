@@ -3,6 +3,13 @@ import { fileURLToPath } from "url";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // tsconfig.json sets jsx:"preserve" for Next.js, but vitest/vite need an
+  // explicit transform. The oxc option overrides the tsconfig value so JSX in
+  // source files and test files is compiled to React.createElement calls.
+  // runtime:"automatic" matches Next.js's own JSX transform (no React import needed).
+  oxc: {
+    jsx: { runtime: "automatic" },
+  },
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./", import.meta.url)),

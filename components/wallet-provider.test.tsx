@@ -12,7 +12,7 @@ vi.mock("@stellar/freighter-api", () => ({
   requestAccess: vi.fn(),
 }));
 
-describe("lib/wallet-provider logic & network normalization", () => {
+describe("WalletProvider", () => {
   describe("normalizeNetwork", () => {
     it("normalizes uppercase TESTNET to testnet", () => {
       expect(normalizeNetwork("TESTNET")).toBe("testnet");

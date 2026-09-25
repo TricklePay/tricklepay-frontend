@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { JSX } from "react";
 
+import { StreamStatusBadge } from "@/components/stream-status-badge";
 import { formatAmount, timeRemaining, truncateAddress } from "@/lib/format";
-import { STREAM_STATUS_META } from "@/lib/stream-status";
-import type { StreamStatus, StreamView } from "@/types/stream";
+import type { StreamView } from "@/types/stream";
 
 export function StreamTable({ streams }: { streams: StreamView[] }): JSX.Element {
   return (
@@ -73,14 +73,7 @@ export function StreamTable({ streams }: { streams: StreamView[] }): JSX.Element
                 </Link>
               </td>
               <td className="px-4 py-3">
-                <span
-                  className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium capitalize ${STREAM_STATUS_META[stream.status].style}`}
-                >
-                  <span aria-hidden="true" className="text-[10px]">
-                    {STREAM_STATUS_META[stream.status].icon}
-                  </span>
-                  <span>{stream.status}</span>
-                </span>
+                <StreamStatusBadge status={stream.status} />
               </td>
               <td className="px-4 py-3 font-mono text-xs text-neutral-300">
                 {truncateAddress(stream.sender)}
