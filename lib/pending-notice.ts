@@ -3,6 +3,8 @@
 // transaction is not the one that renders the confirmation. sessionStorage
 // carries it across that navigation without leaking into the URL.
 
+import type { PendingNotice } from "@/types/notice";
+
 const STORAGE_KEY = "tricklepay:pending-notice";
 
 // A just-consumed notice is replayed for this long so a consumer that remounts
@@ -12,11 +14,6 @@ const STORAGE_KEY = "tricklepay:pending-notice";
 const REPLAY_WINDOW_MS = 1000;
 
 let lastTaken: { notice: PendingNotice; consumedAt: number } | null = null;
-
-export interface PendingNotice {
-  message: string;
-  hash: string;
-}
 
 export function setPendingNotice(notice: PendingNotice): void {
   try {

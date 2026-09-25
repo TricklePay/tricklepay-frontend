@@ -6,8 +6,8 @@ import { useEffect, useRef, useState, type FormEvent, type RefObject } from "rea
 import { useWallet } from "@/components/wallet-provider";
 import { useFormNavigationWarning } from "@/hooks/use-form-navigation-warning";
 import { useNetworkGuard } from "@/hooks/use-network-guard";
-import { confirmTransaction, TransactionTimeoutError, type CreateStreamParams, type TxStage } from "@/lib/contract";
-import { clearFormDraft, EMPTY_FORM_DRAFT, readFormDraft, writeFormDraft, type FormDraft } from "@/lib/create-form-draft";
+import { confirmTransaction, TransactionTimeoutError } from "@/lib/contract";
+import { clearFormDraft, EMPTY_FORM_DRAFT, readFormDraft, writeFormDraft } from "@/lib/create-form-draft";
 import { submitCreateStream } from "@/lib/create-stream-submission";
 import {
   amountFieldError,
@@ -20,6 +20,8 @@ import { formatDuration } from "@/lib/format";
 import { setPendingNotice } from "@/lib/pending-notice";
 import { isValidContractAddress, isValidStellarAddress, parseAmount, toUnix } from "@/lib/validation";
 import { vestingRatePerDay } from "@/lib/vesting";
+import type { CreateStreamParams, TxStage } from "@/types/contract";
+import type { FormDraft } from "@/types/form";
 
 export type CreateFormField = keyof FormDraft;
 export type CreateFormErrors = Partial<Record<CreateFormField, string>>;

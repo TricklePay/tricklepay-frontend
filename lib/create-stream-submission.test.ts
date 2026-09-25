@@ -7,7 +7,8 @@ vi.mock("@/lib/contract", async (importOriginal) => {
   return { ...actual, createStream: vi.fn() };
 });
 
-import { createStream, TransactionTimeoutError, type CreateStreamParams } from "@/lib/contract";
+import { createStream, TransactionTimeoutError } from "@/lib/contract";
+import type { CreateStreamParams } from "@/types/contract";
 
 import { submitCreateStream } from "./create-stream-submission";
 
