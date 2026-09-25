@@ -1,13 +1,6 @@
-const FORM_DRAFT_STORAGE_KEY = "tricklepay-create-form-draft";
+import type { FormDraft } from "@/types/form";
 
-export type FormDraft = {
-  recipient: string;
-  token: string;
-  amount: string;
-  start: string;
-  end: string;
-  cliff: string;
-};
+const FORM_DRAFT_STORAGE_KEY = "tricklepay-create-form-draft";
 
 export const EMPTY_FORM_DRAFT: FormDraft = {
   recipient: "",

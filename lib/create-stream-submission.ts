@@ -1,4 +1,5 @@
-import { createStream, TransactionTimeoutError, type CreateStreamParams, type TxStage } from "@/lib/contract";
+import { createStream, TransactionTimeoutError } from "@/lib/contract";
+import type { CreateStreamParams, TxStage } from "@/types/contract";
 
 /**
  * Result of submitting a create-stream transaction. A timed-out confirmation

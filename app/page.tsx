@@ -10,7 +10,8 @@ import { StreamStatusLegend } from "@/components/stream-status-legend";
 import { TransactionNotice } from "@/components/transaction-notice";
 import { useWallet } from "@/components/wallet-provider";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
-import { takePendingNotice, type PendingNotice } from "@/lib/pending-notice";
+import { takePendingNotice } from "@/lib/pending-notice";
+import type { PendingNotice } from "@/types/notice";
 import type { StreamStatus } from "@/types/stream";
 
 const FILTERS: Array<{ label: string; value: StreamStatus | "all" }> = [

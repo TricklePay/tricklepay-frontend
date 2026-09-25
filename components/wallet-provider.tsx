@@ -10,17 +10,11 @@ import {
 import { type JSX, createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { normalizeNetwork } from "@/lib/wallet-utils";
+import type { WalletState } from "@/types/wallet";
 
-export interface WalletState {
-  address: string | null;
-  network: string | null;
-  connecting: boolean;
-  error: string | null;
-  connect: () => Promise<void>;
-  disconnect: () => void;
-}
-
-const WalletContext = createContext<WalletState | null>(null);
+// Exported so a test can render `<WalletContext.Provider>` directly and
+// confirm useWallet() reads through it — see wallet-provider.test.tsx.
+export const WalletContext = createContext<WalletState | null>(null);
 
 /**
  * Owns the single wallet session for the whole app. This provider centralizes

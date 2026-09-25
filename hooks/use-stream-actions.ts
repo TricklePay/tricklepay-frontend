@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 
 import { useAccrual } from "@/hooks/use-accrual";
 import { parseHumanAmount, withdrawalAmountError } from "@/lib/amount";
-import { cancel, withdraw, withdrawAmount, confirmTransaction, TransactionTimeoutError, type TxStage } from "@/lib/contract";
+import { cancel, withdraw, withdrawAmount, confirmTransaction, TransactionTimeoutError } from "@/lib/contract";
 import { formatAmount } from "@/lib/format";
+import type { TxStage } from "@/types/contract";
 import type { StreamView } from "@/types/stream";
 
 // Parses a human decimal amount (e.g. "12.5") into 7-decimal base units.

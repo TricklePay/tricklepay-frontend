@@ -2,7 +2,8 @@
 
 import type { JSX } from "react";
 
-import { TX_STAGES, TX_STAGE_LABELS, type TxStage } from "@/lib/contract";
+import { TX_STAGES, TX_STAGE_LABELS } from "@/lib/contract-messages";
+import type { TxStage } from "@/types/contract";
 
 interface Props {
   /** Current transaction stage, or null when no transaction is in progress. */

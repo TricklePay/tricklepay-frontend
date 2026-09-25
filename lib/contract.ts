@@ -20,16 +20,7 @@ import {
 
 import { config } from "@/lib/config";
 import { parseContractError } from "@/lib/contract-errors";
-
-export interface CreateStreamParams {
-  sender: string;
-  recipient: string;
-  token: string;
-  totalAmount: bigint;
-  startTime: bigint;
-  endTime: bigint;
-  cliffTime: bigint;
-}
+import type { CreateStreamParams, TxStage } from "@/types/contract";
 
 // Seconds a built transaction stays valid. Covers simulation, the wallet's
 // signing prompt and submission; after that the network rejects it outright.
@@ -56,28 +47,6 @@ function normalizeNetwork(network: string): string {
   if (lower.includes("public")) return "mainnet";
   return lower;
 }
-
-export type TxStage = "preparing" | "signing" | "submitting" | "confirming";
-
-export interface TxStageInfo {
-  id: TxStage;
-  label: string;
-  detail: string;
-}
-
-export const TX_STAGES: TxStageInfo[] = [
-  { id: "preparing", label: "Prepare", detail: "Simulate transaction" },
-  { id: "signing", label: "Sign", detail: "Wallet signature" },
-  { id: "submitting", label: "Submit", detail: "Broadcast to network" },
-  { id: "confirming", label: "Confirm", detail: "On-chain confirmation" },
-];
-
-export const TX_STAGE_LABELS: Record<TxStage, string> = {
-  preparing: "Preparing transaction...",
-  signing: "Awaiting wallet signature...",
-  submitting: "Submitting to network...",
-  confirming: "Confirming on network...",
-};
 
 let isInvocationActive = false;
 
