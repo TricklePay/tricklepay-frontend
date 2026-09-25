@@ -70,6 +70,7 @@ export function WithdrawPanel({
           Max
         </button>
         <button
+          type="button"
           onClick={onWithdraw}
           disabled={busy || nothingToWithdraw || !!amountError}
           aria-describedby={nothingToWithdraw ? "withdraw-blocked-reason" : undefined}

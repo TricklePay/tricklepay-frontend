@@ -23,6 +23,7 @@ export function CancelStreamControl({
   if (!confirming) {
     return (
       <button
+        type="button"
         onClick={onRequestCancel}
         disabled={busy}
         className="self-start rounded border border-red-900 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-950/40 disabled:opacity-50"
@@ -44,6 +45,7 @@ export function CancelStreamControl({
       </p>
       <div className="flex flex-wrap gap-2">
         <button
+          type="button"
           onClick={onConfirm}
           disabled={busy}
           className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
@@ -51,6 +53,7 @@ export function CancelStreamControl({
           {cancelling ? "Cancelling..." : "Yes, cancel stream"}
         </button>
         <button
+          type="button"
           onClick={onDismiss}
           disabled={busy}
           className="rounded border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300 hover:bg-neutral-900 disabled:opacity-50"
