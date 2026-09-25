@@ -35,7 +35,7 @@ TricklePay is a real-time, continuous token payment and streaming protocol built
 
 ### Prerequisites
 
-- **Node.js**: `v20.0.0` or higher
+- **Node.js**: `v20.0.0` or higher. The repo includes an `.nvmrc` — run `nvm use` to switch to the pinned version automatically if you use [nvm](https://github.com/nvm-sh/nvm).
 - **npm**: `v10.0.0` or higher
 - **Freighter Wallet Extension**: Installed in your browser (for manual development testing)
 
