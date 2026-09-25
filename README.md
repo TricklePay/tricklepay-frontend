@@ -119,7 +119,7 @@ A funded account is required to create a stream. Fund your testnet account using
 
 ### Prerequisites
 
-- **Node.js**: `v20.0.0` or higher (Node 20+ LTS). Next.js 15, React 19, and Tailwind CSS v4 build tooling require Node 20+ runtime features and module resolution; older Node versions will encounter errors during package installation or compilation.
+- **Node.js**: `v20.0.0` or higher (Node 20+ LTS). Next.js 15, React 19, and Tailwind CSS v4 build tooling require Node 20+ runtime features and module resolution; older Node versions will encounter errors during package installation or compilation. An `.nvmrc` file pins the target major — run `nvm use` to switch automatically if you use [nvm](https://github.com/nvm-sh/nvm).
 - **npm**: `v10.0.0` or higher.
 - **Freighter Extension**: Installed in your browser (see [Wallet Requirement](#wallet-requirement)).
 - **Backend API**: A running instance of `tricklepay-backend`.
