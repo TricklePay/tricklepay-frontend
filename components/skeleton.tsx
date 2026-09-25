@@ -10,14 +10,17 @@ import type { JSX } from "react";
 // Base primitive
 // ---------------------------------------------------------------------------
 
+export interface SkeletonProps {
+  /** Tailwind classes that control the block's width, height, and spacing. */
+  className?: string;
+}
+
 /**
  * A single shimmering block. Use `className` to set width, height, and any
  * extra spacing. The pulse animation is applied here so every derived skeleton
  * inherits it without repetition.
- * 
- * @param className - Optional CSS classes to control size and spacing. Defaults to empty string.
  */
-export function Skeleton({ className = "" }: { className?: string }): JSX.Element {
+export function Skeleton({ className = "" }: SkeletonProps): JSX.Element {
   return (
     <div
       aria-hidden="true"
@@ -75,12 +78,15 @@ export function StreamCardSkeleton(): JSX.Element {
   );
 }
 
+export interface StreamListSkeletonProps {
+  /** Number of card skeletons to render. */
+  count?: number;
+}
+
 /**
  * A grid of N card skeletons matching StreamList's grid layout.
- * 
- * @param count - Number of skeleton cards to render. Defaults to 4.
  */
-export function StreamListSkeleton({ count = 4 }: { count?: number }): JSX.Element {
+export function StreamListSkeleton({ count = 4 }: StreamListSkeletonProps): JSX.Element {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {Array.from({ length: count }, (_, i) => (

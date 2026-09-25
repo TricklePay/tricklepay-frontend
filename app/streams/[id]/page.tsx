@@ -13,6 +13,9 @@ import type { StreamView } from "@/types/stream";
 // How often an open stream refetches in the background. Shorter than the
 // dashboard's interval since someone watching one stream expects it fresher.
 const DETAIL_REFRESH_INTERVAL_MS = 10_000;
+const POLL_INTERVAL_MS = DETAIL_REFRESH_INTERVAL_MS;
+// A hidden tab still polls, but at a third of the rate to conserve resources.
+const HIDDEN_POLL_INTERVAL_MS = DETAIL_REFRESH_INTERVAL_MS * 3;
 
 export default function StreamDetailPage(): JSX.Element {
   const params = useParams<{ id: string }>();
@@ -120,6 +123,7 @@ export default function StreamDetailPage(): JSX.Element {
         <div className="mt-6 flex items-center gap-4">
           <p className="text-sm text-red-400">{error}</p>
           <button
+            type="button"
             onClick={() => setReloadKey((k) => k + 1)}
             className="rounded border border-neutral-700 px-2 py-0.5 text-xs text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
           >

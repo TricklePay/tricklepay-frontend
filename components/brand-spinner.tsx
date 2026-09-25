@@ -4,7 +4,16 @@ const DOT_SIZE = {
   sm: "h-1.5 w-1.5",
   md: "h-2 w-2",
   lg: "h-2.5 w-2.5",
-};
+} as const;
+
+export type SpinnerSize = keyof typeof DOT_SIZE;
+
+export interface BrandSpinnerProps {
+  /** Screen reader text announced while loading. */
+  label?: string;
+  /** Visual size of the three dots. */
+  size?: SpinnerSize;
+}
 
 /**
  * Three bouncing indigo dots — echoing the trickle-drop mark in app/icon.svg
@@ -12,17 +21,11 @@ const DOT_SIZE = {
  * generic spinner. Announces itself to screen readers via role="status";
  * the dots are purely decorative. Bounce timing is collapsed to a single
  * frame under prefers-reduced-motion by the global rule in app/globals.css.
- * 
- * @param label - Screen reader text for the loading state. Defaults to "Loading".
- * @param size - Size variant for the dots: "sm" | "md" | "lg". Defaults to "md".
  */
 export function BrandSpinner({
   label = "Loading",
   size = "md",
-}: {
-  label?: string;
-  size?: keyof typeof DOT_SIZE;
-}): JSX.Element {
+}: BrandSpinnerProps): JSX.Element {
   const dot = DOT_SIZE[size];
 
   return (

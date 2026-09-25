@@ -9,11 +9,13 @@ const COPIED_FEEDBACK_MS = 1_500;
 /**
  * A small button that copies a value to the clipboard and briefly confirms.
  * Used to copy full addresses that are shown truncated.
- * 
+ *
  * @param value - The string to copy to the clipboard.
- * @param label - Optional descriptive label for accessibility. Defaults to "value".
+ * @param label - Describes what is being copied (e.g. "sender address"). Used
+ *   as the button's accessible name so screen readers announce "Copy sender
+ *   address" rather than just "Copy".
  */
-export function CopyButton({ value, label }: { value: string; label?: string }): JSX.Element {
+export function CopyButton({ value, label }: { value: string; label: string }): JSX.Element {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -28,9 +30,10 @@ export function CopyButton({ value, label }: { value: string; label?: string }):
 
   return (
     <button
+      type="button"
       onClick={() => void copy()}
-      title={copied ? `Copied ${label ?? "value"}!` : `Copy ${label ?? "value"}`}
-      aria-label={copied ? `Copied ${label ?? "value"}` : `Copy ${label ?? "value"}`}
+      title={copied ? `Copied ${label}!` : `Copy ${label}`}
+      aria-label={copied ? `Copied ${label}` : `Copy ${label}`}
       className={`inline-flex items-center gap-1 rounded px-1 py-0.5 text-xs transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-1 ${
         copied
           ? "text-green-400"
@@ -38,7 +41,7 @@ export function CopyButton({ value, label }: { value: string; label?: string }):
       }`}
     >
       <span className="sr-only" role="status" aria-live="polite">
-        {copied ? `Copied ${label ?? "value"} to clipboard` : ""}
+        {copied ? `Copied ${label} to clipboard` : ""}
       </span>
       {copied ? (
         <>

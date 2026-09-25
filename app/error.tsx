@@ -30,6 +30,7 @@ export default function Error({
       </p>
       <div className="mt-6 flex items-center justify-center gap-3">
         <button
+          type="button"
           onClick={reset}
           className="rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900"
         >
