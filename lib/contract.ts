@@ -6,6 +6,95 @@
 // private key never leaves Freighter. The signed transaction is then submitted
 // over RPC and polled until it confirms on-chain, with each stage surfaced
 // through onStageChange so the UI can show progress.
+//
+// ─── TRANSACTION STAGES ──────────────────────────────────────────────────────
+//
+// Every public entry point (createStream, withdraw, withdrawAmount, cancel)
+// funnels through the private invoke() function, which moves through four
+// named stages. The current stage is broadcast via the optional onStageChange
+// callback so components can update progress UI in real time.
+//
+//  Stage         UI label                  What happens
+//  ──────────── ─────────────────────────  ────────────────────────────────────
+//  "preparing"  "Preparing transaction…"   Fetches the caller's on-chain
+//                                          account (sequence number), builds
+//                                          the transaction, runs a Soroban
+//                                          simulation to calculate the resource
+//                                          footprint (fee, instructions, ledger
+//                                          entries), and assembles the final XDR
+//                                          ready for signing.
+//
+//  "signing"    "Awaiting wallet           Passes the assembled XDR to
+//               signature…"               Freighter. The user sees a native
+//                                          wallet approval dialog. The private
+//                                          key never leaves the extension.
+//
+//  "submitting" "Submitting to network…"  Broadcasts the signed transaction
+//                                          to the Soroban RPC endpoint
+//                                          (config.rpcUrl). The RPC performs
+//                                          basic structural validation and
+//                                          accepts the transaction into its
+//                                          pending pool.
+//
+//  "confirming" "Confirming on network…"  Polls getTransaction(hash) once per
+//                                          second for up to 30 seconds until
+//                                          the network includes the transaction
+//                                          in a ledger and marks it SUCCESS or
+//                                          FAILED.
+//
+// ─── WHERE FAILURES OCCUR ────────────────────────────────────────────────────
+//
+//  Before "preparing"
+//    • isInvocationActive is true  → "A transaction is already in progress."
+//    • Freighter network mismatch  → "Wrong network: wallet is on X, app
+//                                     expects Y. Switch networks in Freighter."
+//      (Only checked when Freighter responds without an error; a Freighter
+//      failure here is silently skipped rather than blocking the call.)
+//
+//  During "preparing"
+//    • srv.getAccount() fails      → Raw SDK error (address unfunded, RPC
+//                                     unreachable). Not translated — surfaces
+//                                     as-is so the operator can diagnose it.
+//    • srv.prepareTransaction()    → Simulation reverted. The SDK embeds an
+//      throws                        "Error(Contract, #N)" token in the message;
+//                                     parseContractError() maps it to a
+//                                     user-facing string (see lib/contract-errors.ts).
+//                                     Common at this stage: invalid parameters
+//                                     (codes 3–5, 10), already-cancelled (6),
+//                                     already-completed (9).
+//
+//  During "signing"
+//    • signed.error is truthy      → "Signing was rejected in the wallet."
+//                                     Covers explicit rejection AND cases where
+//                                     the built XDR has already expired (the
+//                                     TX_TIMEOUT_SECONDS window covers simulation
+//                                     + the user's approval time — if the user
+//                                     takes longer than 60 s, the transaction
+//                                     will also fail at submission).
+//
+//  During "submitting"
+//    • sent.status === "ERROR"     → "The network rejected the transaction."
+//                                     Covers expired XDR, duplicate submission,
+//                                     fee too low, and other RPC-level rejections.
+//
+//  During "confirming"
+//    • result.status === FAILED    → parseContractError() on diagnosticEventsXdr
+//                                     (authoritative) or the result XDR (fallback).
+//                                     Common at this stage: nothing to withdraw (7),
+//                                     insufficient balance (8).
+//    • 30 polls exhausted          → TransactionTimeoutError (a named Error
+//                                     subclass carrying txHash). The UI can
+//                                     offer a "check again" recovery path using
+//                                     the exported confirmTransaction() helper,
+//                                     which resumes polling from the same hash
+//                                     without re-submitting.
+//
+// ─── CONCURRENCY GUARD ───────────────────────────────────────────────────────
+//
+// A module-level isInvocationActive flag serialises all invocations: only one
+// transaction may be in flight at a time. The flag is set in invoke() before
+// the first await and cleared in a finally block, so any thrown error releases
+// it. isTransactionPending() exposes the flag for UI disabling.
 
 import { getNetwork, signTransaction } from "@stellar/freighter-api";
 import {
@@ -57,8 +146,14 @@ function normalizeNetwork(network: string): string {
   return lower;
 }
 
+/**
+ * The four named stages a transaction moves through, in order.
+ * Passed to the `onStageChange` callback so components can update progress UI.
+ * See the module-level comment for what each stage does and where it can fail.
+ */
 export type TxStage = "preparing" | "signing" | "submitting" | "confirming";
 
+/** Metadata for rendering a stage step in the UI (label, supporting detail). */
 export interface TxStageInfo {
   id: TxStage;
   label: string;
@@ -89,8 +184,11 @@ export function isTransactionPending(): boolean {
 }
 
 // Builds, signs (via Freighter), submits, and confirms a contract invocation,
-// returning the transaction hash once it succeeds on-chain. Each step surfaces
-// a distinct error so the UI can tell the user what went wrong.
+// returning the transaction hash once it succeeds on-chain.
+//
+// onStageChange is called at the start of each stage so the UI can show
+// progress. It is not called for the pre-stage guard checks (concurrency lock
+// and network mismatch), because those fail before any meaningful work begins.
 async function invoke(
   caller: string,
   buildOp: (contract: Contract) => xdr.Operation,
@@ -117,6 +215,12 @@ async function invoke(
       }
     }
 
+    // ── STAGE: preparing ────────────────────────────────────────────────────
+    // Fetch the caller's account (for the current sequence number), build the
+    // transaction, then simulate it via prepareTransaction to calculate the
+    // Soroban resource footprint (fee, instructions, ledger entry accesses).
+    // The simulation also runs the contract logic — if the call would revert
+    // on-chain it fails here, before any signing prompt appears.
     onStageChange?.("preparing");
     const srv = server();
     const contract = new Contract(config.contractId);
@@ -141,6 +245,10 @@ async function invoke(
       throw new Error(parseContractError(raw));
     }
 
+    // ── STAGE: signing ───────────────────────────────────────────────────────
+    // Hand the prepared XDR to Freighter. The user sees a native approval
+    // dialog. signTransaction resolves once the user approves or rejects;
+    // signed.error is set on rejection (or Freighter internal failure).
     onStageChange?.("signing");
     const signed = await signTransaction(prepared.toXDR(), {
       networkPassphrase: config.networkPassphrase,
@@ -150,6 +258,11 @@ async function invoke(
       throw new Error("Signing was rejected in the wallet.");
     }
 
+    // ── STAGE: submitting ────────────────────────────────────────────────────
+    // Broadcast the signed transaction to the RPC. sendTransaction performs
+    // structural validation (fee, sequence number, XDR well-formedness) and
+    // adds it to the pending pool. It does NOT wait for ledger inclusion.
+    // status "ERROR" means the RPC rejected it outright before inclusion.
     onStageChange?.("submitting");
     const signedTx = TransactionBuilder.fromXDR(signed.signedTxXdr, config.networkPassphrase);
     const sent = await srv.sendTransaction(signedTx);
@@ -157,6 +270,9 @@ async function invoke(
       throw new Error("The network rejected the transaction.");
     }
 
+    // ── STAGE: confirming ────────────────────────────────────────────────────
+    // Soroban transactions are not confirmed synchronously. Poll until the
+    // network includes the transaction in a ledger. See confirm() below.
     onStageChange?.("confirming");
     return await confirm(srv, sent.hash);
   } finally {
@@ -164,6 +280,14 @@ async function invoke(
   }
 }
 
+/**
+ * Thrown when the confirmation polling loop exhausts its attempts without
+ * seeing SUCCESS or FAILED. This does NOT mean the transaction failed — it
+ * means the client gave up waiting. The transaction may still confirm later.
+ *
+ * `txHash` is preserved so the caller can resume polling via
+ * `confirmTransaction(hash)` without re-submitting the transaction.
+ */
 export class TransactionTimeoutError extends Error {
   txHash: string;
   constructor(txHash: string, message = "Timed out waiting for confirmation.") {
@@ -174,7 +298,12 @@ export class TransactionTimeoutError extends Error {
 }
 
 /**
- * Re-checks an in-flight transaction confirmation status by hash.
+ * Resumes the "confirming" stage for a transaction that was already submitted
+ * but timed out (i.e. a TransactionTimeoutError was thrown). Polls the same
+ * hash without re-submitting — safe to call multiple times.
+ *
+ * Use this to implement a "Check again" recovery action in the UI after a
+ * timeout, rather than asking the user to retry the full flow.
  */
 export async function confirmTransaction(
   hash: string,
