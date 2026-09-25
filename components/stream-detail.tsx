@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { JSX } from "react";
+import { type JSX, useEffect, useRef, useState } from "react";
 
 import { CopyButton, ShareLinkButton } from "@/components/copy-button";
 import { ProgressBar } from "@/components/progress-bar";
@@ -11,6 +11,10 @@ import { useAccrual } from "@/hooks/use-accrual";
 import { formatAmount, formatTime, formatTokenDisplay, relativeTime, truncateAddress } from "@/lib/format";
 import { formatUtcFromUnixSeconds, resolvedTimeZoneLabel } from "@/lib/timezone";
 import type { StreamView } from "@/types/stream";
+
+// Announce balance to assistive technology at most once per this interval.
+// Frequent ticks would flood screen reader queues; 10 s is responsive enough.
+const BALANCE_ANNOUNCE_MS = 10_000;
 
 function Field({
   label,
@@ -52,6 +56,22 @@ export function StreamDetail({ stream, onComplete }: { stream: StreamView; onCom
   const wallet = useWallet();
   const cliffDisplay =
     stream.cliffTime === stream.startTime ? "none" : formatTime(stream.cliffTime);
+
+  // Keep a ref to the latest accrual so the announcement interval can read it
+  // without being listed as a dependency (which would restart the timer every second).
+  const accrualRef = useRef(accrual);
+  useEffect(() => { accrualRef.current = accrual; }, [accrual]);
+
+  const [announcedBalance, setAnnouncedBalance] = useState("");
+  useEffect(() => {
+    if (stream.status !== "streaming") return;
+    const id = setInterval(() => {
+      setAnnouncedBalance(
+        `Withdrawable balance: ${formatAmount(accrualRef.current.withdrawable.toString())}`,
+      );
+    }, BALANCE_ANNOUNCE_MS);
+    return () => clearInterval(id);
+  }, [stream.status]);
 
   return (
     <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
@@ -95,6 +115,11 @@ export function StreamDetail({ stream, onComplete }: { stream: StreamView; onCom
       )}
 
       <div className="mb-8 rounded-lg border border-neutral-800 p-6">
+        {/* Polite live region: announces the balance to AT on a throttled interval
+            so screen reader users hear updates without being flooded every second. */}
+        <span role="status" aria-live="polite" className="sr-only">
+          {announcedBalance}
+        </span>
         <p className="text-sm text-neutral-500">
           {stream.status === "cancelled" ? "Remaining withdrawable" : "Withdrawable now"}
         </p>
