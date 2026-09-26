@@ -7,6 +7,7 @@ vi.mock("react", async (importOriginal) => {
     ...actual,
     useState: (initial: unknown) => [initial, vi.fn()],
     useEffect: vi.fn(),
+    useRef: (initial: unknown) => ({ current: initial }),
   };
 });
 
@@ -24,6 +25,7 @@ vi.mock("next/link", () => ({
 
 vi.mock("next/navigation", () => ({
   useParams: () => ({ id: "123" }),
+  useRouter: () => ({ back: vi.fn() }),
 }));
 
 vi.mock("@/components/stream-actions", () => ({

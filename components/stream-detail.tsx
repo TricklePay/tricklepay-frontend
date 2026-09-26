@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type JSX, useEffect, useRef, useState } from "react";
 
 import { CopyButton, ShareLinkButton } from "@/components/copy-button";
@@ -9,6 +9,7 @@ import { StreamActions } from "@/components/stream-actions";
 import { StreamStatusBadge } from "@/components/stream-status-badge";
 import { useWallet } from "@/components/wallet-provider";
 import { useAccrual } from "@/hooks/use-accrual";
+import { useNow } from "@/hooks/use-now";
 import { formatTime, formatTokenAmount, formatTokenDisplay, relativeTime, truncateAddress } from "@/lib/format";
 import { formatUtcFromUnixSeconds, resolvedTimeZoneLabel } from "@/lib/timezone";
 import type { StreamView } from "@/types/stream";
@@ -53,8 +54,13 @@ function Field({
 }
 
 export function StreamDetail({ stream, onComplete }: { stream: StreamView; onComplete: () => void }): JSX.Element {
+  const router = useRouter();
   const accrual = useAccrual(stream);
   const wallet = useWallet();
+  // Forces a re-render on an interval so the Start/End/Cliff countdowns below
+  // keep advancing even for statuses (pending, completed, cancelled) where
+  // useAccrual never ticks.
+  useNow();
   const cliffDisplay =
     stream.cliffTime === stream.startTime ? "none" : formatTime(stream.cliffTime);
 
@@ -77,9 +83,13 @@ export function StreamDetail({ stream, onComplete }: { stream: StreamView; onCom
   return (
     <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-xs text-neutral-500 hover:text-neutral-300"
+        >
           &larr; Back
-        </Link>
+        </button>
         <ShareLinkButton
           url={typeof window !== "undefined" ? window.location.href : ""}
           label={`stream #${stream.id}`}
