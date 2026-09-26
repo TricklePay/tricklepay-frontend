@@ -411,6 +411,9 @@ The `docs/` directory holds reference documentation beyond what fits here —
 see [docs/README.md](docs/README.md) for an index of what's there and a
 one-line description of each document.
 
+See [CHANGELOG.md](CHANGELOG.md) for a record of what changed between
+versions of the client.
+
 ## Related repositories
 
 - **tricklepay-contracts** — the Soroban streaming contract.
