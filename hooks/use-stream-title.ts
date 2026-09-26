@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { streamDocumentTitle } from "@/lib/document-title";
+import { pageDocumentTitle, streamDocumentTitle } from "@/lib/document-title";
 import type { StreamView } from "@/types/stream";
 
 /**
@@ -15,7 +15,10 @@ import type { StreamView } from "@/types/stream";
  * left. The previous title is restored on unmount so navigating away does not
  * leave a stale status behind.
  */
-export function useStreamTitle(stream: Pick<StreamView, "id" | "status"> | null): void {
+export function useStreamTitle(
+  stream: Pick<StreamView, "id" | "status"> | null,
+  streamId: string,
+): void {
   // Last status the user could actually see, i.e. rendered while visible.
   const seenStatus = useRef<StreamView["status"] | null>(null);
   const [unseenChange, setUnseenChange] = useState(false);
@@ -55,6 +58,8 @@ export function useStreamTitle(stream: Pick<StreamView, "id" | "status"> | null)
   }, [stream]);
 
   useEffect(() => {
-    if (stream) document.title = streamDocumentTitle(stream, unseenChange);
-  }, [stream, unseenChange]);
+    document.title = stream
+      ? streamDocumentTitle(stream, unseenChange)
+      : pageDocumentTitle(`Stream #${streamId}`);
+  }, [stream, streamId, unseenChange]);
 }

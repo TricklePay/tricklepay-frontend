@@ -9,7 +9,7 @@ import { StreamActions } from "@/components/stream-actions";
 import { StreamStatusBadge } from "@/components/stream-status-badge";
 import { useWallet } from "@/components/wallet-provider";
 import { useAccrual } from "@/hooks/use-accrual";
-import { formatAmount, formatTime, formatTokenDisplay, relativeTime, truncateAddress } from "@/lib/format";
+import { formatTime, formatTokenAmount, formatTokenDisplay, relativeTime, truncateAddress } from "@/lib/format";
 import { formatUtcFromUnixSeconds, resolvedTimeZoneLabel } from "@/lib/timezone";
 import type { StreamView } from "@/types/stream";
 
@@ -68,11 +68,11 @@ export function StreamDetail({ stream, onComplete }: { stream: StreamView; onCom
     if (stream.status !== "streaming") return;
     const id = setInterval(() => {
       setAnnouncedBalance(
-        `Withdrawable balance: ${formatAmount(accrualRef.current.withdrawable.toString())}`,
+        `Withdrawable balance: ${formatTokenAmount(accrualRef.current.withdrawable.toString(), stream.token)}`,
       );
     }, BALANCE_ANNOUNCE_MS);
     return () => clearInterval(id);
-  }, [stream.status]);
+  }, [stream.status, stream.token]);
 
   return (
     <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
@@ -100,12 +100,12 @@ export function StreamDetail({ stream, onComplete }: { stream: StreamView; onCom
           <p className="font-semibold text-red-300">Stream cancelled</p>
           <p className="mt-1 text-neutral-400">
             Streaming stopped early. The vested portion (
-            <span className="tabular-nums text-neutral-200">{formatAmount(stream.vested)}</span>)
+            <span className="tabular-nums text-neutral-200">{formatTokenAmount(stream.vested, stream.token)}</span>)
             is split between what was already withdrawn and what the recipient can still claim.
             {BigInt(stream.locked) > 0n && (
               <>
                 {" "}The unvested balance (
-                <span className="tabular-nums text-neutral-200">{formatAmount(stream.locked)}</span>)
+                <span className="tabular-nums text-neutral-200">{formatTokenAmount(stream.locked, stream.token)}</span>)
                 has been returned to the sender.
               </>
             )}
@@ -123,15 +123,15 @@ export function StreamDetail({ stream, onComplete }: { stream: StreamView; onCom
           {stream.status === "cancelled" ? "Remaining withdrawable" : "Withdrawable now"}
         </p>
         <p className="mt-1 font-mono text-4xl tabular-nums text-neutral-100">
-          {formatAmount(accrual.withdrawable.toString())}
+          {formatTokenAmount(accrual.withdrawable.toString(), stream.token)}
         </p>
         <p className="mt-1 text-xs text-neutral-500">
-          {formatAmount(accrual.vested.toString())} vested of {formatAmount(stream.totalAmount)} total
+          {formatTokenAmount(accrual.vested.toString(), stream.token)} vested of {formatTokenAmount(stream.totalAmount, stream.token)} total
         </p>
         {/* Locked amount — for active streams: not yet vested; for cancelled: returned to sender */}
         {BigInt(stream.locked) > 0n && stream.status !== "cancelled" && (
           <p className="mt-1 text-xs text-neutral-500">
-            <span className="text-amber-400/80">{formatAmount(stream.locked)}</span>
+            <span className="text-amber-400/80">{formatTokenAmount(stream.locked, stream.token)}</span>
             {" locked (not yet vested)"}
           </p>
         )}
@@ -144,10 +144,10 @@ export function StreamDetail({ stream, onComplete }: { stream: StreamView; onCom
         <Field label="From" value={truncateAddress(stream.sender)} mono copyValue={stream.sender} />
         <Field label="To" value={truncateAddress(stream.recipient)} mono copyValue={stream.recipient} />
         <Field label="Token" value={formatTokenDisplay(stream.token)} mono copyValue={stream.token} />
-        <Field label="Withdrawn" value={formatAmount(stream.withdrawn)} />
+        <Field label="Withdrawn" value={formatTokenAmount(stream.withdrawn, stream.token)} />
         <Field
           label={stream.status === "cancelled" ? "Returned to sender" : "Locked"}
-          value={formatAmount(stream.locked)}
+          value={formatTokenAmount(stream.locked, stream.token)}
         />
         <Field
           label="Start"

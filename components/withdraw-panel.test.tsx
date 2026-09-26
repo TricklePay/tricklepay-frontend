@@ -46,6 +46,7 @@ function renderPanel(stream: StreamView): ReactElement {
   const withdrawable = withdrawableNow(stream);
   return WithdrawPanel({
     withdrawable,
+    token: stream.token,
     amountInput: "0",
     amountError: null,
     blockedReason: withdrawable === 0n ? blockedReason(stream) : null,

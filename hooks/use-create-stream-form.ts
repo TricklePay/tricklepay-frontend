@@ -12,13 +12,15 @@ import { submitCreateStream } from "@/lib/create-stream-submission";
 import {
   amountFieldError,
   cliffFieldError,
+  CREATE_STREAM_REQUIRED_MESSAGES,
   endFieldError,
   recipientFieldError,
   tokenFieldError,
+  validateCreateStreamForm,
 } from "@/lib/create-stream-validation";
 import { formatDuration } from "@/lib/format";
 import { setPendingNotice } from "@/lib/pending-notice";
-import { isValidContractAddress, isValidStellarAddress, parseAmount, toUnix } from "@/lib/validation";
+import { parseAmount, toUnix } from "@/lib/validation";
 import { vestingRatePerDay } from "@/lib/vesting";
 import type { CreateStreamParams, TxStage } from "@/types/contract";
 import type { FormDraft } from "@/types/form";
@@ -52,13 +54,6 @@ export interface CreateStreamForm {
 // Fields in on-screen order, which is also the order the first invalid one is
 // searched for on submit. Cliff is the only optional field.
 const FIELD_ORDER: CreateFormField[] = ["recipient", "token", "amount", "start", "end", "cliff"];
-const REQUIRED_MESSAGES: Partial<Record<CreateFormField, string>> = {
-  recipient: "Recipient address is required.",
-  token: "Token contract id is required.",
-  amount: "Amount is required.",
-  start: "Start date is required.",
-  end: "End date is required.",
-};
 
 /**
  * Owns the create-stream form's data handling: field values (persisted as a
@@ -113,14 +108,14 @@ export function useCreateStreamForm(): CreateStreamForm {
         break;
       case "start":
         setFieldErrors({
-          start: value ? undefined : REQUIRED_MESSAGES.start,
+          start: value ? undefined : CREATE_STREAM_REQUIRED_MESSAGES.start,
           ...(value && end ? { end: endFieldError(value, end) } : {}),
           ...(value && cliff ? { cliff: cliffFieldError(value, end, cliff) } : {}),
         });
         break;
       case "end":
         if (!value) {
-          setFieldErrors({ end: REQUIRED_MESSAGES.end });
+          setFieldErrors({ end: CREATE_STREAM_REQUIRED_MESSAGES.end });
           break;
         }
         setFieldErrors({
@@ -135,7 +130,7 @@ export function useCreateStreamForm(): CreateStreamForm {
   }
 
   const addressesValid =
-    isValidStellarAddress(recipient) && isValidContractAddress(token);
+    !!recipient && !!token && !recipientFieldError(recipient) && !tokenFieldError(token);
 
   // Live vesting-rate preview: only when amount and window are complete and
   // error-free, so an incomplete or invalid form never shows a rate.
@@ -150,8 +145,6 @@ export function useCreateStreamForm(): CreateStreamForm {
     start && end && !errors.start && !errors.end
       ? formatDuration(toUnix(end) - toUnix(start))
       : null;
-
-  const hasFieldErrors = FIELD_ORDER.some((field) => !!errors[field]);
 
   const hasUnsavedChanges =
     prepared !== null ||
@@ -170,11 +163,6 @@ export function useCreateStreamForm(): CreateStreamForm {
     writeFormDraft(draft);
   }, [amount, cliff, end, recipient, start, token]);
 
-  function failField(field: CreateFormField, message: string) {
-    setFieldErrors({ [field]: message });
-    refs[field].current?.focus();
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (submitting || !wallet.address) return;
@@ -187,45 +175,19 @@ export function useCreateStreamForm(): CreateStreamForm {
       return;
     }
 
-    // Trigger field-level errors for any blank required fields, then focus the first invalid one.
-    const missing: CreateFormErrors = {};
-    for (const field of FIELD_ORDER) {
-      const message = REQUIRED_MESSAGES[field];
-      if (message && !values[field]) missing[field] = message;
-    }
-    const hasErrors = Object.keys(missing).length > 0;
-    if (hasErrors) setFieldErrors(missing);
-
-    if (hasErrors || hasFieldErrors) {
-      // Focus the first field that already has (or just received) an error.
-      const firstInvalid = FIELD_ORDER.find((field) => !!(errors[field] || missing[field]));
-      if (firstInvalid) refs[firstInvalid].current?.focus();
-      return;
-    }
-
-    if (!addressesValid) {
-      setError("Fix address errors before submitting.");
+    // Re-run the shared rules at submit time so a stale live error can never
+    // disagree with what is accepted for the transaction.
+    const validationErrors = validateCreateStreamForm(values);
+    setErrors(validationErrors);
+    const firstInvalid = FIELD_ORDER.find((field) => !!validationErrors[field]);
+    if (firstInvalid) {
+      refs[firstInvalid].current?.focus();
       return;
     }
 
     const startTime = toUnix(start);
     const endTime = toUnix(end);
     const cliffTime = cliff ? toUnix(cliff) : startTime;
-
-    if (endTime <= startTime) {
-      failField("end", "End must be after start.");
-      return;
-    }
-    if (cliffTime < startTime || cliffTime > endTime) {
-      failField("cliff", "Cliff must fall between start and end.");
-      return;
-    }
-
-    const amountError = amountFieldError(amount);
-    if (amountError) {
-      failField("amount", amountError);
-      return;
-    }
 
     // Validation passed: show the review step. The transaction itself only
     // goes out once the user confirms there.

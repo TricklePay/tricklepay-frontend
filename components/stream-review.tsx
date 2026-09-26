@@ -3,7 +3,7 @@
 import type { JSX, ReactNode } from "react";
 
 import { CopyButton } from "@/components/copy-button";
-import { formatAmount, formatDuration, formatTime, truncateAddress } from "@/lib/format";
+import { formatDuration, formatTime, formatTokenAmount, formatTokenRate, truncateAddress } from "@/lib/format";
 import { formatUtcFromUnixSeconds, resolvedTimeZoneLabel } from "@/lib/timezone";
 import { vestingRatePerDay } from "@/lib/vesting";
 import type { CreateStreamParams } from "@/types/contract";
@@ -85,10 +85,13 @@ export function StreamReview({ params, submitting, onBack, onConfirm }: Props): 
           <AddressRow label="Recipient" address={params.recipient} />
           <AddressRow label="Token contract" address={params.token} />
           <Row label="Amount">
-            {formatAmount(params.totalAmount.toString())}
+            {formatTokenAmount(params.totalAmount.toString(), params.token)}
           </Row>
           <Row label="Vesting rate">
-            {`${formatAmount(vestingRatePerDay(params.totalAmount, params.startTime, params.endTime)?.toString() ?? "0")} tokens/day`}
+            {formatTokenRate(
+              vestingRatePerDay(params.totalAmount, params.startTime, params.endTime)?.toString() ?? "0",
+              params.token,
+            )}
           </Row>
           <Row label="Duration">
             {formatDuration(params.endTime - params.startTime) ?? "—"}

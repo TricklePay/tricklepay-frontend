@@ -4,6 +4,8 @@ import {
   formatAmount,
   formatDuration,
   formatMaxWithdrawHint,
+  formatTokenAmount,
+  formatTokenRate,
   formatTokenDisplay,
   relativeTime,
   timeRemaining,
@@ -125,6 +127,30 @@ describe("formatTokenDisplay", () => {
 
   it("falls back to the truncated address for unknown contracts", () => {
     expect(formatTokenDisplay("CABCDEFGHIJKLMNOPQRSTUVWXYZ234567")).toBe("CABC...4567");
+  });
+});
+
+describe("formatTokenAmount", () => {
+  const USDC_CONTRACT = "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC";
+
+  it("appends the symbol for a known token contract", () => {
+    expect(formatTokenAmount("12500000", USDC_CONTRACT)).toBe("1.25 USDC");
+  });
+
+  it("keeps an unknown token amount compact", () => {
+    expect(formatTokenAmount("12500000", "CUNKNOWN")).toBe("1.25");
+  });
+});
+
+describe("formatTokenRate", () => {
+  const USDC_CONTRACT = "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC";
+
+  it("uses the symbol in a known-token rate", () => {
+    expect(formatTokenRate("12500000", USDC_CONTRACT)).toBe("1.25 USDC/day");
+  });
+
+  it("keeps an unknown-token rate readable", () => {
+    expect(formatTokenRate("12500000", "CUNKNOWN")).toBe("1.25 tokens/day");
   });
 });
 

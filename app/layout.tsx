@@ -41,7 +41,7 @@ const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem(${JSON.str
 
 export const metadata: Metadata = {
   title: {
-    default: "TricklePay",
+    default: "Your streams — TricklePay",
     // Page-level titles render as "Page — TricklePay"
     template: "%s — TricklePay",
   },

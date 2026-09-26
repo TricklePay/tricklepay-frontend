@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { JSX } from "react";
 
 import { StreamStatusBadge } from "@/components/stream-status-badge";
-import { formatAmount, timeRemaining, truncateAddress } from "@/lib/format";
+import { formatTokenAmount, timeRemaining, truncateAddress } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
 export function StreamCard({ stream }: { stream: StreamView }): JSX.Element {
@@ -26,11 +26,11 @@ export function StreamCard({ stream }: { stream: StreamView }): JSX.Element {
         </div>
         <div>
           <p className="text-neutral-500">Withdrawable</p>
-          <p className="text-neutral-100">{formatAmount(stream.withdrawable)}</p>
+          <p className="text-neutral-100">{formatTokenAmount(stream.withdrawable, stream.token)}</p>
         </div>
         <div>
           <p className="text-neutral-500">Total</p>
-          <p className="text-neutral-100">{formatAmount(stream.totalAmount)}</p>
+          <p className="text-neutral-100">{formatTokenAmount(stream.totalAmount, stream.token)}</p>
         </div>
       </div>
       {(stream.status === "streaming" || stream.status === "pending") && (

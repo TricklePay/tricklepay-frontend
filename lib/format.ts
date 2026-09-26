@@ -72,6 +72,27 @@ export function formatAmount(raw: string): string {
 }
 
 /**
+ * Formats an amount with its token symbol when the contract is known. Unknown
+ * contracts keep the compact numeric display so cards and table cells remain
+ * easy to scan.
+ */
+export function formatTokenAmount(raw: string, tokenAddress: string): string {
+  const amount = formatAmount(raw);
+  const metadata = resolveTokenMetadata(tokenAddress);
+  return metadata ? `${amount} ${metadata.symbol}` : amount;
+}
+
+/** Formats a token amount over time, with a symbol whenever it is known. */
+export function formatTokenRate(
+  raw: string,
+  tokenAddress: string,
+  period = "day",
+): string {
+  const metadata = resolveTokenMetadata(tokenAddress);
+  return `${formatAmount(raw)} ${metadata ? metadata.symbol : "tokens"}/${period}`;
+}
+
+/**
  * Truncates a Stellar address to a short display form.
  *
  * @param address - Full Stellar address string
@@ -119,8 +140,10 @@ export function timeRemaining(endTimeSeconds: string): string {
  * @param rawWithdrawable - Withdrawable amount in base units (stroops), as a string
  * @returns Formatted hint message (e.g., "Maximum withdrawable amount: 1.5")
  */
-export function formatMaxWithdrawHint(rawWithdrawable: string): string {
-  const formatted = formatAmount(rawWithdrawable);
+export function formatMaxWithdrawHint(rawWithdrawable: string, tokenAddress?: string): string {
+  const formatted = tokenAddress
+    ? formatTokenAmount(rawWithdrawable, tokenAddress)
+    : formatAmount(rawWithdrawable);
   return `Maximum withdrawable amount: ${formatted}`;
 }
 
