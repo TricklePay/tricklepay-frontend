@@ -1,12 +1,18 @@
 @import "tailwindcss";
 
+/* Dark mode is the default appearance. No class is needed on <html> — the
+   browser's rendering engine uses the `color-scheme` hint below to style
+   built-in UI (scrollbars, form controls, etc.) to match. */
 :root {
   color-scheme: dark;
 }
 
-/* Consistent, high-contrast keyboard focus indicator for every interactive
-   element (links, buttons, inputs). :focus-visible only matches keyboard and
-   other non-pointer focus, so mouse/touch clicks stay unaffected. */
+/* ── FOCUS INDICATOR ─────────────────────────────────────────────────────────
+   Consistent, high-contrast keyboard focus ring for every interactive element.
+   :focus-visible targets keyboard and programmatic focus only — mouse and touch
+   clicks are unaffected. Indigo-500 is the brand accent colour (matching the
+   drop mark in app/icon.svg) and achieves at least 3:1 contrast against both
+   the dark and light backgrounds defined below. */
 :focus-visible {
   /* indigo-500 — the brand accent color (see the trickle-drop mark in
      app/icon.svg) — keeps at least a 3:1 contrast ratio against both the
@@ -16,15 +22,33 @@
   border-radius: 2px;
 }
 
-/* Light theme overrides, toggled via a `light` class on <html> (see
-   components/theme-provider.tsx and the bootstrap script in app/layout.tsx).
-   Every component styles itself with Tailwind's neutral-* utilities, and
-   Tailwind v4 compiles each of those to var(--color-neutral-*) — so
-   redefining the tokens here re-themes the whole app without editing each
-   component. The ramp is inverted (950↔50, 900↔100, …) so background,
-   surface, border, and text keep the same relative roles in both themes.
-   Semantic status colors (red/green/blue/emerald) are intentionally left
-   unchanged. */
+/* ── LIGHT THEME ─────────────────────────────────────────────────────────────
+   Applied by adding a "light" class to <html> (see components/theme-provider.tsx
+   and the bootstrap script in app/layout.tsx).
+   
+   HOW IT WORKS
+   Tailwind v4 compiles every neutral-* utility (bg-neutral-950, text-neutral-100,
+   border-neutral-800, …) to a CSS variable reference: var(--color-neutral-*).
+   Redefining those tokens here re-themes the entire app without touching a
+   single component file.
+
+   THE INVERSION APPROACH
+   The neutral ramp is inverted: 950 becomes the lightest value, 50 becomes the
+   darkest. This preserves the semantic roles components already use:
+     bg-neutral-950  — page background   (near-black in dark → near-white in light)
+     bg-neutral-900  — card surface       (dark grey → light grey)
+     border-neutral-800 — subtle border   (dim → light)
+     text-neutral-400   — muted text      (mid-grey → mid-grey, same role)
+     text-neutral-100   — primary text    (near-white → near-black)
+
+   WHAT IS NOT OVERRIDDEN
+   Semantic status colours (red, green, blue, emerald, indigo) are left unchanged.
+   They are already legible on both backgrounds and carry specific meaning —
+   inverting them would break that signal.
+
+   ADDING A COLOUR OVERRIDE
+   Add a --color-* variable to this block. The variable name must match the
+   Tailwind token (e.g. --color-neutral-700 for neutral-700 utilities). */
 :root.light {
   color-scheme: light;
   --color-neutral-50: #0a0a0a;
@@ -40,10 +64,12 @@
   --color-neutral-950: #fafafa;
 }
 
-/* Respect the OS-level "reduce motion" preference. Rather than chasing every
-   animate-* and transition-* utility across components, collapse all animations
-   and transitions app-wide (skeleton shimmer, spinners, hover/focus
-   transitions, progress-stage pulses) down to a single, near-instant frame. */
+/* ── REDUCED MOTION ──────────────────────────────────────────────────────────
+   Respects the OS-level "reduce motion" accessibility preference. Rather than
+   auditing every animate-* and transition-* utility across components, this
+   single media query collapses all animations and transitions app-wide to a
+   near-instant frame. Covers skeleton shimmer, spinners, hover/focus
+   transitions, and transaction-stage pulse animations. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

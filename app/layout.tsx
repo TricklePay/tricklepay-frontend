@@ -12,9 +12,29 @@ import "./globals.css";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://tricklepay.xyz";
 
 // Applies the persisted (or OS-preferred) theme to <html> synchronously,
-// before hydration, so there is no flash of the wrong theme. Mirrors the
-// logic in lib/theme.ts's resolveInitialTheme, which is unit tested; this
-// copy has to stay inline JS since it must run before any bundle loads.
+// before hydration, so there is no flash of the wrong theme on first paint.
+//
+// WHY THIS EXISTS
+// React renders <html> on the server without the "light" class (dark is the
+// default). If we applied the theme in a useEffect, the page would flash from
+// dark to light for users who prefer light mode. An inline <script> in <head>
+// runs synchronously during HTML parsing, before the browser paints anything,
+// so the correct class is already present when the first frame is drawn.
+//
+// LOGIC (mirrors resolveInitialTheme in lib/theme.ts — keep in sync)
+//   1. Read localStorage["trickle-theme"].
+//   2. If the stored value is "light" or "dark", use it (explicit user choice).
+//   3. Otherwise fall back to window.matchMedia("(prefers-color-scheme: light)").
+//   4. If the resolved theme is light, add class="light" to <html>. Do nothing
+//      for dark — it is already the default via `color-scheme: dark` in CSS.
+//
+// suppressHydrationWarning on <html> silences React's hydration mismatch
+// warning: the server renders without "light"; the bootstrap may add it on the
+// client before React hydrates, which is intentional and expected.
+//
+// This script is intentionally kept as a minified inline string. It must be a
+// single synchronously-executed script with no imports; any async work or
+// bundle dependency would defeat its purpose.
 const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem(${JSON.stringify(
   THEME_STORAGE_KEY,
 )});var light=s==="light"||s==="dark"?s==="light":window.matchMedia("(prefers-color-scheme: light)").matches;if(light)document.documentElement.classList.add("light");}catch(e){}})();`;
