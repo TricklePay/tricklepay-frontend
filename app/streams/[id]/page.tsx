@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { type JSX, useEffect, useState } from "react";
 
 import { LoadingState } from "@/components/loading-state";
@@ -20,6 +20,7 @@ const HIDDEN_POLL_INTERVAL_MS = DETAIL_REFRESH_INTERVAL_MS * 3;
 export default function StreamDetailPage(): JSX.Element {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const router = useRouter();
 
   const [stream, setStream] = useState<StreamView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,9 +118,13 @@ export default function StreamDetailPage(): JSX.Element {
   if (error) {
     return (
       <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
-        <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-xs text-neutral-500 hover:text-neutral-300"
+        >
           &larr; Back
-        </Link>
+        </button>
         <div className="mt-6 flex items-center gap-4">
           <p className="text-sm text-red-400">{error}</p>
           <button
@@ -136,9 +141,13 @@ export default function StreamDetailPage(): JSX.Element {
   if (!stream) {
     return (
       <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
-        <Link href="/" className="text-xs text-neutral-500 hover:text-neutral-300">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-xs text-neutral-500 hover:text-neutral-300"
+        >
           &larr; Back
-        </Link>
+        </button>
         <div className="mt-3">
           <h1 className="text-xl font-semibold">Stream not found</h1>
           <p className="mt-2 text-sm text-neutral-400">
