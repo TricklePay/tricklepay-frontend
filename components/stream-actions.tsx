@@ -50,6 +50,7 @@ export function StreamActions({ stream, walletAddress, onComplete }: Props): JSX
       {isRecipient && (
         <WithdrawPanel
           withdrawable={actions.withdrawable}
+          token={stream.token}
           amountInput={actions.amountInput}
           amountError={actions.amountError}
           blockedReason={actions.nothingToWithdraw ? blockedReason(stream) : null}

@@ -1,7 +1,7 @@
 import type { JSX, FormEvent, ReactNode } from "react";
 
 import type { CreateFormErrors, CreateFormField, CreateFormRefs } from "@/hooks/use-create-stream-form";
-import { formatAmount } from "@/lib/format";
+import { formatTokenRate } from "@/lib/format";
 import { formatUtcFromLocalInput, resolvedTimeZoneLabel } from "@/lib/timezone";
 import type { FormDraft } from "@/types/form";
 
@@ -162,9 +162,9 @@ export function CreateStreamFields({
         <p className="rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-xs text-neutral-400">
           Vesting rate:{" "}
           <span className="font-medium text-neutral-100">
-            {formatAmount(previewRate.toString())}
-          </span>{" "}
-          tokens/day, released linearly from start to end.
+            {formatTokenRate(previewRate.toString(), values.token)}
+          </span>
+          , released linearly from start to end.
         </p>
       )}
 

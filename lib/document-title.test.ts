@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { streamDocumentTitle, UNSEEN_CHANGE_MARKER } from "@/lib/document-title";
+import { pageDocumentTitle, streamDocumentTitle, UNSEEN_CHANGE_MARKER } from "@/lib/document-title";
 import { STREAM_STATUS_META } from "@/lib/stream-status";
 import type { StreamStatus } from "@/types/stream";
 
@@ -29,5 +29,11 @@ describe("streamDocumentTitle", () => {
     expect(streamDocumentTitle({ id: "7", status: "cancelled" }, true)).toBe(
       `${UNSEEN_CHANGE_MARKER} ${plain}`,
     );
+  });
+});
+
+describe("pageDocumentTitle", () => {
+  it("uses the same page-title pattern as metadata", () => {
+    expect(pageDocumentTitle("New stream")).toBe("New stream — TricklePay");
   });
 });

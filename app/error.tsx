@@ -2,6 +2,8 @@
 
 import { type JSX, useEffect } from "react";
 
+import { pageDocumentTitle } from "@/lib/document-title";
+
 // Next's file-based error boundary: catches any render-time throw in a page
 // or layout beneath this segment that isn't already handled by that page's
 // own try/catch (e.g. app/streams/[id]/page.tsx catches its own fetch errors
@@ -20,6 +22,10 @@ export default function Error({
     // the generic UI below.
     console.error(error);
   }, [error]);
+
+  useEffect(() => {
+    document.title = pageDocumentTitle("Something went wrong");
+  }, []);
 
   return (
     <main id="main-content" className="mx-auto max-w-2xl px-6 py-16 text-center">

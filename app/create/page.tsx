@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import type { JSX } from "react";
 
 import { CreateForm } from "@/components/create-form";
+
+export const metadata: Metadata = {
+  title: "New stream",
+};
 
 export default function CreatePage(): JSX.Element {
   return (

@@ -26,7 +26,7 @@ export default function StreamDetailPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
-  useStreamTitle(stream);
+  useStreamTitle(stream, id);
 
   useEffect(() => {
     // Navigating away (or retrying) cancels the request outright rather than

@@ -2,10 +2,16 @@ import Link from "next/link";
 import type { JSX } from "react";
 
 import { StreamStatusBadge } from "@/components/stream-status-badge";
-import { formatAmount, timeRemaining, truncateAddress } from "@/lib/format";
+import { formatTokenAmount, timeRemaining, truncateAddress } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
-export function StreamTable({ streams }: { streams: StreamView[] }): JSX.Element {
+export function StreamTable({
+  streams,
+  emptyMessage = "No streams yet.",
+}: {
+  streams: StreamView[];
+  emptyMessage?: string;
+}): JSX.Element {
   return (
     /* Horizontal scroll on narrow viewports so columns never get crushed */
     <div className="overflow-x-auto rounded-lg border border-neutral-800">
@@ -57,7 +63,13 @@ export function StreamTable({ streams }: { streams: StreamView[] }): JSX.Element
           </tr>
         </thead>
         <tbody>
-          {streams.map((stream, idx) => (
+          {streams.length === 0 ? (
+            <tr>
+              <td colSpan={7} className="px-4 py-8 text-center text-sm text-neutral-500">
+                {emptyMessage}
+              </td>
+            </tr>
+          ) : streams.map((stream, idx) => (
             <tr
               key={stream.id}
               className={`border-b border-neutral-800/60 transition-colors last:border-b-0 hover:bg-neutral-800/40 ${
@@ -82,10 +94,10 @@ export function StreamTable({ streams }: { streams: StreamView[] }): JSX.Element
                 {truncateAddress(stream.recipient)}
               </td>
               <td className="px-4 py-3 text-right tabular-nums text-neutral-100">
-                {formatAmount(stream.withdrawable)}
+                {formatTokenAmount(stream.withdrawable, stream.token)}
               </td>
               <td className="px-4 py-3 text-right tabular-nums text-neutral-400">
-                {formatAmount(stream.totalAmount)}
+                {formatTokenAmount(stream.totalAmount, stream.token)}
               </td>
               <td className="px-4 py-3 text-xs text-neutral-500">
                 {stream.status === "streaming" || stream.status === "pending"

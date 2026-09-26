@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 
-import { formatAmount, formatMaxWithdrawHint } from "@/lib/format";
+import { formatMaxWithdrawHint, formatTokenAmount } from "@/lib/format";
 
 /**
  * The recipient's withdrawal controls: amount field with a Max shortcut, the
@@ -9,6 +9,7 @@ import { formatAmount, formatMaxWithdrawHint } from "@/lib/format";
  */
 export function WithdrawPanel({
   withdrawable,
+  token,
   amountInput,
   amountError,
   blockedReason,
@@ -20,6 +21,7 @@ export function WithdrawPanel({
   onWithdraw,
 }: {
   withdrawable: bigint;
+  token: string;
   amountInput: string;
   amountError: string | null;
   /** Why nothing can be withdrawn right now, or null when something can. */
@@ -40,7 +42,7 @@ export function WithdrawPanel({
           <span className="text-neutral-400">
             Amount{" "}
             <span className="text-neutral-500">
-              (max {formatAmount(withdrawable.toString())})
+              (max {formatTokenAmount(withdrawable.toString(), token)})
             </span>
           </span>
           <input
@@ -81,7 +83,7 @@ export function WithdrawPanel({
       </div>
       {!nothingToWithdraw && (
         <p id="withdraw-max-hint" className="text-xs text-neutral-400">
-          {formatMaxWithdrawHint(withdrawable.toString())}{" "}
+          {formatMaxWithdrawHint(withdrawable.toString(), token)}{" "}
           <button
             type="button"
             onClick={onSetMax}

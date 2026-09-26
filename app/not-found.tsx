@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import type { JSX } from "react";
 
@@ -6,6 +7,10 @@ import type { JSX } from "react";
 // stream-specific "not found" branch in app/streams/[id]/page.tsx, which
 // handles a missing stream id within an otherwise-valid route and needs its
 // own retry/back affordances rather than this generic one.
+export const metadata: Metadata = {
+  title: "Page not found",
+};
+
 export default function NotFound(): JSX.Element {
   return (
     <main id="main-content" className="mx-auto max-w-2xl px-6 py-16 text-center">
