@@ -95,6 +95,25 @@ describe("truncateAddress", () => {
   it("leaves short strings recognisable", () => {
     expect(truncateAddress("GABC1234")).toBe("GABC...1234");
   });
+
+  it("does not alter the case of the characters it keeps", () => {
+    // Truncation must never normalize case: if it did, two addresses that
+    // differ only in case — and are therefore different accounts — could
+    // truncate to the same displayed string.
+    expect(truncateAddress("gabcdefghijklmnopqrstuvwxyz234567")).toBe("gabc...4567");
+    expect(truncateAddress("GaBcDeFgHiJkLmNoPqRsTuVwXyZ234567")).toBe("GaBc...4567");
+  });
+
+  it("handles an empty string without throwing", () => {
+    expect(truncateAddress("")).toBe("...");
+  });
+
+  it("handles a string shorter than the kept edges by overlapping head and tail", () => {
+    // Below 8 characters, the leading 4 and trailing 4 slices overlap — this
+    // documents the current behaviour rather than hiding it.
+    expect(truncateAddress("GAB")).toBe("GAB...GAB");
+    expect(truncateAddress("G")).toBe("G...G");
+  });
 });
 
 describe("formatTokenDisplay", () => {

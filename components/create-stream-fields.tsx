@@ -1,9 +1,9 @@
 import type { JSX, FormEvent, ReactNode } from "react";
 
 import type { CreateFormErrors, CreateFormField, CreateFormRefs } from "@/hooks/use-create-stream-form";
-import type { FormDraft } from "@/lib/create-form-draft";
 import { formatAmount } from "@/lib/format";
 import { formatUtcFromLocalInput, resolvedTimeZoneLabel } from "@/lib/timezone";
+import type { FormDraft } from "@/types/form";
 
 function Field({
   label,

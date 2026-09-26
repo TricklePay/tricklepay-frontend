@@ -6,6 +6,7 @@ import { type JSX, useEffect, useRef, useState } from "react";
 import { CopyButton, ShareLinkButton } from "@/components/copy-button";
 import { ProgressBar } from "@/components/progress-bar";
 import { StreamActions } from "@/components/stream-actions";
+import { StreamStatusBadge } from "@/components/stream-status-badge";
 import { useWallet } from "@/components/wallet-provider";
 import { useAccrual } from "@/hooks/use-accrual";
 import { formatAmount, formatTime, formatTokenDisplay, relativeTime, truncateAddress } from "@/lib/format";
@@ -87,9 +88,7 @@ export function StreamDetail({ stream, onComplete }: { stream: StreamView; onCom
 
       <div className="mb-6 mt-3 flex items-center justify-between">
         <h1 className="font-mono text-xl">Stream #{stream.id}</h1>
-        <span className="rounded bg-neutral-800 px-2 py-0.5 text-xs capitalize text-neutral-300">
-          {stream.status}
-        </span>
+        <StreamStatusBadge status={stream.status} variant="plain" />
       </div>
 
       {/* Cancelled-stream balance explanation banner */}

@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  TX_STAGES,
-  TX_STAGE_LABELS,
-  type TxStage,
-} from "@/lib/contract";
+import { TX_STAGES, TX_STAGE_LABELS } from "@/lib/contract-messages";
+import type { TxStage } from "@/types/contract";
 
 describe("transaction progress stages", () => {
   it("defines the 4 canonical stages in order", () => {

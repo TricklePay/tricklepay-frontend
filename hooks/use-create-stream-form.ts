@@ -6,8 +6,9 @@ import { useEffect, useRef, useState, type FormEvent, type RefObject } from "rea
 import { useWallet } from "@/components/wallet-provider";
 import { useFormNavigationWarning } from "@/hooks/use-form-navigation-warning";
 import { useNetworkGuard } from "@/hooks/use-network-guard";
-import { createStream, confirmTransaction, TransactionTimeoutError, type CreateStreamParams, type TxStage } from "@/lib/contract";
-import { clearFormDraft, EMPTY_FORM_DRAFT, readFormDraft, writeFormDraft, type FormDraft } from "@/lib/create-form-draft";
+import { confirmTransaction, TransactionTimeoutError } from "@/lib/contract";
+import { clearFormDraft, EMPTY_FORM_DRAFT, readFormDraft, writeFormDraft } from "@/lib/create-form-draft";
+import { submitCreateStream } from "@/lib/create-stream-submission";
 import {
   amountFieldError,
   cliffFieldError,
@@ -19,6 +20,8 @@ import { formatDuration } from "@/lib/format";
 import { setPendingNotice } from "@/lib/pending-notice";
 import { isValidContractAddress, isValidStellarAddress, parseAmount, toUnix } from "@/lib/validation";
 import { vestingRatePerDay } from "@/lib/vesting";
+import type { CreateStreamParams, TxStage } from "@/types/contract";
+import type { FormDraft } from "@/types/form";
 
 export type CreateFormField = keyof FormDraft;
 export type CreateFormErrors = Partial<Record<CreateFormField, string>>;
@@ -244,20 +247,15 @@ export function useCreateStreamForm(): CreateStreamForm {
     setSubmitting(true);
     setStage("preparing");
     try {
-      const hash = await createStream(
-        prepared,
-        (s) => setStage(s),
-      );
-      setPendingNotice({ message: "Stream created.", hash });
-      setTimeoutHash(null);
-      clearFormDraft();
-      router.push("/");
-    } catch (err) {
-      if (err instanceof TransactionTimeoutError) {
-        setTimeoutHash(err.txHash);
-        setError("Confirmation timed out. The transaction was submitted to the network.");
+      const result = await submitCreateStream(prepared, (s) => setStage(s));
+      if (result.ok) {
+        setPendingNotice({ message: "Stream created.", hash: result.hash });
+        setTimeoutHash(null);
+        clearFormDraft();
+        router.push("/");
       } else {
-        setError(err instanceof Error ? err.message : "Failed to create stream.");
+        if (result.timeoutHash) setTimeoutHash(result.timeoutHash);
+        setError(result.message);
       }
     } finally {
       setSubmitting(false);

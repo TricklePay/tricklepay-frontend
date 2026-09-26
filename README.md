@@ -56,6 +56,7 @@ See also [Running locally](#running-locally) for the short version,
   - [Folder Structure and Conventions](#folder-structure-and-conventions)
   - [Module Map](#module-map)
 - [API contract](#api-contract)
+- [Documentation](#documentation)
 - [Related repositories](#related-repositories)
 - [Code of Conduct](#code-of-conduct)
 - [License](#license)
@@ -403,6 +404,12 @@ tricklepay-backend REST API (`lib/api.ts`) and the Soroban stream contract,
 invoked directly (`lib/contract.ts`). Request/response shapes, amount and
 time encoding, the write transaction lifecycle, and the on-chain error-code
 mapping are all documented in [docs/api-contract.md](docs/api-contract.md).
+
+## Documentation
+
+The `docs/` directory holds reference documentation beyond what fits here —
+see [docs/README.md](docs/README.md) for an index of what's there and a
+one-line description of each document.
 
 ## Related repositories
 

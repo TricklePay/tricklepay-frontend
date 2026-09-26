@@ -109,16 +109,7 @@ import {
 
 import { config } from "@/lib/config";
 import { parseContractError } from "@/lib/contract-errors";
-
-export interface CreateStreamParams {
-  sender: string;
-  recipient: string;
-  token: string;
-  totalAmount: bigint;
-  startTime: bigint;
-  endTime: bigint;
-  cliffTime: bigint;
-}
+import type { CreateStreamParams, TxStage } from "@/types/contract";
 
 // Seconds a built transaction stays valid. Covers simulation, the wallet's
 // signing prompt and submission; after that the network rejects it outright.

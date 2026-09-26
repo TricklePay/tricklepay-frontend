@@ -3,10 +3,10 @@
 import type { JSX, ReactNode } from "react";
 
 import { CopyButton } from "@/components/copy-button";
-import type { CreateStreamParams } from "@/lib/contract";
 import { formatAmount, formatDuration, formatTime, truncateAddress } from "@/lib/format";
 import { formatUtcFromUnixSeconds, resolvedTimeZoneLabel } from "@/lib/timezone";
 import { vestingRatePerDay } from "@/lib/vesting";
+import type { CreateStreamParams } from "@/types/contract";
 
 interface Props {
   /** The exact parameters that will be submitted on confirm. */
