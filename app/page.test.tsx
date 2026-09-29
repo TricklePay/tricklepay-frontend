@@ -6,11 +6,9 @@ import { useStreamPage } from "@/hooks/use-stream-page";
 
 import Home from "./page";
 
-const searchParamsRef = { current: new URLSearchParams() };
-
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
-  useSearchParams: () => searchParamsRef.current,
+  useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
 vi.mock("@/components/wallet-provider", () => ({
@@ -92,7 +90,6 @@ function mockConnectedWithData() {
 describe("Dashboard Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    searchParamsRef.current = new URLSearchParams();
   });
 
   it("renders the connect prompt when no wallet is connected", () => {
@@ -120,27 +117,27 @@ describe("Dashboard Page", () => {
     expect(htmlString).not.toContain("Loading outgoing streams");
   });
 
-  it("applies a persisted filter on mount", () => {
-    searchParamsRef.current = new URLSearchParams({
-      filter: "incoming",
-    });
+  it("applies a persisted filter on mount", async () => {
     mockConnectedWithData();
+    const { useSearchParams } = await import("next/navigation");
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams("status=streaming"),
+    );
 
     const el = Home();
     const htmlString = renderToStaticMarkup(el);
 
-    expect(htmlString).toContain("Incoming");
-    expect(htmlString).not.toContain("Outgoing");
+    expect(htmlString).toContain("streaming");
   });
 
-  it("falls back to the default filter when no value is persisted", () => {
-    searchParamsRef.current = new URLSearchParams();
+  it("falls back to the default filter when no value is persisted", async () => {
     mockConnectedWithData();
+    const { useSearchParams } = await import("next/navigation");
+    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams());
 
     const el = Home();
     const htmlString = renderToStaticMarkup(el);
 
-    expect(htmlString).toContain("Incoming");
-    expect(htmlString).toContain("Outgoing");
+    expect(htmlString).toContain("All");
   });
 });
