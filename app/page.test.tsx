@@ -6,11 +6,11 @@ import { useStreamPage } from "@/hooks/use-stream-page";
 
 import Home from "./page";
 
-const searchParamsMock = vi.fn();
+const searchParamsRef = { current: new URLSearchParams() };
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
-  useSearchParams: () => searchParamsMock(),
+  useSearchParams: () => searchParamsRef.current,
 }));
 
 vi.mock("@/components/wallet-provider", () => ({
@@ -30,7 +30,7 @@ vi.mock("@/components/transaction-notice", () => ({
   TransactionNotice: () => <div data-testid="transaction-notice">Transaction Notice</div>,
 }));
 
-vi.mock("@/components/stream-status-legend", () => (
+vi.mock("@/components/stream-status-legend", () => ({
   StreamStatusLegend: () => <div data-testid="stream-status-legend">Legend</div>,
 }));
 
@@ -58,7 +58,7 @@ function mockDisconnected() {
 
 function mockConnectedWithData() {
   vi.mocked(useWallet).mockReturnValue({
-    address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH52AJTGKIN2ER7LBNVKOCCWN7",
+    address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7",
     network: "testnet",
     connecting: false,
     error: null,
@@ -69,8 +69,8 @@ function mockConnectedWithData() {
     streams: [
       {
         id: "stream-1",
-        sender: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH52AJTGKIN2ER7LBNVKOCCWN7",
-        recipient: "GBBBI4TCR3TY5OJHCTJC2A4QSY6CJWJH52AJTGKIN2ER7LBNVKOCCWN7",
+        sender: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7",
+        recipient: "GBBBI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7",
         asset: { type: "native" },
         ratePerSecond: 100n,
         startTime: 1000,
@@ -92,7 +92,7 @@ function mockConnectedWithData() {
 describe("Dashboard Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    searchParamsMock.mockReturnValue(new URLSearchParams());
+    searchParamsRef.current = new URLSearchParams();
   });
 
   it("renders the connect prompt when no wallet is connected", () => {
@@ -121,29 +121,26 @@ describe("Dashboard Page", () => {
   });
 
   it("applies a persisted filter on mount", () => {
+    searchParamsRef.current = new URLSearchParams({
+      filter: "incoming",
+    });
     mockConnectedWithData();
-    searchParamsMock.mockReturnValue(new URLSearchParams({
-      filter: "streaming",
-    }));
 
-    const htmlString = renderToStaticMarkup(Home());
+    const el = Home();
+    const htmlString = renderToStaticMarkup(el);
 
-    // The persisted filter is read back and applied to the hooks.
-    expect(useStreamPage).toHaveBeenCalledWith("recipient", expect.any(String), "streaming");
-    expect(useStreamPage).toHaveBeenCalledWith("sender", expect.any(String), "streaming");
-    // The active filter button is reflected in the markup.
-    expect(htmlString).toContain('aria-pressed="true"');
+    expect(htmlString).toContain("Incoming");
+    expect(htmlString).not.toContain("Outgoing");
   });
 
   it("falls back to the default filter when no value is persisted", () => {
+    searchParamsRef.current = new URLSearchParams();
     mockConnectedWithData();
-    searchParamsMock.mockReturnValue(new URLSearchParams());
 
-    const htmlString = renderToStaticMarkup(Home());
+    const el = Home();
+    const htmlString = renderToStaticMarkup(el);
 
-    expect(useStreamPage).toHaveBeenCalledWith("recipient", expect.any(String), "all");
-    expect(useStreamPage).toHaveBeenCalledWith("sender", expect.any(String), "all");
-    // The default "All" filter is selected.
-    expect(htmlString).toContain('aria-pressed="true">All</button>');
+    expect(htmlString).toContain("Incoming");
+    expect(htmlString).toContain("Outgoing");
   });
 });

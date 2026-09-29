@@ -1,1 +1,274 @@
-InR1c2UgY2xpZW50IjsKCmltcG9ydCB7IHVzZVJvdXRlciwgdXNlU2VhcmNoUGFyYW1zIH0gZnJvbSAibmV4dC9uYXZpZ2F0aW9uIjsKaW1wb3J0IHsgdHlwZSBKU1gsIFN1c3BlbnNlLCB1c2VDYWxsYmFjaywgdXNlRWZmZWN0LCB1c2VTdGF0ZSB9IGZyb20gInJlYWN0IjsKCmltcG9ydCB7IEJyb3dzZXJTdXBwb3J0Tm90ZSB9IGZyb20gIkAvY29tcG9uZW50cy9icm93c2VyLXN1cHBvcnQtbm90ZSI7CmltcG9ydCB7IExvYWRpbmdTdGF0ZSB9IGZyb20gIkAvY29tcG9uZW50cy9sb2FkaW5nLXN0YXRlIjsKaW1wb3J0IHsgU3RyZWFtTGlzdCB9IGZyb20gIkAvY29tcG9uZW50cy9zdHJlYW0tbGlzdCI7CmltcG9ydCB7IFN0cmVhbVN0YXR1c0xlZ2VuZCB9IGZyb20gIkAvY29tcG9uZW50cy9zdHJlYW0tc3RhdHVzLWxlZ2VuZCI7CmltcG9ydCB7IFRyYW5zYWN0aW9uTm90aWNlIH0gZnJvbSAiQC9jb21wb25lbnRzL3RyYW5zYWN0aW9uLW5vdGljZSI7CmltcG9ydCB7IHVzZVdhbGxldCB9IGZyb20gIkAvY29tcG9uZW50cy93YWxsZXQtcHJvdmlkZXIiOwppbXBvcnQgeyB1c2VOb3cgfSBmcm9tICJA L2hvb2tzL3VzZS1ub3ciOwppbXBvcnQgeyB1c2VTdHJlYW1QYWdlLCB0eXBlIFN0cmVhbVBhZ2UgfSBmcm9tICJAL2hvb2tzL3VzZS1zdHJlYW0tcGFnZSI7CmltcG9ydCB7IHRha2VQZW5kaW5nTm90aWNlIH0gZnJvbSAiQC9saWIvcGVuZGluZy1ub3RpY2UiOwppbXBvcnQgdHlwZSB7IFBlbmRpbmdOb3RpY2UgfSBmcm9tICJAL3R5cGVzL25vdGljZSI7CmltcG9ydCB0eXBlIHsgU3RyZWFtU3RhdHVzIH0gZnJvbSAiQC90eXBlcy9zdHJlYW0iOwoKY29uc3QgRklMVEVSUzogQXJyYXk8eyBsYWJlbDogc3RyaW5nOyB2YWx1ZTogU3RyZWFtU3RhdHVzIHwgImFsbCIgfT4gPSBbCiAgeyBsYWJlbDogIkFsbCIsIHZhbHVlOiAiYWxsIiB9LAogIHsgbGFiZWw6ICJTdHJlYW1pbmciLCB2YWx1ZTogInN0cmVhbWluZyIgfSwKICB7IGxhYmVsOiAiUGVuZGluZyIsIHZhbHVlOiAicGVuZGluZyIgfSwKICB7IGxhYmVsOiAiQ29tcGxldGVkIiwgdmFsdWU6ICJjb21wbGV0ZWQiIH0sCiAgeyBsYWJlbDogIkNhbmNlbGxlZCIsIHZhbHVlOiAiY2FuY2VsbGVkIiB9LApdOwoKZXhwb3J0IGNvbnN0IEZJTFRFUl9WQUxVRVMgPSBGSUxURVJTLm1hcCgoZikgPT4gZi52YWx1ZSk7CgpleHBvcnQgZnVuY3Rpb24gcmVzb2x2ZUZpbHRlcihyYXdQYXJhbTogc3RyaW5nIHwgbnVsbCk6IFN0cmVhbVN0YXR1cyB8ICJhbGwiIHsKICByZXR1cm4gcmF3UGFyYW0gJiYgKEZJTFRFUl9WQUxVRVMgYXMgc3RyaW5nW10pLmluY2x1ZGVzKHJhd1BhcmFtKQogICAgPyAocmF3UGFyYW0gYXMgU3RyZWFtU3RhdHVzIHwgImFsbCIpCiAgICA6ICJhbGwiOwp9CgpmdW5jdGlvbiBTdHJlYW1TZWN0aW9uKHsKICB0aXRsZSwKICBwYWdlLAogIGZpbHRlciwKICBlbXB0eU1lc3NhZ2UsCiAgc2hvd0NyZWF0ZUxpbmsgPSBmYWxzZSwKICBjbGFzc05hbWUsCn06IHsKICB0aXRsZTogc3RyaW5nOwogIHBhZ2U6IFN0cmVhbVBhZ2U7CiAgZmlsdGVyOiBTdHJlYW1TdGF0dXMgfCAiYWxsIjsKICBlbXB0eU1lc3NhZ2U6IHN0cmluZzsKICBzaG93Q3JlYXRlTGluaz86IGJvb2xlYW47CiAgY2xhc3NOYW1lPzogc3RyaW5nOwp9KSB7CiAgY29uc3QgdmlzaWJsZSA9IHBhZ2Uuc3RyZWFtczsKICAvLyBSZS1yZW5kZXIgb24gYW4gaW50ZXJ2YWwgc28gYSBwZW5kaW5nIHN0cmVhbSdzICJzdGFydHMgaW4g4oCmIiBjb3VudGRvd24KICAvLyBpbiB0aGUgbGlzdHMga2VlcHMgYWR2YW5jaW5nIHdoaWxlIHRoZSBhYnNvbHV0ZSBzY2hlZHVsZSBzdGF5cyBvbiB0aGUKICAvLyBkZXRhaWwgcGFnZS4gQ2FyZC90YWJsZSByb3dzIHRoZW1zZWx2ZXMgc3RheSBwdXJlLgogIHVzZU5vdygpOwogIGNvbnN0IGVtcHR5VGV4dCA9CiAgICBmaWx0ZXIgPT09ICJhbGwiIHx8IHBhZ2Uuc3RyZWFtcy5sZW5ndGggPT09IDAKICAgICAgPyAoZmlsdGVyID09PSAiYWxsIiA/IGVtcHR5TWVzc2FnZSA6IGBObyAke2ZpbHRlcn0gc3RyZWFtcyBmb3VuZC5gKQogICAgICA6IGVtcHR5TWVzc2FnZTsKCiAgY29uc3Qgc2hvd0NyZWF0ZSA9IHNob3dDcmVhdGVMaW5rICYmIHBhZ2Uuc3RyZWFtcy5sZW5ndGggPT09IDA7CgogIHJldHVybiAoCiAgICA8c2VjdGlvbiBjbGFzc05hbWU9e2NsYXNzTmFtZX0+CiAgICAgIDxkaXYgY2xhc3NOYW1lPSJtYi0zIGZsZXggaXRlbXMtYmFzZWxpbmUganVzdGlmeS1iZXR3ZWVuIGdhcC00Ij4KICAgICAgICA8aDIgY2xhc3NOYW1lPSJ0ZXh0LWxnIGZvbnQtc2VtaWJvbGQiPnt0aXRsZX08L2gyPgogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMyI+CiAgICAgICAgICB7cGFnZS50b3RhbCA+IDAgJiYgKAogICAgICAgICAgICA8cCBjbGFzc05hbWU9InRleHQteHMgdGFidWxhci1udW1zIHRleHQtbmV1dHJhbC01MDAiPgogICAgICAgICAgICAgIHtwYWdlLnN0cmVhbXMubGVuZ3RofSBvZiB7cGFnZS50b3RhbH0KICAgICAgICAgICAgPC9wPgogICAgICAgICAgKX0KICAgICAgICAgIDxidXR0b24KICAgICAgICAgICAgb25DbGljaz17cGFnZS5yZWZyZXNofQogICAgICAgICAgICBkaXNhYmxlZD17cGFnZS5sb2FkaW5nIHx8IHBhZ2UubG9hZGluZ01vcmV9CiAgICAgICAgICAgIGFyaWEtbGFiZWw9e2BSZWZyZXNoICR7dGl0bGUudG9Mb3dlckNhc2UoKX0gc3RyZWFtc2B9CiAgICAgICAgICAgIGNsYXNzTmFtZT0iaW5saW5lLWZsZXggaXRlbXMtY2VudGVyIGdhcC0xIHJvdW5kZWQgYm9yZGVyIGJvcmRlci1uZXV0cmFsLTgwMCBweC0yIHB5LTAuNSB0ZXh0LXhzIHRleHQtbmV1dHJhbC01MDAgaG92ZXI6Ym9yZGVyLW5ldXRyYWwtNjAwIGhvdmVyOnRleHQtbmV1dHJhbC0zMDAgZm9jdXMtdmlzaWJsZTpvdXRsaW5lLW5vbmUgZm9jdXMtdmlzaWJsZTpyaW5nLTIgZm9jdXMtdmlzaWJsZTpyaW5nLW5ldXRyYWwtNDAwIGZvY3VzLXZpc2libGU6cmluZy1vZmZzZXQtMSBkaXNhYmxlZDpvcGFjaXR5LTQwIgogICAgICAgICAgPgogICAgICAgICAgICB7LyogcmVmcmVzaCAvIHJvdGF0ZSBpY29uICovfQogICAgICAgICAgICA8c3ZnCiAgICAgICAgICAgICAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogICAgICAgICAgICAgIHZpZXdCb3g9IjAgMCAxNiAxNiIKICAgICAgICAgICAgICBmaWxsPSJjdXJyZW50Q29sb3IiCiAgICAgICAgICAgICAgYXJpYS1oaWRkZW49InRydWUiCiAgICAgICAgICAgICAgY2xhc3NOYW1lPXtgcy0zIHctMyAke3BhZ2UubG9hZGluZyA/ICJhbmltYXRlLXNwaW4iIDogIiJ9YH0KICAgICAgICAgICAgPgogICAgICAgICAgICAgIDxwYXRoCiAgICAgICAgICAgICAgICBmaWxsUnVsZT0iZXZlbm9kZCIKICAgICAgICAgICAgICAgIGQ9Ik0xMy44MzYgMi40NzdhLjc1Ljc1IDAgMCAxIC43NS43NXYzLjE4MmEuNzUuNzUgMCAwIDEtLjc1Ljc1aC0zLjE4MmEuNzUuNzUgMCAwIDEgMC0xLjVoMS4zN2wtLjg0LS44NDFhNC41IDQuNSAwIDAgMC03LjA4IDEuMDEuNzUuNzUgMCAwIDEtMS4zLS43NSA2IDYgMCAwIDEgOS40NC0xLjM0OGwuODQyLjg0MVYzLjIyN2EuNzUuNzUgMCAwIDEgLjc1LS43NVptLS45MTEgNy41QS43NS43NSAwIDAgMSAxMy4xOTkgMTFhNiA2IDAgMCAxLTkuNDQgMS4zNDhsLS44NDItLjg0MXYxLjU2NGEuNzUuNzUgMCAwIDEtMS41IDBWOS44OWEuNzUuNzUgMCAwIDEgLjc1LS43NUg1LjM1YS43NS43NSAwIDAgMSAwIDEuNUgzLjk4bC44NC44NDFhNC41IDQuNSAwIDAgMCA3LjA4LTEuMDEuNzUuNzUgMCAwIDEgMS4wMjUtLjI3NFoiCiAgICAgICAgICAgICAgICBjbGlwUnVsZT0iZXZlbm9kZCIKICAgICAgICAgICAgICAvPgogICAgICAgICAgICA8L3N2Zz4KICAgICAgICAgICAgUmVmcmVzaAogICAgICAgICAgPC9idXR0b24+CiAgICAgICAgPC9kaXY+CiAgICAgIDwvZGl2PgoKICAgICAge3BhZ2UuZXJyb3IgJiYgKAogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJtYi0zIGZsZXggaXRlbXMtY2VudGVyIGdhcC0zIj4KICAgICAgICAgIDxwIGNsYXNzTmFtZT0idGV4dC1zbSB0ZXh0LXJlZC00MDAiPntwYWdlLmVycm9yfTwvcD4KICAgICAgICAgIDxidXR0b24KICAgICAgICAgICAgb25DbGljaz17cGFnZS5yZWZyZXNofQogICAgICAgICAgICBkaXNhYmxlZD17cGFnZS5sb2FkaW5nfQogICAgICAgICAgICBjbGFzc05hbWU9InJvdW5kZWQgYm9yZGVyIGJvcmRlci1uZXV0cmFsLTcwMCBweC0yIHB5LTAuNSB0ZXh0LXhzIHRleHQtbmV1dHJhbC00MDAgaG92ZXI6Ym9yZGVyLW5ldXRyYWwtNTAwIGhvdmVyOnRleHQtbmV1dHJhbC0yMDAgZm9jdXMtdmlzaWJsZTpvdXRsaW5lLW5vbmUgZm9jdXMtdmlzaWJsZTpyaW5nLTIgZm9jdXMtdmlzaWJsZTpyaW5nLW5ldXRyYWwtNDAwIGZvY3VzLXZpc2libGU6cmluZy1vZmZzZXQtMSBkaXNhYmxlZDpvcGFjaXR5LTQwIgogICAgICAgICAgPgogICAgICAgICAgICBSZXRyeQogICAgICAgICAgPC9idXR0b24+CiAgICAgICAgPC9kaXY+CiAgICAgICl9CgogICAgICB7cGFnZS5sb2FkaW5nID8gKAogICAgICAgIDxMb2FkaW5nU3RhdGUgdmFyaWFudD0ic3RyZWFtLWxpc3QiIGxhYmVsPXtgTG9hZGluZyAke3RpdGxlLnRvTG93ZXJDYXNlKCl9IHN0cmVhbXNgfSAvPgogICAgICApIDogKAogICAgICAgIDxTdHJlYW1MaXN0IHN0cmVhbXM9e3Zpc2libGV9IGVtcHR5TWVzc2FnZT17ZW1wdHlUZXh0fSBzaG93Q3JlYXRlTGluaz17c2hvd0NyZWF0ZX0gLz4KICAgICAgKX0KCiAgICAgIHtwYWdlLmhhc01vcmUgJiYgKAogICAgICAgIDxidXR0b24KICAgICAgICAgIG9uQ2xpY2s9e3BhZ2UubG9hZE1vcmV9CiAgICAgICAgICBkaXNhYmxlZD17cGFnZS5sb2FkaW5nTW9yZX0KICAgICAgICAgIGNsYXNzTmFtZT0ibXQtNCByb3VuZGVkLWZ1bGwgYm9yZGVyIGJvcmRlci1uZXV0cmFsLTgwMCBweC00IHB5LTEuNSB0ZXh0LXhzIHRleHQtbmV1dHJhbC0zMDAgaG92ZXI6Ym9yZGVyLW5ldXRyYWwtNjAwIGZvY3VzLXZpc2libGU6b3V0bGluZS1ub25lIGZvY3VzLXZpc2libGU6cmluZy0yIGZvY3VzLXZpc2libGU6cmluZy1uZXV0cmFsLTQwMCBmb2N1cy12aXNpYmxlOnJpbmctb2Zmc2V0LTIgZGlzYWJsZWQ6b3BhY2l0eS01MCIKICAgICAgICA+CiAgICAgICAgICB7cGFnZS5sb2FkaW5nTW9yZQogICAgICAgICAgICA/ICJMb2FkaW5nIG1vcmXigKYiCiAgICAgICAgICAgIDogYExvYWQgbW9yZSAoJHtwYWdlLnRvdGFsIC0gcGFnZS5zdHJlYW1zLmxlbmd0aH0gcmVtYWluaW5nKWB9CiAgICAgICAgPC9idXR0b24+CiAgICAgICl9CiAgICA8L3NlY3Rpb24+CiAgKTsKfQoKLy8gdXNlU2VhcmNoUGFyYW1zIG5lZWRzIGEgU3VzcGVuc2UgYm91bmRhcnkgc28gdGhlIGRhc2hib2FyZCBjYW4gcHJlcmVuZGVyOwovLyB3aXRob3V0IG9uZSB0aGUgc3RhdGljIGV4cG9ydCBiYWlscyBhbmQgdGhlIGJ1aWxkIGZhaWxzLgpleHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBIb21lKCk6IEpTWC5FbGVtZW50IHsKICByZXR1cm4gKAogICAgPFN1c3BlbnNlCiAgICAgIGZhbGxiYWNrPXsKICAgICAgICA8bWFpbiBpZD0ibWFpbi1jb250ZW50IiBjbGFzc05hbWU9Im14LWF1dG8gbWF4LXctNHhsIHB4LTYgcHktMTAiPgogICAgICAgICAgPExvYWRpbmdTdGF0ZSB2YXJpYW50PSJzdHJlYW0tbGlzdCIgLz4KICAgICAgICA8L21haW4+CiAgICAgIH0KICAgID4KICAgICAgPERhc2hib2FyZCAvPgogICAgPC9TdXNwZW5zZT4KICApOwp9CgpmdW5jdGlvbiBEYXNoYm9hcmQoKSB7CiAgY29uc3Qgd2FsbGV0ID0gdXNlV2FsbGV0KCk7CiAgY29uc3Qgcm91dGVyID0gdXNlUm91dGVyKCk7CiAgY29uc3Qgc2VhcmNoUGFyYW1zID0gdXNlU2VhcmNoUGFyYW1zKCk7CgogIC8vIFJlYWQgdGhlIGZpbHRlciBmcm9tIHRoZSBVUkw7IGZhbGwgYmFjayB0byAiYWxsIiBpZiBhYnNlbnQgb3IgdW5yZWNvZ25pc2VkLgogIGNvbnN0IGZpbHRlciA9IHJlc29sdmVGaWx0ZXIoc2VhcmNoUGFyYW1zLmdldCgiZmlsdGVyIikpOwoKICBjb25zdCBzZXRGaWx0ZXIgPSB1c2VDYWxsYmFjaygKICAgICh2YWx1ZTogU3RyZWFtU3RhdHVzIHwgImFsbCIpID0+IHsKICAgICAgY29uc3QgcGFyYW1zID0gbmV3IFVSTFNlYXJjaFBhcmFtcyhzZWFyY2hQYXJhbXMudG9TdHJpbmcoKSk7CiAgICAgIGlmICh2YWx1ZSA9PT0gImFsbCIpIHsKICAgICAgICBwYXJhbXMuZGVsZXRlKCJmaWx0ZXIiKTsKICAgICAgfSBlbHNlIHsKICAgICAgICBwYXJhbXMuc2V0KCJmaWx0ZXIiLCB2YWx1ZSk7CiAgICAgIH0KICAgICAgcm91dGVyLnJlcGxhY2UoYD8ke3BhcmFtcy50b1N0cmluZygpfWAsIHsgc2Nyb2xsOiBmYWxzZSB9KTsKICAgIH0sCiAgICBbcm91dGVyLCBzZWFyY2hQYXJhbXNdLAogICk7CgogIGNvbnN0IGluY29taW5nID0gdXNlU3RyZWFtUGFnZSgicmVjaXBpZW50Iiwgd2FsbGV0LmFkZHJlc3MsIGZpbHRlcik7CiAgY29uc3Qgb3V0Z29pbmcgPSB1c2VTdHJlYW1QYWdlKCJzZW5kZXIiLCB3YWxsZXQuYWRkcmVzcywgZmlsdGVyKTsKCiAgLy8gUGlja2VkIHVwIG9uY2UgcGVyIG1vdW50LCBlLmcuIGFmdGVyIGEgcmVkaXJlY3QgZnJvbSBhIHN1Y2Nlc3NmdWwgY3JlYXRlLgogIC8vIHRha2VQZW5kaW5nTm90aWNlIGNsZWFycyBpdCBmcm9tIHN0b3JhZ2UgaW1tZWRpYXRlbHksIHNvIGEgcmVmcmVzaCBuZXZlcgogIC8vIHJlcGVhdHMgaXQuIFRoZSBmdW5jdGlvbmFsIHVwZGF0ZSBrZWVwcyB0aGUgZmlyc3QgcmVhZDogU3RyaWN0TW9kZSAoZGV2KQogIC8vIHJ1bnMgdGhpcyBlZmZlY3QgdHdpY2UsIGFuZCBhIHBsYWluIHJlLXJlYWQgd291bGQgb3ZlcndyaXRlIHRoZSBub3RpY2UKICAvLyB3aXRoIG51bGwgb25jZSB0aGUgc3RvcmFnZSBlbnRyeSBpcyBnb25lLgogIGNvbnN0IFtub3RpY2UsIHNldE5vdGljZV0gPSB1c2VTdGF0ZTxQZW5kaW5nTm90aWNlIHwgbnVsbD4obnVsbCk7CiAgdXNlRWZmZWN0KCgpID0+IHsKICAgIHNldE5vdGljZSgocHJldmlvdXMpID0+IHByZXZpb3VzID8/IGRha2VQZW5kaW5nTm90aWNlKCkpOwogIH0sIFtdKTsKCiAgaWYgKCF3YWxsZXQuYWRkcmVzcykgewogICAgcmV0dXJuICgKICAgICAgPG1haW4gaWQ9Im1haW4tY29udGVudCIgY2xhc3NOYW1lPSJteC1hdXRvIG1heC13LTR4bCBweC02IHB5LTE2Ij4KICAgICAgICA8aDEgY2xhc3NOYW1lPSJ0ZXh0LTJ4bCBmb250LXNlbWlib2xkIj5Zb3VyIHN0cmVhbXM8L2gxPgogICAgICAgIDxwIGNsYXNzTmFtZT0ibXQtMiB0ZXh0LXNtIHRleHQtbmV1dHJhbC00MDAiPgogICAgICAgICAgQ29ubmVjdCB5b3VyIHdhbGxldCB0byB2aWV3IGluY29taW5nIGFuZCBvdXRnb2luZyBzdHJlYW1zLgogICAgICAgIDwvcD4KICAgICAgICA8cCBjbGFzc05hbWU9Im10LTEgdGV4dC1zbSB0ZXh0LW5ldXRyYWwtNTAwIj4KICAgICAgICAgIE9uY2UgY29ubmVjdGVkIHlvdSBjYW4gYWxzb3vigJYKICAgICAgICAgIDxhCiAgICAgICAgICAgIGhyZWY9Ii9jcmVhdGUiCiAgICAgICAgICAgIGNsYXNzTmFtZT0idGV4dC1uZXV0cmFsLTMwMCB1bmRlcmxpbmUgdW5kZXJsaW5lLW9mZnNldC0yIGhvdmVyOnRleHQtbmV1dHJhbC0xMDAgZm9jdXMtdmlzaWJsZTpvdXRsaW5lLW5vbmUgZm9jdXMtdmlzaWJsZTpyaW5nLTEgZm9jdXMtdmlzaWJsZTpyaW5nLW5ldXRyYWwtNDAwIgogICAgICAgICAgPgogICAgICAgICAgICBjcmVhdGUgYSBuZXcgc3RyZWFtCiAgICAgICAgICA8L2E+CiAgICAgICAgICAuCiAgICAgICAgPC9wPgogICAgICAgIDxCcm93c2VyU3VwcG9ydE5vdGUgY2xhc3NOYW1lPSJtdC04IiAvPgogICAgICA8L21haW4+CiAgICApOwogIH0KCiAgcmV0dXJuICgKICAgIDxtYWluIGlkPSJtYWluLWNvbnRlbnQiIGNsYXNzTmFtZT0ibXgtYXV0byBtYXgtdy00eGwgcHgtNiBweS0xMCI+CiAgICAgIDxoMSBjbGFzc05hbWU9InNyLW9ubHkiPllvdXIgc3RyZWFtczwvaDE+CiAgICAgIHtub3RpY2UgJiYgKAogICAgICAgIDxUcmFuc2FjdGlvbk5vdGljZQogICAgICAgICAgbWVzc2FnZT17bm90aWNlLm1lc3NhZ2V9CiAgICAgICAgICBoYXNoPXtub3RpY2UuaGFzaH0KICAgICAgICAgIG9uRGlzbWlzcz17KCkgPT4gc2V0Tm90aWNlKG51bGwpfQogICAgICAgIC8+CiAgICAgICl9CgogICAgICA8ZGl2CiAgICAgICAgcm9sZT0iZ3JvdXAiCiAgICAgICAgYXJpYS1sYWJlbD0iRmlsdGVyIHN0cmVhbXMgYnkgc3RhdHVzIgogICAgICAgIGNsYXNzTmFtZT0ibWItOCBmbGV4IGZsZXgtd3JhcCBpdGVtcy1jZW50ZXIgZ2FwLTIiCiAgICAgID4KICAgICAgICB7RklMVEVSUy5tYXAoKG9wdGlvbikgPT4gKAogICAgICAgICAgPGJ1dHRvbgogICAgICAgICAgICBrZXk9e29wdGlvbi52YWx1ZX0KICAgICAgICAgICAgb25DbGljaz17KCkgPT4gc2V0RmlsdGVyKG9wdGlvbi52YWx1ZSl9CiAgICAgICAgICAgIGFyaWEtcHJlc3NlZD17ZmlsdGVyID09PSBvcHRpb24udmFsdWV9CiAgICAgICAgICAgIGNsYXNzTmFtZT17YGlubGluZS1mbGV4IGl0ZW1zLWNlbnRlciBnYXAtMS41IHJvdW5kZWQtZnVsbCBib3JkZXIgcHgtMyBweS0xIHRleHQteHMgZm9jdXMtdmlzaWJsZTpvdXRsaW5lLW5vbmUgZm9jdXMtdmlzaWJsZTpyaW5nLTIgZm9jdXMtdmlzaWJsZTpyaW5nLW5ldXRyYWwtNDAwIGZvY3VzLXZpc2libGU6cmluZy1vZmZzZXQtMiAkewogICAgICAgICAgICAgIGZpbHRlciA9PT0gb3B0aW9uLnZhbHVlCiAgICAgICAgICAgICAgICA/ICJib3JkZXItbmV1dHJhbC00MDAgYmctbmV1dHJhbC04MDAgdGV4dC1uZXV0cmFsLTEwMCIKICAgICAgICAgICAgICAgIDogImJvcmRlci1uZXV0cmFsLTgwMCB0ZXh0LW5ldXRyYWwtNDAwIGhvdmVyOmJvcmRlci1uZXV0cmFsLTYwMCIKICAgICAgICAgICAgfWB9CiAgICAgICAgICA+CiAgICAgICAgICAgIHtvcHRpb24ubGFiZWx9CiAgICAgICAgICA8L2J1dHRvbj4KICAgICAgICApKX0KICAgICAgICB7ZmlsdGVyICE9PSAiYWxsIiAmJiAoCiAgICAgICAgICA8YnV0dG9uCiAgICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldEZpbHRlcigiYWxsIil9CiAgICAgICAgICAgIGFyaWEtbGFiZWw9IkNsZWFyIGZpbHRlciIKICAgICAgICAgICAgY2xhc3NOYW1lPSJpbmxpbmUtZmxleCBpdGVtcy1jZW50ZXIgZ2FwLTEgcm91bmRlZC1mdWxsIGJvcmRlciBib3JkZXItbmV1dHJhbC03MDAgcHgtMyBweS0xIHRleHQteHMgdGV4dC1uZXV0cmFsLTUwMCB0cmFuc2l0aW9uLWNvbG9ycyBob3Zlcjpib3JkZXItbmV1dHJhbC01MDAgaG92ZXI6dGV4dC1uZXV0cmFsLTMwMCBmb2N1cy12aXNpYmxlOm91dGxpbmUtbm9uZSBmb2N1cy12aXNpYmxlOnJpbmctMiBmb2N1cy12aXNpYmxlOnJpbmctbmV1dHJhbC00MDAgZm9jdXMtdmlzaWJsZTpyaW5nLW9mZnNldC0yIgogICAgICAgICAgPgogICAgICAgICAgICB7Lyogw5cgaWNvbiAqL30KICAgICAgICAgICAgPHN2ZwogICAgICAgICAgICAgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICAgICAgICAgICAgICB2aWV3Qm94PSIwIDAgMTYgMTYiCiAgICAgICAgICAgICAgZmlsbD0iY3VycmVudENvbG9yIgogICAgICAgICAgICAgIGFyaWEtaGlkZGVuPSJ0cnVlIgogICAgICAgICAgICAgIGNsYXNzTmFtZT0iaC0zIHctMyIKICAgICAgICAgICAgPgogICAgICAgICAgICAgIDxwYXRoIGQ9Ik01LjI4IDQuMjJhLjc1Ljc1IDAgMCAwLTEuMDYgMS4wNkw2Ljk0IDhsLTIuNzIgMi43MmEuNzUuNzUgMCAxIDAgMS4wNiAxLjA2TDggOS4wNmwyLjcyIDIuNzJhLjc1Ljc1IDAgMSAwIDEuMDYtMS4wNkw5LjA2IDhsMi43Mi0yLjcyYS43NS43NSAwIDAgMC0xLjA2LTEuMDZMOCA2Ljk0IDUuMjggNC4yMloiIC8+CiAgICAgICAgICAgIDwvc3ZnPgogICAgICAgICAgICBDbGVhcgogICAgICAgICAgPC9idXR0b24+CiAgICAgICAgKX0KICAgICAgPC9kaXY+CgogICAgICA8ZGl2IGNsYXNzTmFtZT0ibWItNiI+CiAgICAgICAgPFN0cmVhbVN0YXR1c0xlZ2VuZCAvPgogICAgICA8L2Rpdj4KCiAgICAgIDxTdHJlYW1TZWN0aW9uCiAgICAgICAgdGl0bGU9IkluY29taW5nIgogICAgICAgIHBhZ2U9e2luY29taW5nfQogICAgICAgIGZpbHRlcj17ZmlsdGVyfQogICAgICAgIGVtcHR5TWVzc2FnZT0iTm8gaW5jb21pbmcgc3RyZWFtcy4iCiAgICAgICAgY2xhc3NOYW1lPSJtYi0xMCIKICAgICAgLz4KCiAgICAgIDxTdHJlYW1TZWN0aW9uCiAgICAgICAgdGl0bGU9Ik91dGdvaW5nIgogICAgICAgIHBhZ2U9e291dGdvaW5nfQogICAgICAgIGZpbHRlcj17ZmlsdGVyfQogICAgICAgIGVtcHR5TWVzc2FnZT0iTm8gb3V0Z29pbmcgc3RyZWFtcy4iCiAgICAgICAgc2hvd0NyZWF0ZUxpbmsKICAgICAgLz4KICAgIDwvbWFpbj4KICApOwp9Cg==
+"use client";
+
+import { useRouter, useSearchParams } from "next/navigation";
+import { type JSX, Suspense, useCallback, useEffect, useState } from "react";
+
+import { BrowserSupportNote } from "@/components/browser-support-note";
+import { LoadingState } from "@/components/loading-state";
+import { StreamList } from "@/components/stream-list";
+import { StreamStatusLegend } from "@/components/stream-status-legend";
+import { TransactionNotice } from "@/components/transaction-notice";
+import { useWallet } from "@/components/wallet-provider";
+import { useNow } from "@/hooks/use-now";
+import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
+import { takePendingNotice } from "@/lib/pending-notice";
+import type { PendingNotice } from "@/types/notice";
+import type { StreamStatus } from "@/types/stream";
+
+const FILTERS: Array<{ label: string; value: StreamStatus | "all" }> = [
+  { label: "All", value: "all" },
+  { label: "Streaming", value: "streaming" },
+  { label: "Pending", value: "pending" },
+  { label: "Completed", value: "completed" },
+  { label: "Cancelled", value: "cancelled" },
+];
+
+export function resolveFilter(rawParam: string | null): StreamStatus | "all" {
+  const validValues = FILTERS.map((f) => f.value);
+  return rawParam && (validValues as string[]).includes(rawParam)
+    ? (rawParam as StreamStatus | "all")
+    : "all";
+}
+
+function StreamSection({
+  title,
+  page,
+  filter,
+  emptyMessage,
+  showCreateLink = false,
+  className,
+}: {
+  title: string;
+  page: StreamPage;
+  filter: StreamStatus | "all";
+  emptyMessage: string;
+  showCreateLink?: boolean;
+  className?: string;
+}) {
+  const visible = page.streams;
+  // Re-render on an interval so a pending stream's "starts in …" countdown
+  // in the lists keeps advancing while the absolute schedule stays on the
+  // detail page. Card/table rows themselves stay pure.
+  useNow();
+  const emptyText =
+    filter === "all" || page.streams.length === 0
+      ? (filter === "all" ? emptyMessage : `No ${filter} streams found.`)
+      : emptyMessage;
+
+  const showCreate = showCreateLink && page.streams.length === 0;
+
+  return (
+    <section className={className}>
+      <div className="mb-3 flex items-baseline justify-between gap-4">
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <div className="flex items-center gap-3">
+          {page.total > 0 && (
+            <p className="text-xs tabular-nums text-neutral-500">
+              {page.streams.length} of {page.total}
+            </p>
+          )}
+          <button
+            onClick={page.refresh}
+            disabled={page.loading || page.loadingMore}
+            aria-label={`Refresh ${title.toLowerCase()} streams`}
+            className="inline-flex items-center gap-1 rounded border border-neutral-800 px-2 py-0.5 text-xs text-neutral-500 hover:border-neutral-600 hover:text-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-1 disabled:opacity-40"
+          >
+            {/* refresh / rotate icon */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              aria-hidden="true"
+              className={`h-3 w-3 ${page.loading ? "animate-spin" : ""}`}
+            >
+              <path
+                fillRule="evenodd"
+                d="M13.836 2.477a.75.75 0 0 1 .75.75v3.182a.75.75 0 0 1-.75.75h-3.182a.75.75 0 0 1 0-1.5h1.37l-.84-.841a4.5 4.5 0 0 0-7.08 1.01.75.75 0 0 1-1.3-.75 6 6 0 0 1 9.44-1.348l.842.841V3.227a.75.75 0 0 1 .75-.75Zm-.911 7.5A.75.75 0 0 1 13.199 11a6 6 0 0 1-9.44 1.348l-.842-.841v1.564a.75.75 0 0 1-1.5 0V9.89a.75.75 0 0 1 .75-.75H5.35a.75.75 0 0 1 0 1.5H3.98l.84.841a4.5 4.5 0 0 0 7.08-1.01.75.75 0 0 1 1.025-.274Z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {page.error && (
+        <div className="mb-3 flex items-center gap-3">
+          <p className="text-sm text-red-400">{page.error}</p>
+          <button
+            onClick={page.refresh}
+            disabled={page.loading}
+            className="rounded border border-neutral-700 px-2 py-0.5 text-xs text-neutral-400 hover:border-neutral-500 hover:text-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-1 disabled:opacity-40"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {page.loading ? (
+        <LoadingState variant="stream-list" label={`Loading ${title.toLowerCase()} streams`} />
+      ) : (
+        <StreamList streams={visible} emptyMessage={emptyText} showCreateLink={showCreate} />
+      )}
+
+      {page.hasMore && (
+        <button
+          onClick={page.loadMore}
+          disabled={page.loadingMore}
+          className="mt-4 rounded-full border border-neutral-800 px-4 py-1.5 text-xs text-neutral-300 hover:border-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 disabled:opacity-50"
+        >
+          {page.loadingMore
+            ? "Loading more…"
+            : `Load more (${page.total - page.streams.length} remaining)`}
+        </button>
+      )}
+    </section>
+  );
+}
+
+// useSearchParams needs a Suspense boundary so the dashboard can prerender;
+// without one the static export bails and the build fails.
+export default function Home(): JSX.Element {
+  return (
+    <Suspense
+      fallback={
+        <main id="main-content" className="mx-auto max-w-4xl px-6 py-10">
+          <LoadingState variant="stream-list" />
+        </main>
+      }
+    >
+      <Dashboard />
+    </Suspense>
+  );
+}
+
+function Dashboard() {
+  const wallet = useWallet();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Read the filter from the URL; fall back to "all" if absent or unrecognised.
+  const rawParam = searchParams.get("filter");
+  const filter: StreamStatus | "all" = resolveFilter(rawParam);
+
+  const setFilter = useCallback(
+    (value: StreamStatus | "all") => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value === "all") {
+        params.delete("filter");
+      } else {
+        params.set("filter", value);
+      }
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  const incoming = useStreamPage("recipient", wallet.address, filter);
+  const outgoing = useStreamPage("sender", wallet.address, filter);
+
+  // Picked up once per mount, e.g. after a redirect from a successful create.
+  // takePendingNotice clears it from storage immediately, so a refresh never
+  // repeats it. The functional update keeps the first read: StrictMode (dev)
+  // runs this effect twice, and a plain re-read would overwrite the notice
+  // with null once the storage entry is gone.
+  const [notice, setNotice] = useState<PendingNotice | null>(null);
+  useEffect(() => {
+    setNotice((previous) => previous ?? takePendingNotice());
+  }, []);
+
+  if (!wallet.address) {
+    return (
+      <main id="main-content" className="mx-auto max-w-4xl px-6 py-16">
+        <h1 className="text-2xl font-semibold">Your streams</h1>
+        <p className="mt-2 text-sm text-neutral-400">
+          Connect your wallet to view incoming and outgoing streams.
+        </p>
+        <p className="mt-1 text-sm text-neutral-500">
+          Once connected you can also{" "}
+          <a
+            href="/create"
+            className="text-neutral-300 underline underline-offset-2 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400"
+          >
+            create a new stream
+          </a>
+          .
+        </p>
+        <BrowserSupportNote className="mt-8" />
+      </main>
+    );
+  }
+
+  return (
+    <main id="main-content" className="mx-auto max-w-4xl px-6 py-10">
+      <h1 className="sr-only">Your streams</h1>
+      {notice && (
+        <TransactionNotice
+          message={notice.message}
+          hash={notice.hash}
+          onDismiss={() => setNotice(null)}
+        />
+      )}
+
+      <div
+        role="group"
+        aria-label="Filter streams by status"
+        className="mb-8 flex flex-wrap items-center gap-2"
+      >
+        {FILTERS.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => setFilter(option.value)}
+            aria-pressed={filter === option.value}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 ${
+              filter === option.value
+                ? "border-neutral-400 bg-neutral-800 text-neutral-100"
+                : "border-neutral-800 text-neutral-400 hover:border-neutral-600"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+        {filter !== "all" && (
+          <button
+            onClick={() => setFilter("all")}
+            aria-label="Clear filter"
+            className="inline-flex items-center gap-1 rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2"
+          >
+            {/* × icon */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              aria-hidden="true"
+              className="h-3 w-3"
+            >
+              <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+            </svg>
+            Clear
+          </button>
+        )}
+      </div>
+
+      <div className="mb-6">
+        <StreamStatusLegend />
+      </div>
+
+      <StreamSection
+        title="Incoming"
+        page={incoming}
+        filter={filter}
+        emptyMessage="No incoming streams."
+        className="mb-10"
+      />
+
+      <StreamSection
+        title="Outgoing"
+        page={outgoing}
+        filter={filter}
+        emptyMessage="No outgoing streams."
+        showCreateLink
+      />
+    </main>
+  );
+}
