@@ -6,9 +6,13 @@ import { useStreamPage } from "@/hooks/use-stream-page";
 
 import Home from "./page";
 
+const searchParamsRef = {
+  current: new URLSearchParams(),
+};
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
-  useSearchParams: vi.fn(() => new URLSearchParams()),
+  useSearchParams: () => searchParamsRef.current,
 }));
 
 vi.mock("@/components/wallet-provider", () => ({
@@ -90,6 +94,7 @@ function mockConnectedWithData() {
 describe("Dashboard Page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    searchParamsRef.current = new URLSearchParams();
   });
 
   it("renders the connect prompt when no wallet is connected", () => {
@@ -117,27 +122,25 @@ describe("Dashboard Page", () => {
     expect(htmlString).not.toContain("Loading outgoing streams");
   });
 
-  it("applies a persisted filter on mount", async () => {
+  it("applies a persisted filter on mount", () => {
     mockConnectedWithData();
-    const { useSearchParams } = await import("next/navigation");
-    vi.mocked(useSearchParams).mockReturnValue(
-      new URLSearchParams("status=streaming"),
-    );
+    searchParamsRef.current = new URLSearchParams("?filter=outgoing");
 
     const el = Home();
     const htmlString = renderToStaticMarkup(el);
 
-    expect(htmlString).toContain("streaming");
+    expect(htmlString).toContain("Outgoing");
+    expect(htmlString).not.toContain("Incoming");
   });
 
-  it("falls back to the default filter when no value is persisted", async () => {
+  it("falls back to the default filter when no value is persisted", () => {
     mockConnectedWithData();
-    const { useSearchParams } = await import("next/navigation");
-    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams());
+    searchParamsRef.current = new URLSearchParams();
 
     const el = Home();
     const htmlString = renderToStaticMarkup(el);
 
-    expect(htmlString).toContain("All");
+    expect(htmlString).toContain("Incoming");
+    expect(htmlString).toContain("Outgoing");
   });
 });
