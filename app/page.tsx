@@ -12,6 +12,7 @@ import { useWallet } from "@/components/wallet-provider";
 import { useNow } from "@/hooks/use-now";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { takePendingNotice } from "@/lib/pending-notice";
+import { formatStreamsTotal } from "@/lib/stream-total";
 import {
   clearReturningFromStream,
   getSavedDashboardScroll,
@@ -79,7 +80,17 @@ function StreamSection({
   return (
     <section className={className}>
       <div className="mb-3 flex items-baseline justify-between gap-4">
-        <h2 className="text-lg font-semibold">{title}</h2>
+        <div className="flex items-baseline gap-3">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          {visible.length > 0 && (
+            <p className="text-xs text-neutral-400">
+              Total:{" "}
+              <span className="tabular-nums font-medium text-neutral-200">
+                {formatStreamsTotal(visible)}
+              </span>
+            </p>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           {page.total > 0 && (
             <p className="text-xs tabular-nums text-neutral-500">
@@ -401,6 +412,36 @@ function Dashboard() {
 
       <div className="mb-6">
         <StreamStatusLegend />
+      </div>
+
+      <div
+        aria-label="Streams total summary"
+        className="mb-8 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4"
+      >
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">
+              Total across visible streams
+            </p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-neutral-100">
+              {formatStreamsTotal([...incoming.streams, ...outgoing.streams])}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-6 text-xs text-neutral-400">
+            <div>
+              <span className="text-neutral-500">Incoming total: </span>
+              <span className="tabular-nums font-medium text-neutral-200">
+                {formatStreamsTotal(incoming.streams)}
+              </span>
+            </div>
+            <div>
+              <span className="text-neutral-500">Outgoing total: </span>
+              <span className="tabular-nums font-medium text-neutral-200">
+                {formatStreamsTotal(outgoing.streams)}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <StreamSection

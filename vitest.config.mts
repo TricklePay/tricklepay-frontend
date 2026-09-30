@@ -27,6 +27,7 @@ export default defineConfig({
       "app/**/*.test.tsx",
     ],
     environment: "node",
+    setupFiles: ["./vitest.setup.ts"],
     env: {
       NEXT_PUBLIC_CONTRACT_ID: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
     },

@@ -1,227 +1,130 @@
-"use client";
+/* @vitest-environment jsdom */
 
-import { useEffect, useState } from "react";
+import { act, renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
-import { useAccrual } from "@/hooks/use-accrual";
-import { parseHumanAmount, withdrawalAmountError } from "@/lib/amount";
-import { cancel, withdraw, withdrawAmount, confirmTransaction, TransactionTimeoutError } from "@/lib/contract";
-import {
-  TX_CONFIRMATION_TIMED_OUT_AGAIN_MESSAGE,
-  TX_CONFIRMATION_TIMED_OUT_SUBMITTED_MESSAGE,
-  TX_FAILED_CANCEL_MESSAGE,
-  TX_FAILED_CONFIRM_MESSAGE,
-  TX_FAILED_WITHDRAW_MESSAGE,
-} from "@/lib/contract-messages";
-import { formatAmount } from "@/lib/format";
-import type { TxStage } from "@/types/contract";
+import { useStreamActions } from "@/hooks/use-stream-actions";
 import type { StreamView } from "@/types/stream";
 
-// Parses a human decimal amount (e.g. "12.5") into 7-decimal base units.
-// Returns null on invalid input; used only for the default-balance sync, where
-// user-facing errors come from lib/amount's validators instead.
-function parseAmount(human: string): bigint | null {
-  try {
-    return parseHumanAmount(human);
-  } catch {
-    return null;
-  }
-}
+vi.mock("@/hooks/use-accrual", () => ({
+  useAccrual: vi.fn((stream: StreamView) => ({
+    withdrawable: BigInt(stream.withdrawable),
+    progress: 0.5,
+  })),
+}));
 
-/** Everything StreamActions needs from useStreamActions. */
-export interface StreamActionsState {
-  withdrawable: bigint;
-  nothingToWithdraw: boolean;
-  busy: "withdraw" | "cancel" | null;
-  stage: TxStage | null;
-  timeoutHash: string | null;
-  error: string | null;
-  lastTxHash: string | null;
-  amountInput: string;
-  amountError: string | null;
-  confirmingCancel: boolean;
-  changeAmount: (value: string) => void;
-  blurAmount: () => void;
-  setMaxAmount: () => void;
-  runWithdraw: () => Promise<void>;
-  runCancel: () => Promise<void>;
-  recoverTimeout: () => Promise<void>;
-  openCancelConfirm: () => void;
-  closeCancelConfirm: () => void;
-}
-
-/**
- * Owns StreamActions' data handling: the live withdrawable balance, the
- * withdrawal amount field and its validation, the cancel confirmation step,
- * and the withdraw / cancel / timeout-recovery transactions.
- */
-export function useStreamActions(
-  stream: StreamView,
-  walletAddress: string | null,
-  onComplete: () => void,
-): StreamActionsState {
-  const [busy, setBusy] = useState<"withdraw" | "cancel" | null>(null);
-  const [stage, setStage] = useState<TxStage | null>(null);
-  const [timeoutHash, setTimeoutHash] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [amountInput, setAmountInput] = useState("");
-  const [amountError, setAmountError] = useState<string | null>(null);
-  const [confirmingCancel, setConfirmingCancel] = useState(false);
-  const [lastTxHash, setLastTxHash] = useState<string | null>(null);
-  const accrual = useAccrual(stream);
-
-  // Keep the amount input in sync with the live withdrawable balance so the
-  // default is always "withdraw everything available" without the user having
-  // to type anything. Only reset when the field is still showing the previous
-  // default (i.e. has not been manually edited to something else).
-  useEffect(() => {
-    const currentDefault = formatAmount(accrual.withdrawable.toString());
-    setAmountInput((prev) => {
-      // If the field is empty or already shows a stale default, update it.
-      // If the user has typed a custom value, leave it alone.
-      const prevParsed = parseAmount(prev);
-      const prevWasDefault =
-        prev === "" ||
-        (prevParsed !== null &&
-          prevParsed === parseAmount(formatAmount(accrual.withdrawable.toString())));
-      return prevWasDefault ? currentDefault : prev;
-    });
-  }, [accrual.withdrawable]);
-
-  // Status alone is not enough: between start and cliff a stream is already
-  // "streaming" while nothing has vested, and the contract rejects that
-  // withdrawal with NothingToWithdraw. Gate on the amount itself so the button
-  // never sends a transaction that is certain to revert.
-  const nothingToWithdraw = accrual.withdrawable === 0n;
-
-  function validateAmount(): bigint | null {
-    const message = withdrawalAmountError(amountInput, accrual.withdrawable);
-    if (message !== null) {
-      setAmountError(message);
-      return null;
+vi.mock("@/lib/contract", () => ({
+  cancel: vi.fn(),
+  withdraw: vi.fn(),
+  withdrawAmount: vi.fn(),
+  confirmTransaction: vi.fn(),
+  TransactionTimeoutError: class TransactionTimeoutError extends Error {
+    constructor(public txHash: string, message = "Timeout") {
+      super(message);
+      this.name = "TransactionTimeoutError";
     }
-    setAmountError(null);
-    return parseAmount(amountInput);
-  }
+  },
+}));
 
-  // Live inline validation as the user types. Transient states — empty field
-  // and a trailing decimal point mid-entry — stay error-free so typing is not
-  // nagged; the submit path revalidates the final value either way.
-  function changeAmount(value: string) {
-    setAmountInput(value);
-    setAmountError(
-      !value.trim() || value.trim().endsWith(".")
-        ? null
-        : withdrawalAmountError(value, accrual.withdrawable),
+const SENDER = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
+const RECIPIENT = "GBBZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
+
+const STREAM_WITH_FUNDS: StreamView = {
+  id: "1",
+  sender: SENDER,
+  recipient: RECIPIENT,
+  token: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
+  totalAmount: "1000000000",
+  withdrawn: "0",
+  vested: "500000000",
+  withdrawable: "500000000",
+  locked: "500000000",
+  startTime: "1000",
+  endTime: "2000",
+  cliffTime: "1000",
+  cancelled: false,
+  status: "streaming",
+  progress: 0.5,
+};
+
+const STREAM_ZERO_FUNDS: StreamView = {
+  ...STREAM_WITH_FUNDS,
+  id: "2",
+  vested: "0",
+  withdrawable: "0",
+  progress: 0,
+};
+
+describe("useStreamActions state and input handling", () => {
+  it("initializes with default withdrawable amount and correct nothingToWithdraw flag", () => {
+    const { result: withFunds } = renderHook(() =>
+      useStreamActions(STREAM_WITH_FUNDS, RECIPIENT, vi.fn()),
     );
-  }
+    expect(withFunds.current.nothingToWithdraw).toBe(false);
+    expect(withFunds.current.withdrawable).toBe(500000000n);
+    expect(withFunds.current.amountInput).toBe("50");
+    expect(withFunds.current.amountError).toBeNull();
+    expect(withFunds.current.busy).toBeNull();
+    expect(withFunds.current.confirmingCancel).toBe(false);
 
-  function blurAmount() {
-    if (amountInput.trim()) setAmountError(withdrawalAmountError(amountInput, accrual.withdrawable));
-  }
+    const { result: zeroFunds } = renderHook(() =>
+      useStreamActions(STREAM_ZERO_FUNDS, RECIPIENT, vi.fn()),
+    );
+    expect(zeroFunds.current.nothingToWithdraw).toBe(true);
+    expect(zeroFunds.current.withdrawable).toBe(0n);
+  });
 
-  function setMaxAmount() {
-    setAmountInput(formatAmount(accrual.withdrawable.toString()));
-    setAmountError(null);
-  }
+  it("updates amountInput and validates on changeAmount", () => {
+    const { result } = renderHook(() =>
+      useStreamActions(STREAM_WITH_FUNDS, RECIPIENT, vi.fn()),
+    );
 
-  async function runWithdraw() {
-    if (busy !== null || !walletAddress) return;
-    const amount = validateAmount();
-    if (amount === null) return;
+    act(() => {
+      result.current.changeAmount("10");
+    });
+    expect(result.current.amountInput).toBe("10");
+    expect(result.current.amountError).toBeNull();
 
-    setBusy("withdraw");
-    setStage("preparing");
-    setError(null);
-    setLastTxHash(null);
-    try {
-      const streamId = BigInt(stream.id);
-      // Use the full-balance shortcut when the user hasn't changed the amount,
-      // avoiding an unnecessary i128 argument on the common path.
-      const hash =
-        amount === accrual.withdrawable
-          ? await withdraw(walletAddress, streamId, (s) => setStage(s))
-          : await withdrawAmount(walletAddress, streamId, amount, (s) => setStage(s));
-      setLastTxHash(hash);
-      setTimeoutHash(null);
-      onComplete();
-    } catch (err) {
-      if (err instanceof TransactionTimeoutError) {
-        setTimeoutHash(err.txHash);
-        setError(TX_CONFIRMATION_TIMED_OUT_SUBMITTED_MESSAGE);
-      } else {
-        setError(err instanceof Error ? err.message : TX_FAILED_WITHDRAW_MESSAGE);
-      }
-    } finally {
-      setBusy(null);
-      setStage(null);
-    }
-  }
+    // Exceeds available balance
+    act(() => {
+      result.current.changeAmount("100");
+    });
+    expect(result.current.amountInput).toBe("100");
+    expect(result.current.amountError).toBeTruthy();
+  });
 
-  async function runCancel() {
-    if (busy !== null || !walletAddress) return;
-    setBusy("cancel");
-    setStage("preparing");
-    setError(null);
-    setLastTxHash(null);
-    try {
-      const hash = await cancel(walletAddress, BigInt(stream.id), (s) => setStage(s));
-      setLastTxHash(hash);
-      setTimeoutHash(null);
-      onComplete();
-    } catch (err) {
-      if (err instanceof TransactionTimeoutError) {
-        setTimeoutHash(err.txHash);
-        setError(TX_CONFIRMATION_TIMED_OUT_SUBMITTED_MESSAGE);
-      } else {
-        setError(err instanceof Error ? err.message : TX_FAILED_CANCEL_MESSAGE);
-      }
-    } finally {
-      setBusy(null);
-      setStage(null);
-      setConfirmingCancel(false);
-    }
-  }
+  it("resets amount to maximum on setMaxAmount", () => {
+    const { result } = renderHook(() =>
+      useStreamActions(STREAM_WITH_FUNDS, RECIPIENT, vi.fn()),
+    );
 
-  async function recoverTimeout() {
-    if (!timeoutHash) return;
-    setBusy("withdraw");
-    setStage("confirming");
-    setError(null);
-    try {
-      await confirmTransaction(timeoutHash, (s) => setStage(s));
-      setLastTxHash(timeoutHash);
-      setTimeoutHash(null);
-      onComplete();
-    } catch (err) {
-      if (err instanceof TransactionTimeoutError) {
-        setError(TX_CONFIRMATION_TIMED_OUT_AGAIN_MESSAGE);
-      } else {
-        setError(err instanceof Error ? err.message : TX_FAILED_CONFIRM_MESSAGE);
-      }
-    } finally {
-      setBusy(null);
-      setStage(null);
-    }
-  }
+    act(() => {
+      result.current.changeAmount("5");
+    });
+    expect(result.current.amountInput).toBe("5");
 
-  return {
-    withdrawable: accrual.withdrawable,
-    nothingToWithdraw,
-    busy,
-    stage,
-    timeoutHash,
-    error,
-    lastTxHash,
-    amountInput,
-    amountError,
-    confirmingCancel,
-    changeAmount,
-    blurAmount,
-    setMaxAmount,
-    runWithdraw,
-    runCancel,
-    recoverTimeout,
-    openCancelConfirm: () => setConfirmingCancel(true),
-    closeCancelConfirm: () => setConfirmingCancel(false),
-  };
-}
+    act(() => {
+      result.current.setMaxAmount();
+    });
+    expect(result.current.amountInput).toBe("50");
+    expect(result.current.amountError).toBeNull();
+  });
+
+  it("toggles cancel confirmation modal state", () => {
+    const { result } = renderHook(() =>
+      useStreamActions(STREAM_WITH_FUNDS, SENDER, vi.fn()),
+    );
+
+    expect(result.current.confirmingCancel).toBe(false);
+
+    act(() => {
+      result.current.openCancelConfirm();
+    });
+    expect(result.current.confirmingCancel).toBe(true);
+
+    act(() => {
+      result.current.closeCancelConfirm();
+    });
+    expect(result.current.confirmingCancel).toBe(false);
+  });
+});
