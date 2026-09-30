@@ -8,6 +8,7 @@ import { LoadingState } from "@/components/loading-state";
 import { StreamDetail } from "@/components/stream-detail";
 import { useStreamTitle } from "@/hooks/use-stream-title";
 import { getStream, isAbortError } from "@/lib/api";
+import { clearReturningFromStream, setSessionItem } from "@/lib/scroll";
 import type { StreamView } from "@/types/stream";
 
 // How often an open stream refetches in the background. Shorter than the
@@ -120,7 +121,10 @@ export default function StreamDetailPage(): JSX.Element {
       <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => {
+            setSessionItem("tricklepay:from_stream_detail", "true");
+            router.back();
+          }}
           className="text-xs text-neutral-500 hover:text-neutral-300"
         >
           &larr; Back
@@ -143,7 +147,10 @@ export default function StreamDetailPage(): JSX.Element {
       <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => {
+            setSessionItem("tricklepay:from_stream_detail", "true");
+            router.back();
+          }}
           className="text-xs text-neutral-500 hover:text-neutral-300"
         >
           &larr; Back
@@ -156,6 +163,7 @@ export default function StreamDetailPage(): JSX.Element {
           </p>
           <Link
             href="/"
+            onClick={clearReturningFromStream}
             className="mt-6 inline-block rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900"
           >
             Go to your streams

@@ -4,6 +4,7 @@ import type { JSX } from "react";
 import { StreamStatusBadge } from "@/components/stream-status-badge";
 import { formatTokenAmount, truncateAddress } from "@/lib/format";
 import { formatRemaining } from "@/lib/schedule";
+import { markNavigatingToStream } from "@/lib/scroll";
 import type { StreamView } from "@/types/stream";
 
 export function StreamCard({ stream }: { stream: StreamView }): JSX.Element {
@@ -12,6 +13,11 @@ export function StreamCard({ stream }: { stream: StreamView }): JSX.Element {
   return (
     <Link
       href={`/streams/${stream.id}`}
+      onClick={() => {
+        if (typeof window !== "undefined") {
+          markNavigatingToStream(window.location.search);
+        }
+      }}
       className="block rounded-lg border border-neutral-800 bg-neutral-950 p-4 hover:border-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2"
     >
       <div className="mb-3 flex items-center justify-between">

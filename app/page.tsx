@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { type JSX, Suspense, useCallback, useEffect, useState } from "react";
+import { type JSX, Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 import { BrowserSupportNote } from "@/components/browser-support-note";
 import { LoadingState } from "@/components/loading-state";
@@ -12,8 +12,15 @@ import { useWallet } from "@/components/wallet-provider";
 import { useNow } from "@/hooks/use-now";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { takePendingNotice } from "@/lib/pending-notice";
+import {
+  clearReturningFromStream,
+  getSavedDashboardScroll,
+  isReturningFromStream,
+  markNavigatingToStream,
+  saveDashboardScroll,
+} from "@/lib/scroll";
 import type { PendingNotice } from "@/types/notice";
-import type { StreamStatus } from "@/types/stream";
+import type { StreamStatus, StreamView } from "@/types/stream";
 
 const FILTERS: Array<{ label: string; value: StreamStatus | "all" }> = [
   { label: "All", value: "all" },
@@ -23,10 +30,19 @@ const FILTERS: Array<{ label: string; value: StreamStatus | "all" }> = [
   { label: "Cancelled", value: "cancelled" },
 ];
 
+function hasWithdrawableBalance(stream: StreamView): boolean {
+  try {
+    return Boolean(stream.withdrawable && BigInt(stream.withdrawable) > 0n);
+  } catch {
+    return false;
+  }
+}
+
 function StreamSection({
   title,
   page,
   filter,
+  withdrawableOnly = false,
   emptyMessage,
   showCreateLink = false,
   className,
@@ -34,19 +50,29 @@ function StreamSection({
   title: string;
   page: StreamPage;
   filter: StreamStatus | "all";
+  withdrawableOnly?: boolean;
   emptyMessage: string;
   showCreateLink?: boolean;
   className?: string;
 }) {
-  const visible = page.streams;
+  const visible = withdrawableOnly
+    ? page.streams.filter(hasWithdrawableBalance)
+    : page.streams;
+
   // Re-render on an interval so a pending stream's "starts in …" countdown
   // in the lists keeps advancing while the absolute schedule stays on the
   // detail page. Card/table rows themselves stay pure.
   useNow();
-  const emptyText =
-    filter === "all" || page.streams.length === 0
-      ? (filter === "all" ? emptyMessage : `No ${filter} streams found.`)
-      : emptyMessage;
+
+  const emptyText = (() => {
+    if (visible.length > 0) return emptyMessage;
+    if (withdrawableOnly) {
+      return filter === "all"
+        ? "No streams ready to withdraw."
+        : `No ${filter} streams ready to withdraw.`;
+    }
+    return filter === "all" ? emptyMessage : `No ${filter} streams found.`;
+  })();
 
   const showCreate = showCreateLink && page.streams.length === 0;
 
@@ -57,7 +83,7 @@ function StreamSection({
         <div className="flex items-center gap-3">
           {page.total > 0 && (
             <p className="text-xs tabular-nums text-neutral-500">
-              {page.streams.length} of {page.total}
+              {visible.length} of {page.total}
             </p>
           )}
           <button
@@ -148,6 +174,9 @@ function Dashboard() {
       ? (rawParam as StreamStatus | "all")
       : "all";
 
+  const rawWithdrawable = searchParams.get("withdrawable");
+  const withdrawableOnly = rawWithdrawable === "true" || rawWithdrawable === "1";
+
   const setFilter = useCallback(
     (value: StreamStatus | "all") => {
       const params = new URLSearchParams(searchParams.toString());
@@ -156,10 +185,30 @@ function Dashboard() {
       } else {
         params.set("filter", value);
       }
-      router.replace(`?${params.toString()}`, { scroll: false });
+      const qs = params.toString();
+      router.replace(qs ? `?${qs}` : "/", { scroll: false });
     },
     [router, searchParams],
   );
+
+  const toggleWithdrawable = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (withdrawableOnly) {
+      params.delete("withdrawable");
+    } else {
+      params.set("withdrawable", "true");
+    }
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}` : "/", { scroll: false });
+  }, [router, searchParams, withdrawableOnly]);
+
+  const clearAllFilters = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("filter");
+    params.delete("withdrawable");
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}` : "/", { scroll: false });
+  }, [router, searchParams]);
 
   const incoming = useStreamPage("recipient", wallet.address, filter);
   const outgoing = useStreamPage("sender", wallet.address, filter);
@@ -172,6 +221,79 @@ function Dashboard() {
   const [notice, setNotice] = useState<PendingNotice | null>(null);
   useEffect(() => {
     setNotice((previous) => previous ?? takePendingNotice());
+  }, []);
+
+  // Track whether we arrived back from a stream detail page
+  const wasFromStreamRef = useRef(false);
+  const restoredRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    const fromStream = isReturningFromStream();
+    wasFromStreamRef.current = fromStream;
+    clearReturningFromStream();
+
+    if (!fromStream) {
+      // Fresh visit starts at the top
+      window.scrollTo(0, 0);
+      restoredRef.current = true;
+    }
+  }, []);
+
+  const isInitialLoading = !wallet.address ? false : (incoming.loading || outgoing.loading);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || restoredRef.current) return;
+
+    if (!isInitialLoading && wasFromStreamRef.current) {
+      const saved = getSavedDashboardScroll(window.location.search);
+      if (saved !== null && saved > 0) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            window.scrollTo({ top: saved, behavior: "instant" });
+          });
+        });
+      }
+      restoredRef.current = true;
+    }
+  }, [isInitialLoading]);
+
+  // Continuously record scroll position on the dashboard so navigations keep latest position
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          saveDashboardScroll(window.location.search);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      saveDashboardScroll(window.location.search);
+    };
+  }, [searchParams]);
+
+  // Save scroll position when any link to a stream is clicked
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest("a");
+      if (anchor) {
+        const href = anchor.getAttribute("href");
+        if (href && href.startsWith("/streams/")) {
+          markNavigatingToStream(window.location.search);
+        }
+      }
+    };
+    document.addEventListener("click", handleClick, { capture: true });
+    return () => document.removeEventListener("click", handleClick, { capture: true });
   }, []);
 
   if (!wallet.address) {
@@ -209,7 +331,7 @@ function Dashboard() {
 
       <div
         role="group"
-        aria-label="Filter streams by status"
+        aria-label="Filter streams"
         className="mb-8 flex flex-wrap items-center gap-2"
       >
         {FILTERS.map((option) => (
@@ -226,10 +348,40 @@ function Dashboard() {
             {option.label}
           </button>
         ))}
-        {filter !== "all" && (
+
+        <div className="mx-1 h-4 w-px bg-neutral-800" aria-hidden="true" />
+
+        <button
+          onClick={toggleWithdrawable}
+          aria-pressed={withdrawableOnly}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 ${
+            withdrawableOnly
+              ? "border-neutral-400 bg-neutral-800 text-neutral-100"
+              : "border-neutral-800 text-neutral-400 hover:border-neutral-600"
+          }`}
+        >
+          {withdrawableOnly && (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              aria-hidden="true"
+              className="h-3 w-3 text-emerald-400"
+            >
+              <path
+                fillRule="evenodd"
+                d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z"
+                clipRule="evenodd"
+              />
+            </svg>
+          )}
+          Ready to withdraw
+        </button>
+
+        {(filter !== "all" || withdrawableOnly) && (
           <button
-            onClick={() => setFilter("all")}
-            aria-label="Clear filter"
+            onClick={clearAllFilters}
+            aria-label="Clear filters"
             className="inline-flex items-center gap-1 rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-500 transition-colors hover:border-neutral-500 hover:text-neutral-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2"
           >
             {/* × icon */}
@@ -255,6 +407,7 @@ function Dashboard() {
         title="Incoming"
         page={incoming}
         filter={filter}
+        withdrawableOnly={withdrawableOnly}
         emptyMessage="No incoming streams."
         className="mb-10"
       />
@@ -263,6 +416,7 @@ function Dashboard() {
         title="Outgoing"
         page={outgoing}
         filter={filter}
+        withdrawableOnly={withdrawableOnly}
         emptyMessage="No outgoing streams."
         showCreateLink
       />
