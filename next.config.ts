@@ -83,4 +83,9 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const makeConfig = (phase: string): NextConfig => {
+  process.env.NEXT_PHASE = phase;
+  return nextConfig;
+};
+
+export default makeConfig;

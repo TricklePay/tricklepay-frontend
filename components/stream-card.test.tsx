@@ -1,4 +1,7 @@
-import { describe, it, expect } from "vitest";
+/* @vitest-environment jsdom */
+
+import { render } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import type { StreamView } from "@/types/stream";
 
@@ -24,22 +27,24 @@ describe("StreamCard", () => {
   };
 
   it("renders pending status correctly", () => {
-    const el = StreamCard({ stream: { ...baseStream, status: "pending" } });
-    expect(JSON.stringify(el)).toContain("pending");
+    const { container } = render(<StreamCard stream={{ ...baseStream, status: "pending" }} />);
+    expect(container.textContent?.toLowerCase()).toContain("pending");
   });
 
   it("renders streaming status correctly", () => {
-    const el = StreamCard({ stream: { ...baseStream, status: "streaming" } });
-    expect(JSON.stringify(el)).toContain("streaming");
+    const { container } = render(<StreamCard stream={{ ...baseStream, status: "streaming" }} />);
+    expect(container.textContent?.toLowerCase()).toContain("streaming");
   });
 
   it("renders completed status correctly", () => {
-    const el = StreamCard({ stream: { ...baseStream, status: "completed" } });
-    expect(JSON.stringify(el)).toContain("completed");
+    const { container } = render(<StreamCard stream={{ ...baseStream, status: "completed" }} />);
+    expect(container.textContent?.toLowerCase()).toContain("completed");
   });
 
   it("renders cancelled status correctly", () => {
-    const el = StreamCard({ stream: { ...baseStream, status: "cancelled", cancelled: true } });
-    expect(JSON.stringify(el)).toContain("cancelled");
+    const { container } = render(
+      <StreamCard stream={{ ...baseStream, status: "cancelled", cancelled: true }} />,
+    );
+    expect(container.textContent?.toLowerCase()).toContain("cancelled");
   });
 });

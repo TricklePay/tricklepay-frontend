@@ -22,6 +22,7 @@
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.0.0",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
@@ -31,5 +32,9 @@
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.3",
     "vitest": "^4.1.10"
+  },
+  "optionalDependencies": {
+    "@emnapi/core": "1.11.3",
+    "@emnapi/runtime": "1.11.3"
   }
 }

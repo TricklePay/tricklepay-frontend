@@ -7,7 +7,7 @@ import { Skeleton } from "./skeleton";
 describe("Skeleton Loading States", () => {
   it("renders the skeleton while loading", () => {
     const fallback = Skeleton({});
-    const tree = Suspense({ fallback, children: null }) as ReactElement<{
+    const tree = React.createElement(Suspense, { fallback }, null) as ReactElement<{
       fallback: typeof fallback;
       children: ReactNode;
     }>;
@@ -18,7 +18,7 @@ describe("Skeleton Loading States", () => {
   it("is replaced once data arrives", () => {
     const fallback = Skeleton({});
     const dataElement = React.createElement("div", { id: "data-loaded" });
-    const tree = Suspense({ fallback, children: dataElement }) as ReactElement<{
+    const tree = React.createElement(Suspense, { fallback }, dataElement) as ReactElement<{
       fallback: typeof fallback;
       children: typeof dataElement;
     }>;
