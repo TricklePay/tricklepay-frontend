@@ -98,7 +98,10 @@ export function StreamDetail({ stream, onComplete }: { stream: StreamView; onCom
       </div>
 
       <div className="mb-6 mt-3 flex items-center justify-between">
-        <h1 className="font-mono text-xl">Stream #{stream.id}</h1>
+        <h1 className="flex items-center gap-2 font-mono text-xl">
+          <span>Stream #{stream.id}</span>
+          <CopyButton value={stream.id} label="stream id" />
+        </h1>
         <StreamStatusBadge status={stream.status} variant="plain" />
       </div>
 

@@ -21,6 +21,16 @@ export interface ListStreamsParams {
   status?: StreamStatus | "all";
 }
 
+/** Shared contract for stream reads. Both the real backend client below and
+ * the mock client in `lib/mock-api.ts` satisfy this type, so a signature or
+ * shape change to one becomes a typecheck failure on the other. */
+export interface StreamApiClient {
+  listStreams(
+    params?: ListStreamsParams,
+    options?: RequestOptions,
+  ): Promise<StreamListResponse>;
+  getStream(id: string, options?: RequestOptions): Promise<StreamView | null>;
+}
 /** Per-request options shared by every call in this module. */
 export interface RequestOptions {
   /**
@@ -189,3 +199,7 @@ export async function getStream(
     return parseStreamView(await readJson(res, `stream ${id}`));
   });
 }
+
+// Real backend client, typed against the shared contract so a signature drift
+// against the mock in `lib/mock-api.ts` fails the typecheck.
+export const apiClient: StreamApiClient = { listStreams, getStream };
