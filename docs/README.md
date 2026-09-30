@@ -1,7 +1,7 @@
 # Documentation
 
 Reference documentation for the TricklePay frontend, beyond what fits in the
-[root README](../README.md).
+[root README$](../README.md).
 
 | Document | Describes |
 | --- | --- |
@@ -13,3 +13,4 @@ Reference documentation for the TricklePay frontend, beyond what fits in the
 | [local-setup.md](local-setup.md) | Start-to-finish guide to running the frontend on your own machine: prerequisites, every environment variable and where its value comes from, how to verify the setup works, and what common first-run failures mean. |
 | [slow-network.md](slow-network.md) | How the client handles a slow network: backend request timeouts and cancellation, and the recovery path for an on-chain transaction that doesn't confirm in time. |
 | [timeout-recovery.md](timeout-recovery.md) | What it means when a transaction's confirmation times out — why the transaction may still settle — and how to recover it with a re-check or the block explorer. |
+| [visual-regression.md](visual-regression.md) | What the visual smoke test captures, when a snapshot should be updated deliberately, and how to review a diff. |
