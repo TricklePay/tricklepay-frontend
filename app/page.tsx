@@ -9,6 +9,7 @@ import { StreamList } from "@/components/stream-list";
 import { StreamStatusLegend } from "@/components/stream-status-legend";
 import { TransactionNotice } from "@/components/transaction-notice";
 import { useWallet } from "@/components/wallet-provider";
+import { useMinimumLoadingDuration } from "@/hooks/use-minimum-loading-duration";
 import { useNow } from "@/hooks/use-now";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { takePendingNotice } from "@/lib/pending-notice";
@@ -64,6 +65,8 @@ function StreamSection({
   // in the lists keeps advancing while the absolute schedule stays on the
   // detail page. Card/table rows themselves stay pure.
   useNow();
+  const showLoading = useMinimumLoadingDuration(page.loading);
+  const showLoadingMore = useMinimumLoadingDuration(page.loadingMore);
 
   const emptyText = (() => {
     if (visible.length > 0) return emptyMessage;
@@ -109,7 +112,7 @@ function StreamSection({
               viewBox="0 0 16 16"
               fill="currentColor"
               aria-hidden="true"
-              className={`h-3 w-3 ${page.loading ? "animate-spin" : ""}`}
+              className={`h-3 w-3 ${showLoading ? "animate-spin" : ""}`}
             >
               <path
                 fillRule="evenodd"
@@ -135,7 +138,7 @@ function StreamSection({
         </div>
       )}
 
-      {page.loading ? (
+      {showLoading ? (
         <LoadingState variant="stream-list" label={`Loading ${title.toLowerCase()} streams`} />
       ) : (
         <StreamList streams={visible} emptyMessage={emptyText} showCreateLink={showCreate} />
@@ -144,10 +147,10 @@ function StreamSection({
       {page.hasMore && (
         <button
           onClick={page.loadMore}
-          disabled={page.loadingMore}
+          disabled={showLoadingMore}
           className="mt-4 rounded-full border border-neutral-800 px-4 py-1.5 text-xs text-neutral-300 hover:border-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 disabled:opacity-50"
         >
-          {page.loadingMore
+          {showLoadingMore
             ? "Loading more…"
             : `Load more (${page.total - page.streams.length} remaining)`}
         </button>
