@@ -12,7 +12,6 @@ import { useWallet } from "@/components/wallet-provider";
 import { useNow } from "@/hooks/use-now";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { takePendingNotice } from "@/lib/pending-notice";
-import { formatStreamsTotal } from "@/lib/stream-total";
 import {
   clearReturningFromStream,
   getSavedDashboardScroll,
