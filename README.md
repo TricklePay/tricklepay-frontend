@@ -217,6 +217,13 @@ Configuration comes from `NEXT_PUBLIC_*` variables; see `.env.example`, and
 [docs/local-setup.md](docs/local-setup.md#4-fill-in-each-variable) for where
 each value comes from.
 
+> [!IMPORTANT]
+> Next.js inlines public `NEXT_PUBLIC_*` configuration into the client bundle
+> at build time. Changing an environment value without rebuilding leaves the
+> app using the value from the previous build. Run `npm run build` after
+> changing a value for a production deployment; restarting the server alone
+> does not update the bundle.
+
 | Variable | Description | Required | Default |
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_CONTRACT_ID` | Deployed stream contract ID (starts with `C`). | Yes | *(None)* |
