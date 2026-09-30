@@ -19,6 +19,7 @@ import {
   markNavigatingToStream,
   saveDashboardScroll,
 } from "@/lib/scroll";
+import { formatStreamsTotal } from "@/lib/stream-total";
 import type { PendingNotice } from "@/types/notice";
 import type { StreamStatus, StreamView } from "@/types/stream";
 
