@@ -237,6 +237,10 @@ function Dashboard() {
     setNotice((previous) => previous ?? takePendingNotice());
   }, []);
 
+  const [announcement, setAnnouncement] = useState("");
+  const prevFilterState = useRef({ filter, withdrawableOnly });
+
+
   // Track whether we arrived back from a stream detail page
   const wasFromStreamRef = useRef(false);
   const restoredRef = useRef(false);
@@ -274,6 +278,49 @@ function Dashboard() {
       restoredRef.current = true;
     }
   }, [isInitialLoading]);
+
+  useEffect(() => {
+    if (!wallet.address || isInitialLoading) return;
+
+    if (
+      prevFilterState.current.filter !== filter ||
+      prevFilterState.current.withdrawableOnly !== withdrawableOnly
+    ) {
+      prevFilterState.current = { filter, withdrawableOnly };
+
+      const visibleIncoming = withdrawableOnly
+        ? incoming.streams.filter(hasWithdrawableBalance)
+        : incoming.streams;
+      const visibleOutgoing = withdrawableOnly
+        ? outgoing.streams.filter(hasWithdrawableBalance)
+        : outgoing.streams;
+
+      const totalResults = withdrawableOnly
+        ? visibleIncoming.length + visibleOutgoing.length
+        : incoming.total + outgoing.total;
+
+      const filterNames = [];
+      if (filter !== "all") {
+        const option = FILTERS.find((f) => f.value === filter);
+        if (option) filterNames.push(option.label);
+      }
+      if (withdrawableOnly) {
+        filterNames.push("Ready to withdraw");
+      }
+      const filterStr = filterNames.length > 0 ? filterNames.join(" and ") : "All streams";
+
+      setAnnouncement(`${filterStr} filter applied. ${totalResults} results found.`);
+    }
+  }, [
+    filter,
+    withdrawableOnly,
+    isInitialLoading,
+    wallet.address,
+    incoming.streams,
+    outgoing.streams,
+    incoming.total,
+    outgoing.total,
+  ]);
 
   // Continuously record scroll position on the dashboard so navigations keep latest position
   useEffect(() => {
@@ -335,6 +382,9 @@ function Dashboard() {
   return (
     <main id="main-content" className="mx-auto max-w-4xl px-6 py-10">
       <h1 className="sr-only">Your streams</h1>
+      <div aria-live="polite" className="sr-only">
+        {announcement}
+      </div>
       {notice && (
         <TransactionNotice
           message={notice.message}
