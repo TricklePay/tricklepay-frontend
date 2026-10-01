@@ -12,11 +12,11 @@
 //     dark. Dark requires no class because globals.css defaults to dark.
 //
 //   ThemeProvider
-//     Initialises React state from the DOM (not from localStorage directly)
-//     so it reflects whatever the no-flash bootstrap script already applied.
-//     A useEffect keeps the DOM class and localStorage entry in sync whenever
-//     the theme changes. Storage failures (private browsing, quota exceeded)
-//     are caught and ignored — the theme still works for the current session.
+//     Starts with the server-rendered dark state, then adopts whatever the
+//     no-flash bootstrap script applied. A useEffect keeps the DOM class and
+//     localStorage entry in sync whenever the theme changes. Storage failures
+//     (private browsing, quota exceeded) are caught and ignored — the theme
+//     still works for the current session.
 //
 //   useTheme()
 //     The public hook for reading and toggling the theme. Throws if called
@@ -31,7 +31,7 @@
 //   Do not duplicate the localStorage key string. Import THEME_STORAGE_KEY
 //   from lib/theme.ts wherever you need it.
 
-import { type JSX, createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { type JSX, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { otherTheme, THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
 
@@ -48,21 +48,24 @@ function applyThemeClass(theme: Theme) {
 
 // Owns the app-wide light/dark preference. The initial theme is already
 // applied to <html> synchronously, before hydration, by the inline bootstrap
-// script in app/layout.tsx (so there is no flash of the wrong theme) — this
-// provider reads the resulting DOM state to initialise React, then keeps React
-// state, the DOM class, and localStorage in sync from that point on.
+// script in app/layout.tsx (so there is no flash of the wrong theme). React
+// starts from the server-rendered dark state to avoid a hydration mismatch,
+// then adopts the resulting DOM state and keeps everything in sync.
 export function ThemeProvider({ children }: { children: React.ReactNode }): JSX.Element {
-  // Read from the DOM, not from localStorage, so React's initial state matches
-  // whatever the bootstrap script already applied. Reading localStorage here
-  // would race with the bootstrap script and could cause a one-frame mismatch.
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof document === "undefined") return "dark";
-    return document.documentElement.classList.contains("light") ? "light" : "dark";
-  });
+  const [theme, setTheme] = useState<Theme>("dark");
 
   // Keep the DOM class and localStorage in sync after every theme change.
   // This is the single writer for both; nothing else should touch them directly.
+  const mounted = useRef(false);
   useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      const initialTheme = document.documentElement.classList.contains("light") ? "light" : "dark";
+      if (initialTheme !== theme) {
+        setTheme(initialTheme);
+        return;
+      }
+    }
     applyThemeClass(theme);
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, theme);
