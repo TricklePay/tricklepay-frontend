@@ -102,6 +102,8 @@ export interface ChainStubOptions {
   address: string;
   /** Sequence number reported for the account. */
   sequence?: string;
+  /** Statuses returned by successive getTransaction calls. */
+  confirmationStatuses?: Array<"PENDING" | "SUCCESS">;
 }
 
 // Records what the app asked the chain to do, for assertions.
@@ -126,7 +128,12 @@ export async function stubChain(page: Page, options: ChainStubOptions): Promise<
     const single = Array.isArray(body) ? body[0] : body;
     calls.methods.push(single.method);
 
-    const result = rpcResult(single, { address: options.address, sequence, calls });
+    const result = rpcResult(single, {
+      address: options.address,
+      sequence,
+      calls,
+      confirmationStatuses: options.confirmationStatuses,
+    });
     return route.fulfill({
       status: 200,
       headers: { "content-type": "application/json", ...corsHeaders() },
@@ -139,7 +146,12 @@ export async function stubChain(page: Page, options: ChainStubOptions): Promise<
 
 function rpcResult(
   request: JsonRpcRequest,
-  ctx: { address: string; sequence: string; calls: ChainCalls },
+  ctx: {
+    address: string;
+    sequence: string;
+    calls: ChainCalls;
+    confirmationStatuses?: Array<"PENDING" | "SUCCESS">;
+  },
 ): unknown {
   switch (request.method) {
     case "getLatestLedger":
@@ -177,9 +189,28 @@ function rpcResult(
       return { status: "PENDING", hash: TX_HASH, latestLedger: 1000, latestLedgerCloseTime: "0" };
     }
 
-    case "getTransaction":
+    case "getTransaction": {
+      const attempt = ctx.calls.methods.filter((method) => method === "getTransaction").length - 1;
+      const status = ctx.confirmationStatuses?.[attempt] ?? "SUCCESS";
+      if (status === "PENDING") {
+        return {
+          status,
+          latestLedger: 1000,
+          latestLedgerCloseTime: "0",
+          oldestLedger: 1,
+          oldestLedgerCloseTime: "0",
+          txHash: TX_HASH,
+          ledger: 1001,
+          createdAt: "0",
+          applicationOrder: 1,
+          feeBump: false,
+          envelopeXdr: ctx.calls.lastEnvelope,
+          resultXdr: transactionResultXdr(),
+          resultMetaXdr: transactionMetaXdr(),
+        };
+      }
       return {
-        status: "SUCCESS",
+        status,
         latestLedger: 1001,
         latestLedgerCloseTime: "0",
         oldestLedger: 1,
@@ -193,6 +224,7 @@ function rpcResult(
         resultXdr: transactionResultXdr(),
         resultMetaXdr: transactionMetaXdr(),
       };
+    }
 
     default:
       return {};
