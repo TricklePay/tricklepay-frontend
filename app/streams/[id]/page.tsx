@@ -6,8 +6,10 @@ import { type JSX, useEffect, useState } from "react";
 
 import { LoadingState } from "@/components/loading-state";
 import { StreamDetail } from "@/components/stream-detail";
+import { useMinimumLoadingDuration } from "@/hooks/use-minimum-loading-duration";
 import { useStreamTitle } from "@/hooks/use-stream-title";
 import { getStream, isAbortError } from "@/lib/api";
+import { clearReturningFromStream, setSessionItem } from "@/lib/scroll";
 import type { StreamView } from "@/types/stream";
 
 // How often an open stream refetches in the background. Shorter than the
@@ -26,6 +28,7 @@ export default function StreamDetailPage(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const showInitialLoading = useMinimumLoadingDuration(loading && !stream);
 
   useStreamTitle(stream, id);
 
@@ -108,7 +111,7 @@ export default function StreamDetailPage(): JSX.Element {
   // Only the initial load gets the skeleton: a post-transaction refetch keeps
   // the current detail (and StreamActions' confirmation state, like the
   // explorer link for the tx just confirmed) on screen until fresh data lands.
-  if (loading && !stream) {
+  if (showInitialLoading) {
     return (
       <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
         <LoadingState variant="stream-detail" />
@@ -120,7 +123,10 @@ export default function StreamDetailPage(): JSX.Element {
       <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => {
+            setSessionItem("tricklepay:from_stream_detail", "true");
+            router.back();
+          }}
           className="text-xs text-neutral-500 hover:text-neutral-300"
         >
           &larr; Back
@@ -143,7 +149,10 @@ export default function StreamDetailPage(): JSX.Element {
       <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => {
+            setSessionItem("tricklepay:from_stream_detail", "true");
+            router.back();
+          }}
           className="text-xs text-neutral-500 hover:text-neutral-300"
         >
           &larr; Back
@@ -156,6 +165,7 @@ export default function StreamDetailPage(): JSX.Element {
           </p>
           <Link
             href="/"
+            onClick={clearReturningFromStream}
             className="mt-6 inline-block rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900"
           >
             Go to your streams

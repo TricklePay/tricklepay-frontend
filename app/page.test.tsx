@@ -1,8 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useWallet } from "@/components/wallet-provider";
 import { useStreamPage } from "@/hooks/use-stream-page";
+import type { StreamView } from "@/types/stream";
 
 import Home from "./page";
 
@@ -69,13 +70,19 @@ function mockConnectedWithData() {
         id: "stream-1",
         sender: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7",
         recipient: "GBBBI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7",
-        asset: { type: "native" },
-        ratePerSecond: 100n,
-        startTime: 1000,
-        stopTime: 2000,
+        token: "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
+        totalAmount: "10000000",
+        withdrawn: "0",
+        vested: "0",
+        withdrawable: "0",
+        locked: "10000000",
+        startTime: "1000",
+        endTime: "2000",
+        cliffTime: "1000",
+        cancelled: false,
         status: "streaming",
-        withdrawnAmount: 0n,
-      } as unknown as import("@/types/stream").StreamView,
+        progress: 0,
+      } as StreamView,
     ],
     total: 1,
     loading: false,
@@ -115,5 +122,45 @@ describe("Dashboard Page", () => {
     expect(htmlString).not.toContain("Connect your wallet to view");
     expect(htmlString).not.toContain("Loading incoming streams");
     expect(htmlString).not.toContain("Loading outgoing streams");
+  });
+
+  describe("streams total (#311)", () => {
+    it("displays the total across visible streams clearly labelled", () => {
+      mockConnectedWithData();
+      const el = Home();
+      const htmlString = renderToStaticMarkup(el);
+
+      expect(htmlString).toContain("Total across visible streams");
+      expect(htmlString).toContain("Total:");
+      expect(htmlString).toContain("1 USDC");
+    });
+
+    it("respects the active filter by recalculating total for visible streams", () => {
+      vi.mocked(useWallet).mockReturnValue({
+        address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7",
+        network: "testnet",
+        connecting: false,
+        error: null,
+        connect: vi.fn(),
+        disconnect: vi.fn(),
+      });
+      // When a filter yields no matching streams, the total shows 0
+      vi.mocked(useStreamPage).mockReturnValue({
+        streams: [],
+        total: 0,
+        loading: false,
+        loadingMore: false,
+        hasMore: false,
+        error: null,
+        refresh: vi.fn(),
+        loadMore: vi.fn(),
+      });
+
+      const el = Home();
+      const htmlString = renderToStaticMarkup(el);
+
+      expect(htmlString).toContain("Total across visible streams");
+      expect(htmlString).toContain(">0<");
+    });
   });
 });

@@ -64,7 +64,12 @@ export const config = {
   /** Passphrase for the selected network, used when signing transactions. */
   networkPassphrase: NETWORK_PASSPHRASES[network] ?? NETWORK_PASSPHRASES.testnet,
   /** Soroban RPC endpoint, used to submit signed transactions. */
-  rpcUrl: process.env.NEXT_PUBLIC_RPC_URL ?? DEFAULT_RPC_URLS[network] ?? DEFAULT_RPC_URLS.testnet,
+  rpcUrl:
+    (process.env.NEXT_PUBLIC_RPC_URL && process.env.NEXT_PUBLIC_RPC_URL.trim() !== ""
+      ? process.env.NEXT_PUBLIC_RPC_URL.trim()
+      : undefined) ??
+    DEFAULT_RPC_URLS[network] ??
+    DEFAULT_RPC_URLS.testnet,
   /** Deployed stream contract id (starts with C). */
   contractId: process.env.NEXT_PUBLIC_CONTRACT_ID || (mockApi ? MOCK_CONTRACT_ID : ""),
   /** Serve fixture data instead of calling the backend (NEXT_PUBLIC_MOCK_API=true). */
@@ -79,15 +84,23 @@ export const config = {
 
 // Validate contractId at module load so a missing or malformed value surfaces
 // immediately as a clear configuration error rather than an opaque SDK error
-// at the first transaction.
+// at the first transaction. During static prerendering / build, a missing variable
+// is handled safely without throwing so page prerendering succeeds.
 const contractId = config.contractId;
+const isBuildWorker = Boolean(
+  process.env.NEXT_PRIVATE_BUILD_WORKER ||
+  process.env.IS_NEXT_WORKER ||
+  process.env.NEXT_PHASE === "phase-production-build"
+);
+
 if (!contractId) {
-  throw new Error(
-    "Configuration error: NEXT_PUBLIC_CONTRACT_ID is not set. " +
-    "Add it to your .env file (it starts with C).",
-  );
-}
-if (!StrKey.isValidContract(contractId)) {
+  if (!isBuildWorker) {
+    throw new Error(
+      "Configuration error: NEXT_PUBLIC_CONTRACT_ID is not set. " +
+      "Add it to your .env file (it starts with C).",
+    );
+  }
+} else if (!StrKey.isValidContract(contractId)) {
   throw new Error(
     `Configuration error: NEXT_PUBLIC_CONTRACT_ID "${contractId}" is not a valid Stellar contract address. ` +
     "It must be a 56-character string starting with C.",

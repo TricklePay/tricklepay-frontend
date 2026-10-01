@@ -6,6 +6,7 @@ import { type JSX, useState, useEffect } from "react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { WalletButton } from "@/components/wallet-button";
+import { clearReturningFromStream } from "@/lib/scroll";
 
 const NAV_LINKS = [
   { href: "/", label: "Streams" },
@@ -26,7 +27,7 @@ export function Header(): JSX.Element {
       {/* Desktop / top bar */}
       <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
         {/* Logo — always visible */}
-        <Link href="/" className="text-lg font-semibold">
+        <Link href="/" onClick={clearReturningFromStream} className="text-lg font-semibold">
           TricklePay
         </Link>
 
@@ -38,6 +39,7 @@ export function Header(): JSX.Element {
               <Link
                 key={link.href}
                 href={link.href}
+                onClick={link.href === "/" ? clearReturningFromStream : undefined}
                 aria-current={isActive ? "page" : undefined}
                 className={`text-sm transition-colors ${
                   isActive
@@ -113,6 +115,7 @@ export function Header(): JSX.Element {
                 <li key={link.href}>
                   <Link
                     href={link.href}
+                    onClick={link.href === "/" ? clearReturningFromStream : undefined}
                     aria-current={isActive ? "page" : undefined}
                     className={`block rounded px-3 py-2 text-sm transition-colors ${
                       isActive

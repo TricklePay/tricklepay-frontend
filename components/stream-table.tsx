@@ -4,6 +4,7 @@ import type { JSX } from "react";
 import { StreamStatusBadge } from "@/components/stream-status-badge";
 import { formatTokenAmount, truncateAddress } from "@/lib/format";
 import { formatRemaining } from "@/lib/schedule";
+import { markNavigatingToStream } from "@/lib/scroll";
 import type { StreamView } from "@/types/stream";
 
 export function StreamTable({
@@ -80,6 +81,11 @@ export function StreamTable({
               <td className="px-4 py-3">
                 <Link
                   href={`/streams/${stream.id}`}
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      markNavigatingToStream(window.location.search);
+                    }
+                  }}
                   className="font-mono text-neutral-300 hover:text-neutral-100 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 rounded"
                 >
                   #{stream.id}
