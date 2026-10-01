@@ -95,10 +95,10 @@ export function StreamTable({
               <td className="px-4 py-3">
                 <StreamStatusBadge status={stream.status} />
               </td>
-              <td className="px-4 py-3 font-mono text-xs text-neutral-300">
+              <td className="px-4 py-3 font-mono text-xs text-neutral-300 truncate max-w-[100px]">
                 {truncateAddress(stream.sender)}
               </td>
-              <td className="px-4 py-3 font-mono text-xs text-neutral-300">
+              <td className="px-4 py-3 font-mono text-xs text-neutral-300 truncate max-w-[100px]">
                 {truncateAddress(stream.recipient)}
               </td>
               <td className="px-4 py-3 text-right tabular-nums text-neutral-100">
