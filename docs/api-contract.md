@@ -81,6 +81,14 @@ interface StreamView {
 }
 ```
 
+**Token symbol resolution.** The frontend trims the `token` contract address
+and performs an exact lookup in the static metadata map in `lib/format.ts`.
+There is no network metadata lookup or other fallback. The currently known
+contract is the USDC contract, which resolves to the `USDC` symbol. For an
+unknown contract, token identity displays the truncated address (for example,
+`CABC...4567`) followed by **Unrecognised token**. Amounts for unknown tokens
+show only the formatted number, while rates use the generic `tokens` label.
+
 **Amount encoding.** `totalAmount`, `withdrawn`, `vested`, `withdrawable`,
 and `locked` are all decimal integers in base units, sent as *strings* —
 never as a JSON number. The contract's amounts are `i128`, which overflows
