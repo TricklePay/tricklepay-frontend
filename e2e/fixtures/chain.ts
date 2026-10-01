@@ -244,11 +244,19 @@ export async function stubApi(page: Page, store: StreamStore): Promise<void> {
       if (recipient) return s.recipient === recipient;
       return true;
     });
+    const total = streams.length;
+    const limit = Number(url.searchParams.get("limit") ?? total);
+    const offset = Number(url.searchParams.get("offset") ?? 0);
 
     return route.fulfill({
       status: 200,
       headers: { "content-type": "application/json", ...corsHeaders() },
-      body: JSON.stringify({ streams }),
+      body: JSON.stringify({
+        streams: streams.slice(offset, offset + limit),
+        total,
+        limit,
+        offset,
+      }),
     });
   });
 }
