@@ -9,10 +9,10 @@ import { StreamList } from "@/components/stream-list";
 import { StreamStatusLegend } from "@/components/stream-status-legend";
 import { TransactionNotice } from "@/components/transaction-notice";
 import { useWallet } from "@/components/wallet-provider";
+import { useMinimumLoadingDuration } from "@/hooks/use-minimum-loading-duration";
 import { useNow } from "@/hooks/use-now";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { takePendingNotice } from "@/lib/pending-notice";
-import { formatStreamsTotal } from "@/lib/stream-total";
 import {
   clearReturningFromStream,
   getSavedDashboardScroll,
@@ -20,6 +20,7 @@ import {
   markNavigatingToStream,
   saveDashboardScroll,
 } from "@/lib/scroll";
+import { formatStreamsTotal } from "@/lib/stream-total";
 import type { PendingNotice } from "@/types/notice";
 import type { StreamStatus, StreamView } from "@/types/stream";
 
@@ -64,6 +65,8 @@ function StreamSection({
   // in the lists keeps advancing while the absolute schedule stays on the
   // detail page. Card/table rows themselves stay pure.
   useNow();
+  const showLoading = useMinimumLoadingDuration(page.loading);
+  const showLoadingMore = useMinimumLoadingDuration(page.loadingMore);
 
   const emptyText = (() => {
     if (visible.length > 0) return emptyMessage;
@@ -109,7 +112,7 @@ function StreamSection({
               viewBox="0 0 16 16"
               fill="currentColor"
               aria-hidden="true"
-              className={`h-3 w-3 ${page.loading ? "animate-spin" : ""}`}
+              className={`h-3 w-3 ${showLoading ? "animate-spin" : ""}`}
             >
               <path
                 fillRule="evenodd"
@@ -135,7 +138,7 @@ function StreamSection({
         </div>
       )}
 
-      {page.loading ? (
+      {showLoading ? (
         <LoadingState variant="stream-list" label={`Loading ${title.toLowerCase()} streams`} />
       ) : (
         <StreamList streams={visible} emptyMessage={emptyText} showCreateLink={showCreate} />
@@ -144,10 +147,10 @@ function StreamSection({
       {page.hasMore && (
         <button
           onClick={page.loadMore}
-          disabled={page.loadingMore}
+          disabled={showLoadingMore}
           className="mt-4 rounded-full border border-neutral-800 px-4 py-1.5 text-xs text-neutral-300 hover:border-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 disabled:opacity-50"
         >
-          {page.loadingMore
+          {showLoadingMore
             ? "Loading more…"
             : `Load more (${page.total - page.streams.length} remaining)`}
         </button>
@@ -234,6 +237,10 @@ function Dashboard() {
     setNotice((previous) => previous ?? takePendingNotice());
   }, []);
 
+  const [announcement, setAnnouncement] = useState("");
+  const prevFilterState = useRef({ filter, withdrawableOnly });
+
+
   // Track whether we arrived back from a stream detail page
   const wasFromStreamRef = useRef(false);
   const restoredRef = useRef(false);
@@ -271,6 +278,49 @@ function Dashboard() {
       restoredRef.current = true;
     }
   }, [isInitialLoading]);
+
+  useEffect(() => {
+    if (!wallet.address || isInitialLoading) return;
+
+    if (
+      prevFilterState.current.filter !== filter ||
+      prevFilterState.current.withdrawableOnly !== withdrawableOnly
+    ) {
+      prevFilterState.current = { filter, withdrawableOnly };
+
+      const visibleIncoming = withdrawableOnly
+        ? incoming.streams.filter(hasWithdrawableBalance)
+        : incoming.streams;
+      const visibleOutgoing = withdrawableOnly
+        ? outgoing.streams.filter(hasWithdrawableBalance)
+        : outgoing.streams;
+
+      const totalResults = withdrawableOnly
+        ? visibleIncoming.length + visibleOutgoing.length
+        : incoming.total + outgoing.total;
+
+      const filterNames = [];
+      if (filter !== "all") {
+        const option = FILTERS.find((f) => f.value === filter);
+        if (option) filterNames.push(option.label);
+      }
+      if (withdrawableOnly) {
+        filterNames.push("Ready to withdraw");
+      }
+      const filterStr = filterNames.length > 0 ? filterNames.join(" and ") : "All streams";
+
+      setAnnouncement(`${filterStr} filter applied. ${totalResults} results found.`);
+    }
+  }, [
+    filter,
+    withdrawableOnly,
+    isInitialLoading,
+    wallet.address,
+    incoming.streams,
+    outgoing.streams,
+    incoming.total,
+    outgoing.total,
+  ]);
 
   // Continuously record scroll position on the dashboard so navigations keep latest position
   useEffect(() => {
@@ -332,6 +382,9 @@ function Dashboard() {
   return (
     <main id="main-content" className="mx-auto max-w-4xl px-6 py-10">
       <h1 className="sr-only">Your streams</h1>
+      <div aria-live="polite" className="sr-only">
+        {announcement}
+      </div>
       {notice && (
         <TransactionNotice
           message={notice.message}

@@ -14,6 +14,7 @@ By taking part you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 - [Development Guidelines & Coding Standards](#--development-guidelines--coding-standards)
 - [State Management & Wallet Handoff](#--state-management--wallet-handoff)
 - [Accessibility & UI Principles](#--accessibility--ui-principles)
+- [User-Facing Copy](#-user-facing-copy)
 - [Testing Strategy](#--testing-strategy)
 - [Submitting a Pull Request](#--submitting-a-pull-request)
 
@@ -96,7 +97,9 @@ tricklepay-frontend/
 │   ├── validation.ts     # Pure form validation utilities
 │   ├── contract.ts     # Soroban contract interaction & RPC submission
 │   ├── amount.ts         # Token amount parsing & formatting
-│   └── format.ts         # Date, duration, and address formatting
+│   ├── format.ts         # Date, duration, and address formatting
+│   ├── contract-messages.ts # Transaction lifecycle stages & status messages
+│   └── stream-messages.ts   # Stream action states & blocked withdrawal reasons
 ├── hooks/                # Custom React hooks (e.g. useNetworkGuard)
 ├── e2e/                  # Playwright end-to-end and visual regression tests
 └── vitest.config.mts     # Vitest unit test configuration
@@ -167,6 +170,42 @@ differ, the document describes what the code does today.
 - &*Touch Targets**: All buttons, links, and form inputs must maintain a minimum touch target size of **44px x 44px**.
 - **Dark & Light Themes**: Ensure high contrast ratios across both light and dark themes (`dark:bg-neutral-900 dark:text-neutral-100`).
 - &*ARIA Attributes**: Use appropriate semantic tags and ARIA labels (`role="alert"`, `aria-label`, `aria-busy`, `aria-live`).
+
+---
+
+## 💬 User-Facing Copy
+
+Messages shown to users — status indicators, form validation, error banners, and action blockers — are an essential part of the product. A consistent voice matters as more contributors add them.
+
+### Expectations for User-Facing Copy
+
+- **Actionable & Informative**: State clearly what happened and what the user can do next. Never leave the user at a dead end without a clear next step.
+- **Plain Language**: Explain contract and network events in plain English. Avoid exposing raw Soroban error tokens, internal host errors, or cryptic error codes directly to users unless as a debug footnote.
+- **Accurate & Honest**: Do not state that an operation failed if the outcome is uncertain (e.g., a timeout during confirmation polling means the transaction was submitted and may still settle, not that it failed).
+- **Calm & Respectful Tone**: Use sentence case and terminal punctuation. Avoid exclamation points, all-caps, or accusatory language (e.g., prefer "Recipient address is required." over "You must enter a recipient!").
+- **Concise & Scannable**: Keep messages succinct and focused so they fit well in inline alerts, field hints, and toast banners across all screen sizes.
+
+### Good vs. Poor Examples
+
+| Context | Poor Message | Good Message | Why It's Better |
+| --- | --- | --- | --- |
+| **Network Mismatch** | `Error: wrong network` | `Wrong network: wallet is on testnet, app expects mainnet. Switch networks in Freighter.` | Specifies both the current and expected network, and gives an immediate, actionable resolution. |
+| **Contract Error** | `Invocation trapped: Error(Contract, #7)` | `Nothing to withdraw yet — no tokens have vested since your last withdrawal.` | Translates an opaque contract error code into plain language explaining the business reason. |
+| **Form Validation** | `Invalid input!` | `Must be a valid G... or C... Stellar address.` | Tells the user exactly what format is expected instead of generic failure and punctuation shouting. |
+| **Confirmation Timeout** | `Transaction failed on network.` *(when polling timed out)* | `Confirmation timed out. The transaction was submitted to the network.` | Truthful about state: does not mislead the user into retrying a transaction that may already be confirming. |
+| **Action Blocker** | `Withdraw button disabled.` | `Locked until the cliff on Oct 14, 2026.` | Clarifies *why* the action is unavailable and when it will unlock, rather than looking like a broken UI. |
+
+### Where the Strings Live
+
+To keep presentation copy easy to review and maintain, user-facing strings are kept separate from core transaction orchestration and business logic:
+
+- **`lib/contract-messages.ts`**: Transaction lifecycle stages (`TX_STAGES`, `TX_STAGE_LABELS`), concurrency warnings (`TX_ALREADY_IN_PROGRESS_MESSAGE`), wallet rejections (`TX_SIGNING_REJECTED_MESSAGE`), network mismatch warnings (`wrongNetworkMessage`), and confirmation timeout notices (`TX_CONFIRM_TIMEOUT_MESSAGE`).
+- **`lib/stream-messages.ts`**: Explanations for why stream actions are disabled or blocked (e.g., `STREAM_FULLY_WITHDRAWN_MESSAGE`, `STREAM_CANCELLED_MESSAGE`, `streamLockedUntilCliffMessage`, `streamNotStartedMessage`).
+- **`lib/contract-errors.ts`**: Mapping table (`CONTRACT_ERROR_MESSAGES`) converting numeric Soroban contract error codes into plain-language messages, with a graceful generic fallback for unmapped codes.
+- **`lib/create-stream-validation.ts` & `lib/validation.ts`**: Field-level validation strings and required-field messages for stream creation forms.
+- **`lib/amount.ts`**: Validation error messages for token amount parsing, decimal limits, and withdrawable balance boundary checks (`withdrawalAmountError`).
+
+> **Rule of thumb**: When adding new user-facing messages, avoid defining strings inline within transaction logic or deep component hierarchies. Define reusable messages in the corresponding `lib/*-messages.ts` module so copy and logic can be reviewed independently.
 
 ---
 
