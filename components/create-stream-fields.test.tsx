@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { CreateFormRefs } from "@/hooks/use-create-stream-form";
+
 import { CreateStreamFields } from "./create-stream-fields";
 
 describe("CreateStreamFields", () => {
@@ -20,7 +22,7 @@ describe("CreateStreamFields", () => {
       start: { current: null },
       end: { current: null },
       cliff: { current: null },
-    } as unknown as Record<string, React.RefObject<HTMLInputElement | null>>,
+    } as CreateFormRefs,
     onFieldChange: vi.fn(),
     previewRate: null,
     previewDuration: null,

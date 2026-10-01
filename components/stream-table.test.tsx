@@ -1,5 +1,9 @@
+/* @vitest-environment jsdom */
+
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { truncateAddress } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
 import { StreamCard } from "./stream-card";
@@ -25,81 +29,93 @@ describe("StreamTable", () => {
   };
 
   it("renders the same default empty wording as the card list", () => {
-    const output = JSON.stringify(StreamTable({ streams: [] }));
+    const { container } = render(<StreamTable streams={[]} />);
 
-    expect(output).toContain("No streams yet.");
-    expect(output).toContain('"colSpan":7');
+    expect(screen.getByText("No streams yet.")).toBeDefined();
+    const td = container.querySelector("td");
+    expect(td?.getAttribute("colspan")).toBe("7");
   });
 
   it("accepts a contextual empty message", () => {
-    const output = JSON.stringify(
-      StreamTable({ streams: [], emptyMessage: "No incoming streams." }),
+    render(
+      <StreamTable streams={[]} emptyMessage="No incoming streams." />,
     );
 
-    expect(output).toContain("No incoming streams.");
+    expect(screen.getByText("No incoming streams.")).toBeDefined();
   });
 
   it("renders one row per stream", () => {
-    const output = JSON.stringify(
-      StreamTable({ streams: [baseStream, { ...baseStream, id: "456" }] }),
+    render(
+      <StreamTable streams={[baseStream, { ...baseStream, id: "456" }]} />,
     );
 
-    expect(output).toContain('"key":"123"');
-    expect(output).toContain('"key":"456"');
+    expect(screen.getByText("#123")).toBeDefined();
+    expect(screen.getByText("#456")).toBeDefined();
   });
 
   it("links each row to the stream detail page", () => {
-    const output = JSON.stringify(StreamTable({ streams: [baseStream] }));
+    render(<StreamTable streams={[baseStream]} />);
 
-    expect(output).toContain('"href":"/streams/123"');
+    const link = screen.getByRole("link", { name: "#123" });
+    expect(link.getAttribute("href")).toBe("/streams/123");
   });
 
   it.each(["pending", "streaming", "completed", "cancelled"] as const)(
     "renders the %s status",
     (status) => {
-      const output = JSON.stringify(
-        StreamTable({ streams: [{ ...baseStream, status }] }),
+      const { container } = render(
+        <StreamTable streams={[{ ...baseStream, status }]} />,
       );
 
-      expect(output).toContain(status);
+      expect(container.textContent?.toLowerCase()).toContain(status);
     },
   );
 
   it.each(["streaming", "pending"] as const)(
     "shows remaining time for a %s stream",
     (status) => {
-      const output = JSON.stringify(
-        StreamTable({ streams: [{ ...baseStream, status }] }),
+      const { container } = render(
+        <StreamTable streams={[{ ...baseStream, status }]} />,
       );
 
-      expect(output).toContain("ends in");
+      expect(container.textContent).toContain("ends in");
     },
   );
 
   it.each(["completed", "cancelled"] as const)(
     "shows a dash instead of remaining time for a %s stream",
     (status) => {
-      const el = StreamTable({ streams: [{ ...baseStream, status }] });
-      const tbody = el.props.children.props.children[1];
-      const row = tbody.props.children[0];
-      const remainingCell = row.props.children[6];
-
-      expect(remainingCell.props.children).toBe("—");
+      const { container } = render(
+        <StreamTable streams={[{ ...baseStream, status }]} />,
+      );
+      const row = container.querySelector("tbody tr");
+      const cells = row?.querySelectorAll("td");
+      expect(cells?.[6]?.textContent).toBe("—");
     },
   );
 
   it("renders the same truncated addresses, amounts, and status as the card view for the same stream", () => {
-    const tableOutput = JSON.stringify(StreamTable({ streams: [baseStream] }));
-    const cardOutput = JSON.stringify(StreamCard({ stream: baseStream }));
+    const { container: tableContainer } = render(
+      <StreamTable streams={[baseStream]} />,
+    );
+    const { container: cardContainer } = render(
+      <StreamCard stream={baseStream} />,
+    );
+
+    const tableOutput = tableContainer.textContent ?? "";
+    const cardOutput = cardContainer.textContent ?? "";
+
+    const sender = truncateAddress(baseStream.sender);
+    const recipient = truncateAddress(baseStream.recipient);
 
     // From/To addresses
-    expect(tableOutput).toContain("GAAZ...VKOC");
-    expect(cardOutput).toContain("GAAZ...VKOC");
-    expect(tableOutput).toContain("GBBZ...VKOC");
-    expect(cardOutput).toContain("GBBZ...VKOC");
+    expect(tableOutput).toContain(sender);
+    expect(cardOutput).toContain(sender);
+    expect(tableOutput).toContain(recipient);
+    expect(cardOutput).toContain(recipient);
 
     // Status wording
-    expect(tableOutput).toContain(baseStream.status);
-    expect(cardOutput).toContain(baseStream.status);
+    expect(tableOutput.toLowerCase()).toContain(baseStream.status);
+    expect(cardOutput.toLowerCase()).toContain(baseStream.status);
   });
 });

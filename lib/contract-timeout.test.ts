@@ -49,14 +49,14 @@ describe("confirmation poll bounds", () => {
       status: "PENDING",
     });
     vi.mocked(rpc.Server).mockImplementation(
-      () =>
-        ({
-          getTransaction: mockGetTransaction,
-        }) as unknown as rpc.Server,
+      class {
+        getTransaction = mockGetTransaction;
+      } as unknown as typeof rpc.Server,
     );
 
     const hash = "0xtimedout";
     const promise = confirmTransaction(hash);
+    const assertion = expect(promise).rejects.toThrowError(TransactionTimeoutError);
 
     // Fast-forward 30 seconds (30 attempts * 1_000ms)
     // We await advanceTimersByTimeAsync to yield the event loop so the sleep resolves.
@@ -64,7 +64,7 @@ describe("confirmation poll bounds", () => {
       await vi.advanceTimersByTimeAsync(1000);
     }
 
-    await expect(promise).rejects.toThrowError(TransactionTimeoutError);
+    await assertion;
     await expect(promise).rejects.toMatchObject({ txHash: hash });
     expect(mockGetTransaction).toHaveBeenCalledTimes(30);
   });
