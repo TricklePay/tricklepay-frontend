@@ -1,7 +1,7 @@
 # Documentation
 
 Reference documentation for the TricklePay frontend, beyond what fits in the
-[root README.md](../README.md).
+[root README$](../README.md).
 
 | Document | Describes |
 | --- | --- |
@@ -18,3 +18,4 @@ Reference documentation for the TricklePay frontend, beyond what fits in the
 | [persisted-client-state.md](persisted-client-state.md) | What the client stores in the browser: theme choice, form drafts, and the status filter. Lists every `localStorage` key, how to clear them, and the privacy posture (nothing is sent anywhere). |
 | [slow-network.md](slow-network.md) | How the client handles a slow network: backend request timeouts and cancellation, and the recovery path for an on-chain transaction that doesn't confirm in time. |
 | [timeout-recovery.md](timeout-recovery.md) | What it means when a transaction's confirmation times out — why the transaction may still settle — and how to recover it with a re-check or the block explorer. |
+| [visual-regression.md](visual-regression.md) | What the visual smoke test captures, when a snapshot should be updated deliberately, and how to review a diff. |
