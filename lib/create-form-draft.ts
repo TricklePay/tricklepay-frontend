@@ -1,6 +1,6 @@
 import type { FormDraft } from "@/types/form";
 
-const FORM_DRAFT_STORAGE_KEY = "tricklepay-create-form-draft";
+export const FORM_DRAFT_STORAGE_KEY = "tricklepay-create-form-draft";
 
 export const EMPTY_FORM_DRAFT: FormDraft = {
   recipient: "",

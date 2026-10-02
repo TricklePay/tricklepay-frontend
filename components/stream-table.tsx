@@ -74,7 +74,8 @@ export function StreamTable({
           ) : streams.map((stream, idx) => (
             <tr
               key={stream.id}
-              className={`border-b border-neutral-800/60 transition-colors last:border-b-0 hover:bg-neutral-800/40 ${
+              tabIndex={0}
+              className={`border-b border-neutral-800/60 transition-colors last:border-b-0 hover:bg-neutral-800/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-900 ${
                 idx % 2 === 0 ? "" : "bg-neutral-900/30"
               }`}
             >
@@ -94,10 +95,10 @@ export function StreamTable({
               <td className="px-4 py-3">
                 <StreamStatusBadge status={stream.status} />
               </td>
-              <td className="px-4 py-3 font-mono text-xs text-neutral-300">
+              <td className="px-4 py-3 font-mono text-xs text-neutral-300 truncate max-w-[100px]">
                 {truncateAddress(stream.sender)}
               </td>
-              <td className="px-4 py-3 font-mono text-xs text-neutral-300">
+              <td className="px-4 py-3 font-mono text-xs text-neutral-300 truncate max-w-[100px]">
                 {truncateAddress(stream.recipient)}
               </td>
               <td className="px-4 py-3 text-right tabular-nums text-neutral-100">

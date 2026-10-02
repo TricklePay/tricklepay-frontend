@@ -6,12 +6,12 @@ should not assume anything about the other:
 1. **tricklepay-backend** — a read-only REST API, indexed off-chain, used for
    everything the app *displays* (`lib/api.ts`).
 2. **The Soroban stream contract** — invoked directly for everything the app
-   *writes* (`lib/contract.ts`). Reads are never served from the contract
+   *writes** (`lib/contract.ts`). Reads are never served from the contract
    directly; a write is expected to show up through the backend on the next
    fetch, once the indexer catches up.
 
 This split matters for correctness: after a successful `withdraw` or
-`cancel`, the frontend does not trust the value it just wrote — it re-fetches
+cancel`, the frontend does not trust the value it just wrote — it re-fetches
 the stream from the backend (see `onComplete` in `components/stream-actions.tsx`)
 and renders whatever comes back, including a value that briefly still shows
 the pre-transaction state if the indexer hasn't caught up yet.
@@ -81,10 +81,18 @@ interface StreamView {
 }
 ```
 
+**Token symbol resolution.** The frontend trims the `token` contract address
+and performs an exact lookup in the static metadata map in `lib/format.ts`.
+There is no network metadata lookup or other fallback. The currently known
+contract is the USDC contract, which resolves to the `USDC` symbol. For an
+unknown contract, token identity displays the truncated address (for example,
+`CABC...4567`) followed by **Unrecognised token**. Amounts for unknown tokens
+show only the formatted number, while rates use the generic `tokens` label.
+
 **Amount encoding.** `totalAmount`, `withdrawn`, `vested`, `withdrawable`,
 and `locked` are all decimal integers in base units, sent as *strings* —
 never as a JSON number. The contract's amounts are `i128`, which overflows
-`Number`'s safe integer range well within realistic stream sizes, so every
+Number's safe integer range well within realistic stream sizes, so every
 consumer must parse them with `BigInt(...)`, not `Number(...)` or `parseInt`.
 `lib/format.ts`'s `formatAmount` is the one place that turns a base-unit
 string into a human decimal (dividing by `10n ** 7n`, the Stellar stroop
@@ -96,11 +104,11 @@ timestamps, also sent as strings for the same reason (consistency with the
 amount fields, and to avoid every backend integer field needing its own
 special case). `lib/format.ts`'s `formatTime` renders them.
 
-**`progress` vs `vested`/`totalAmount`.** `progress` is a convenience the
+**`progress` vs `vestedh/`totalAmount`.** `progress` is a convenience the
 backend precomputes so simple UI (e.g. a progress bar) doesn't need to do
 `vested / totalAmount` itself with `BigInt` division. It is *not* the source
 of truth for the vested amount — `vested` is. `hooks/use-accrual.ts`
-recomputes `vested`/`withdrawable` client-side every second between fetches
+recomputes `vestedh/`withdrawable` client-side every second between fetches
 (mirroring the contract's linear-vesting math in `lib/vesting.ts`) so a
 streaming balance visibly climbs without polling; `progress` is only used
 for the static bar, not for that live recomputation.
@@ -169,8 +177,8 @@ from `NEXT_PUBLIC_API_TIMEOUT_MS` (`config.apiTimeoutMs`, default `10000`), and
 a single call can override it with `RequestOptions.timeoutMs`. `0` — in either
 place — disables the timeout.
 
-The value is parsed and validated in `lib/config.ts` at module load, alongside
-the contract id: a non-integer or negative value is a startup error naming the
+The value is parsed and validated in `lib/config.ts` at module load, alongside the
+contract id: a non-integer or negative value is a startup error naming the
 variable, not a silent fallback to the default.
 
 Exceeding the budget throws an `ApiTimeoutError` naming the resource and the
@@ -192,6 +200,27 @@ Only the read API is affected. On-chain writes keep their own budget:
 throws `TransactionTimeoutError` carrying the transaction hash, since a
 submitted transaction can still succeed after the frontend stops waiting and
 must stay recoverable.
+
+### Error categories and client handling
+
+Every failure from the read API falls into one of a small set of categories.
+The client branches on these categories in a single place, and each one has a
+distinct user-visible outcome. A contributor adding a branch should match an
+existing category rather than invent a new one.
+
+| Category | Type | Triggered by | User sees |
+| --- | --- | --- | --- |
+| **Not found** | resolved `null` | `GET /streams/:id` with a `404` | The stream detail page renders its "stream not found" state; no error banner. |
+| **Cancelled** | `AbortError` | The app aborted the request itself (query change, refresh, unmount) | Nothing. The request is swallowed by `isAbortError`; no banner, no loading flag change. |
+| **Timeout** | `ApiTimeoutError` | The read exceeded `info.apiTimeoutMs` (or the per-call override) | An error banner naming the resource and the elapsed budget, e.g. "Timed out loading stream 42 after 7.5s". |
+| **Response shape** | `ApiResponseError` | The body failed `parseStreamListResponse`/`parseStreamView`, or was not JSON at all (non-2xx status excluded) | An error banner with the validator's path message, e.g. `response.streams[3].vested must be a decimal integer string`. |
+| **HTTP status** | plain `Error` | Any other non-2xx status from the backend | An error banner with the status text. |
+
+The branch order matters: `AbortError` is checked first and swallowed,
+then `ApiTimeoutError` and `ApiResponseError` are surfaced as banners, and
+everything else falls through to the generic `Error` handler. A new branch that
+duplicates an existing category will either be unreachable or produce a second
+banner for the same failure.
 
 ## 2. On-chain contract surface
 
@@ -234,59 +263,9 @@ surfaced by `components/transaction-progress.tsx`):
    that would only fail afterward.
 2. **Preparing** — `TransactionBuilder` assembles the operation,
    `prepareTransaction` simulates it and computes the Soroban resource
-   footprint. A simulation revert is parsed for an `Error(Contract, #N)`
-   token (see § 3) and re-thrown as a plain-language message.
+   footprint. A simulation revert is parsed for an `Error(Contract, #N)` token
+   (see § 3) and re-thrown as a plain-language message.
 3. **Signing** — the prepared XDR is handed to Freighter's
    `signTransaction`. A user rejection in the wallet throws
    `"Signing was rejected in the wallet."`.
-4. **Submitting** — the signed transaction is sent via `sendTransaction`.
-5. **Confirming** — `confirm()` polls `getTransaction` by hash, once a
-   second, up to 30 times. A contract-side failure is parsed the same way as
-   a simulation revert; running out of attempts throws
-   `TransactionTimeoutError`, which carries the `txHash` so the caller can
-   offer to re-check it later without re-submitting — see
-   `confirmTransaction(hash, onStageChange)`, the standalone recovery path
-   used when a confirmation times out.
-
-**Single in-flight invocation.** `invoke()` refuses to start a second
-transaction while one is already in flight (`isTransactionPending()`) —
-callers don't need their own separate "already submitting" guard for this
-specific race, though components still track their own `busy` state for UI
-purposes (disabling the right button, showing the right label).
-
-## 3. Error contract
-
-A contract-side revert (from simulation, or from a failed confirmed
-transaction) is surfaced to the SDK as a string containing an
-`Error(Contract, #N)` token. `lib/contract-errors.ts`'s
-`parseContractError` extracts `N` and maps it to a user-facing message:
-
-| Code | Meaning | Message shown |
-| --- | --- | --- |
-| 1 | `StreamNotFound` | "Stream not found." |
-| 2 | `Unauthorized` *(retired; kept for streams on older deployed contracts)* | "You are not authorized to perform this action." |
-| 3 | `InvalidTimeRange` | "Invalid time range — the stream must start before it ends." |
-| 4 | `InvalidAmount` | "Invalid amount — the total must be greater than zero." |
-| 5 | `InvalidCliff` | "Invalid cliff — the cliff must fall between the start and end times." |
-| 6 | `AlreadyCancelled` | "This stream has already been cancelled." |
-| 7 | `NothingToWithdraw` | "Nothing to withdraw yet — no tokens have vested since your last withdrawal." |
-| 8 | `InsufficientBalance` | "That is more than you can withdraw right now." |
-| 9 | `StreamAlreadyCompleted` | "This stream has already completed and can no longer be cancelled." |
-| 10 | `AmountTooLarge` | "That amount is too large. The total must not exceed 9223372036854775807." |
-
-This table mirrors `StreamError` in the contract's `error.rs` — if the
-contract adds, removes, or renumbers a variant, this table (and
-`lib/contract-errors.test.ts`, which asserts the table's key set exactly)
-needs updating to match. A code with no entry falls back to a generic
-`"The transaction failed on-chain."`, with the raw code appended for
-debugging (`"... (error code 99)"`), rather than surfacing nothing.
-
-## 4. Configuration contract
-
-Both surfaces above are pointed at their targets entirely through
-`NEXT_PUBLIC_*` environment variables — including `NEXT_PUBLIC_API_TIMEOUT_MS`,
-the read API request budget described above — read once in `lib/config.ts`; see the
-README's [Configuration](../README.md#configuration) section for the full
-variable list and defaults. Because these are `NEXT_PUBLIC_*` vars, they're
-inlined at build time — pointing the same build at a different backend or
-contract deployment requires a rebuild, not just a restart.
+4.
