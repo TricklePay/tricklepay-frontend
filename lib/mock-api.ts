@@ -5,7 +5,7 @@
 // status stays meaningful however long ago the fixtures were written: the
 // streaming stream is always mid-flight and visibly accruing.
 
-import type { ListStreamsParams } from "@/lib/api";
+import type { ListStreamsParams, StreamApiClient } from "@/lib/api";
 import type { StreamListResponse, StreamView } from "@/types/stream";
 
 const MOCK_SENDER = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
@@ -66,16 +66,27 @@ function asParty(stream: StreamView, params: ListStreamsParams): StreamView {
 }
 
 /** Mock counterpart of `listStreams`, honouring status and paging. */
-export function mockListStreams(params: ListStreamsParams = {}): StreamListResponse {
+export const mockListStreams: StreamApiClient["listStreams"] = async (
+  params: ListStreamsParams = {},
+): Promise<StreamListResponse> => {
   const matches = MOCK_STREAMS.filter(
     (s) => !params.status || params.status === "all" || s.status === params.status,
   ).map((s) => asParty(s, params));
   const offset = params.offset ?? 0;
   const limit = params.limit ?? matches.length;
   return { streams: matches.slice(offset, offset + limit), total: matches.length, limit, offset };
-}
+};
 
 /** Mock counterpart of `getStream`: null for an unknown id, like a 404. */
-export function mockGetStream(id: string): StreamView | null {
+export const mockGetStream: StreamApiClient["getStream"] = async (
+  id: string,
+): Promise<StreamView | null> => {
   return MOCK_STREAMS.find((s) => s.id === id) ?? null;
-}
+};
+
+// Mock client, typed against the same contract as the real client in
+// `lib/api.ts` so a divergence fails the typecheck.
+export const mockApiClient: StreamApiClient = {
+  listStreams: mockListStreams,
+  getStream: mockGetStream,
+};

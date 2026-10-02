@@ -36,6 +36,11 @@ They prove the **frontend's** happy path: that the UI collects the right input,
 builds a well-formed transaction the SDK accepts, routes it through the wallet,
 submits it, waits for confirmation, and reflects the result.
 
+They also cover the draft lifecycle across a reload: a draft written to storage
+is restored into the form after the page is reloaded, and the draft is cleared once
+a submission succeeds. That spans a navigation and a reload, which is exactly
+what a unit test cannot exercise.
+
 They do **not** prove anything about the contract. The fake chain accepts every
 transaction and reports success; it never executes the contract, checks
 authorisation, moves a balance, or enforces a single invariant. A contract bug,
