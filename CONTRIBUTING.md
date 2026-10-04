@@ -8,15 +8,15 @@ By taking part you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## 📖 Table of Contents
 
-- [Project Overview & Technology Stack](#-project-overview--technology-stack)
-- [Getting Started](#-getting-started)
-- [Project Structure](#-project-structure)
-- [Development Guidelines & Coding Standards](#-development-guidelines--coding-standards)
-- [State Management & Wallet Handoff](#-state-management--wallet-handoff)
-- [Accessibility & UI Principles](#-accessibility--ui-principles)
+- [Project Overview & Technology Stack](#--project-overview--technology-stack)
+- [Getting Started](#--getting-started)
+- [Project Structure](#--project-structure)
+- [Development Guidelines & Coding Standards](#--development-guidelines--coding-standards)
+- [State Management & Wallet Handoff](#--state-management--wallet-handoff)
+- [Accessibility & UI Principles](#--accessibility--ui-principles)
 - [User-Facing Copy](#-user-facing-copy)
-- [Testing Strategy](#-testing-strategy)
-- [Submitting a Pull Request](#-submitting-a-pull-request)
+- [Testing Strategy](#--testing-strategy)
+- [Submitting a Pull Request](#--submitting-a-pull-request)
 
 ---
 
@@ -24,19 +24,19 @@ By taking part you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 TricklePay is a real-time, continuous token payment and streaming protocol built on Stellar and Soroban. The frontend repository is built with:
 
-- **Framework**: [Next.js 15](https://nextjs.org/) (App Router) & [React 19](https://react.dev/)
+- &**Framework**: [Next.js 15](https://nextjs.org/) (App Router) & [React 19](https://react.dev/)
 - **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
-- **Stellar SDKs**: `@stellar/stellar-sdk` and `@stellar/freighter-api`
+- &*Stellar SDKs**: `@stellar/stellar-sdk` and `@stellar/freighter-api`
 - **Unit Testing**: [Vitest](https://vitest.dev/)
 - **End-to-End Testing & Visual Regression**: [Playwright](https://playwright.dev/)
 
 ---
 
-## 🚀 Getting Started
+## 🚀 **Getting Started
 
 ### Prerequisites
 
-- **Node.js**: `v20.0.0` or higher. The repo includes an `.nvmrc` — run `nvm use` to switch to the pinned version automatically if you use [nvm](https://github.com/nvm-sh/nvm).
+- &*Node.js**: `v20.0.0` or higher. The repo includes an `.nvmrc` — run `nvm use` to switch to the pinned version automatically if you use [nvm](https://github.com/nvm-sh/nvm).
 - **npm**: `v10.0.0` or higher
 - **Freighter Wallet Extension**: Installed in your browser (for manual development testing)
 
@@ -68,7 +68,7 @@ TricklePay is a real-time, continuous token payment and streaming protocol built
    NEXT_PUBLIC_API_URL=http://localhost:3000
    NEXT_PUBLIC_NETWORK=testnet
    NEXT_PUBLIC_RPC_URL=https://soroban-testnet.stellar.org
-   NEXT_PUBLIC_CONTRACT_ID=CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM
+   NEXT_PUBLIC_CONTRACT_ID=CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM
    ```
 
 4. **Run Development Server**:
@@ -95,7 +95,7 @@ tricklepay-frontend/
 │   └── stream-actions.tsx# Withdraw and cancel actions (behaviour in hooks/use-stream-actions.ts)
 ├── lib/                  # Core domain logic, validation, & SDK helpers
 │   ├── validation.ts     # Pure form validation utilities
-│   ├── contract.ts       # Soroban contract interaction & RPC submission
+│   ├── contract.ts     # Soroban contract interaction & RPC submission
 │   ├── amount.ts         # Token amount parsing & formatting
 │   ├── format.ts         # Date, duration, and address formatting
 │   ├── contract-messages.ts # Transaction lifecycle stages & status messages
@@ -153,11 +153,11 @@ tricklepay-frontend/
 - **Wallet Session**: Managed centrally by `WalletProvider` in `components/wallet-provider.tsx`.
 - **Session Auto-Restoration**: Upon mounting, `WalletProvider` probes Freighter's connection and authorization state so returning users remain signed in.
 - **Network Normalization**: Freighter network labels (`TESTNET`, `PUBLIC`) are normalized to lowercase (`testnet`, `mainnet`) to match app configuration.
-- **Network Guard**: Use `useNetworkGuard()` to detect and warn users when their wallet is connected to a different network than the app expects.
+- &*Network Guard**: Use `useNetworkGuard()` to detect and warn users when their wallet is connected to a different network than the app expects.
 
 ---
 
-## ♿ Accessibility & UI Principles
+## ♯ Accessibility & UI Principles
 
 The commitments the project holds (skip link, focus handling, live
 announcements, form labelling, reduced motion), the code that implements each,
@@ -167,9 +167,9 @@ weakens or removes a commitment. Where the list below and that document
 differ, the document describes what the code does today.
 
 - **WCAG AA Compliance**: All interactive elements must include explicit focus rings (`focus-visible:ring-2 focus-visible:ring-offset-2`).
-- **Touch Targets**: All buttons, links, and form inputs must maintain a minimum touch target size of **44px x 44px**.
+- &*Touch Targets**: All buttons, links, and form inputs must maintain a minimum touch target size of **44px x 44px**.
 - **Dark & Light Themes**: Ensure high contrast ratios across both light and dark themes (`dark:bg-neutral-900 dark:text-neutral-100`).
-- **ARIA Attributes**: Use appropriate semantic tags and ARIA labels (`role="alert"`, `aria-label`, `aria-busy`, `aria-live`).
+- &*ARIA Attributes**: Use appropriate semantic tags and ARIA labels (`role="alert"`, `aria-label`, `aria-busy`, `aria-live`).
 
 ---
 
@@ -234,6 +234,48 @@ Playwright owns e2e workflow validation and visual regression smoke tests:
 ```bash
 npm run test:e2e
 ```
+
+### 4. Visual Regression Suite
+
+The Playwright visual suite is a smoke layer, not a full coverage guarantee.
+It captures pixel snapshots of the key screens and states that users hit most
+often, so a silent layout or styling regression is caught before merge.
+
+**What it covers:**
+- The dashboard and stream list in their default, loaded state.
+- The stream creation form, including validation error messages.
+- Stream detail and action controls (actions in their enabled and disabled states).
+- Wallet connected vs. disconnected presentation, and the network-guard warning.
+- Both light and dark themes where the screen renders them.
+
+**What it does not cover:** animation timing, hover/focus transitions, scroll
+behaviour, or third-party wallet UI. Verify those manually or with a targeted
+e2e assertion.
+
+**Updating a snapshot deliberately:**
+1. Make the intentional styling or markup change first, then run the suite and
+inspect the failure:
+   ```bash
+   npm run test:e2e
+   npm run test:e2e -- --update-snapshots
+   ```
+2. Review the generated diff in the report and in the commited snapshot files.
+Confirm every changed pixel is one you intended to make.
+3. Commit the updated snapshots alongside the code change that caused them,
+with a message that explains why, e.g. `feat: restyle stream card and update
+snapshots`.
+
+**Reviewing a diff:**
+- Open the Playwright HTML report and compare the expected, actual, and diff
+panes side by side.
+- Check whether the diff is confined to the components you changed. Spread to
+unrelated screens usually means a shared style, font, or layout primitive moved.
+- Confirm the change is acceptable in both themes and at the captured viewport.
+
+> **Warning:** Never run `--update-snapshots` just to make a failing suite green.
+Updating a snapshot accepts the new rendering as correct. If you haven't explained
+why the output changed, you're silencing a regression instead of fixing it. If the
+diff is unexpected, treat it as a bug in the code and fix the code.
 
 ---
 
