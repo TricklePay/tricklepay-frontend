@@ -2,6 +2,37 @@
 // All requests are routed to the base URL provided by `config.apiUrl`.
 // Connection issues, timeouts, and malformed responses are surfaced as
 // rejected Promises, expecting callers to handle and display those errors.
+//
+// # Balance accuracy vs. load: why balances are interpolated locally
+//
+// Stream balances are not polled from the backend on a timer. Instead, the
+// client fetches authoritative stream data once and then advances the displayed
+// balance locally between fetches. This is a deliberate trade-off between
+// accuracy and load:
+//
+// - Accuracy: a polling loop would need to run on the order of once per
+//   second to keep the displayed balance visually current, because streams
+//   accrue continuously. That is one request per stream per second for every
+//   open tab, which multiplies into a load spike that grows with the number of
+//   viewers and the number of streams they are watching.
+// - Load: between fetches the client interpolates the balance from the last
+//   authoritative snapshot using the stream's rate and the elapsed time,
+//   so the number keeps moving without any additional requests.
+//
+// Authoritative data is fetched on demand, not on a polling interval:
+// - when a stream is first opened or its view is mounted,
+// - when the user explicitly refreshes, and
+// - when a mutation (create/update/cancel) succeeds and the cache is
+//   invalidated.
+// The interval between those fetches is therefore driven by user action and
+// by the cache strategy, not by a fixed timer.
+//
+// The ledger clock is the source of truth. Interpolation is an estimate for
+// display only; the authoritative balance is what the ledger reports at a
+// given ledger time. When the client and the ledger disagree -- a stream was
+// cancelled, a transfer settled, the clock drifted -- the next fetch wins and
+// the interpolated value is discarded. Nothing in this module treats a locally
+// advanced balance as authoritative.
 import {
   ApiResponseError,
   parseStreamListResponse,
@@ -53,7 +84,7 @@ export interface RequestOptions {
  *
  * An abort is a normal outcome, not a failure: callers use this to swallow it
  * rather than flashing "Failed to load streams" for a request they cancelled
- * themselves. Identified by `name` rather than by `instanceof DOMException`
+ * themselves. Identified by `name` rather than by instanceof DOMException`
  * because Node's undici and jsdom each reject with their own error class.
  */
 export function isAbortError(error: unknown): boolean {
@@ -174,6 +205,10 @@ async function request<T>(
 // through a result set larger than the backend's default limit. Results are not
 // cached so the list reflects the latest indexed state. The payload is checked
 // against the documented shape before it is handed back (see lib/api-schema.ts).
+//
+// This is the authoritative read that feeds the local balance interpolation
+// described at the top of this module: the results are the ledger's view, and
+// anything derived from them between calls is an estimate.
 export async function listStreams(
   params: ListStreamsParams = {},
   options: RequestOptions = {},
@@ -196,6 +231,11 @@ export async function listStreams(
 }
 
 // Fetches a single stream by id, or null if it does not exist.
+//
+// This is the authoritative snapshot used to seed and resync the locally
+// interpolated balance. The ledger clock carried in the response is the
+// source of truth; the client never invents a balance that disagrees with it
+// once a fresh response arrives.
 export async function getStream(
   id: string,
   options: RequestOptions = {},
