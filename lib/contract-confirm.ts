@@ -117,7 +117,7 @@ function findContractErrorToken(event: xdr.DiagnosticEvent): string | null {
       const token = `Error(Contract, #${code})`;
       const contractId = event.event().contractId();
       if (!contractId) return token;
-      return `contract:${StrKey.encodeContract(contractId)}, topics:[error, ${token}]`;
+      return `contract:${StrKey.encodeContract(Buffer.from(contractId as unknown as Uint8Array))}, topics:[error, ${token}]`;
     }
   } catch {
     // XDR traversal failed — the event shape was unexpected, skip it.

@@ -1,13 +1,15 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const TESTNET_CONTRACT = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM";
-const MAINNET_CONTRACT = "CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBZID";
-
-const mockConfig = vi.hoisted(() => ({
-  contractId: TESTNET_CONTRACT,
-  network: "testnet",
-}));
+const { TESTNET_CONTRACT, MAINNET_CONTRACT, mockConfig } = vi.hoisted(() => {
+  const TESTNET_CONTRACT = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM";
+  const MAINNET_CONTRACT = "CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBZID";
+  const mockConfig = {
+    contractId: TESTNET_CONTRACT,
+    network: "testnet",
+  };
+  return { TESTNET_CONTRACT, MAINNET_CONTRACT, mockConfig };
+});
 
 vi.mock("@/lib/config", () => ({ config: mockConfig }));
 

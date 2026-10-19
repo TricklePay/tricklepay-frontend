@@ -27,4 +27,12 @@ describe("readTokenBalance", () => {
 
     await expect(readTokenBalance(TOKEN, HOLDER)).rejects.toThrow();
   });
+
+  it("throws when the simulation succeeds but has no result", async () => {
+    simulateTransaction.mockResolvedValue({
+      transactionData: {},
+    });
+
+    await expect(readTokenBalance(TOKEN, HOLDER)).rejects.toThrow("Balance read did not return a value.");
+  });
 });

@@ -17,7 +17,7 @@ const STREAM: StreamView = {
   withdrawable: "0",
   locked: "1000000000",
   startTime: "1704067200", // 2024-01-01 00:00 UTC
-  endTime:   "1706745600", // 2024-01-31 00:00 UTC  (30 days)
+  endTime:   "1706659200", // 2024-01-31 00:00 UTC  (30 days)
   cliffTime: "1704672000", // 2024-01-08 00:00 UTC  (7 days after start)
   cancelled: false,
   status: "completed",

@@ -75,14 +75,17 @@ const ATTRIBUTED_ERROR_EVENT_RE =
   /contract:(C[A-Z2-7]{55}),\s*topics:\[[^\]]*?Error\(Contract,\s*#(\d+)\)/g;
 
 /**
- * Id of the contract that raised `code`, read from the first (newest) matching
- * diagnostic event, or null when the text does not say.
+ * Id of the contract that raised `code`, read from the last (oldest, originating)
+ * matching diagnostic event, or null when the text does not say.
  */
 function failingContractId(raw: string, code: number): string | null {
+  let matched: string | null = null;
   for (const event of raw.matchAll(ATTRIBUTED_ERROR_EVENT_RE)) {
-    if (parseInt(event[2], 10) === code) return event[1];
+    if (parseInt(event[2], 10) === code) {
+      matched = event[1];
+    }
   }
-  return null;
+  return matched;
 }
 
 /**

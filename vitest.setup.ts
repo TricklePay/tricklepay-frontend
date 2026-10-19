@@ -42,6 +42,23 @@ if (typeof window !== "undefined") {
   });
 }
 
+// Fix cross-realm Uint8Array / Buffer instanceof check for noble-hashes in jsdom
+try {
+  const origHasInstance = Uint8Array[Symbol.hasInstance];
+  Object.defineProperty(Uint8Array, Symbol.hasInstance, {
+    value: function (inst: unknown) {
+      if (origHasInstance && origHasInstance.call(this, inst)) return true;
+      return (
+        inst !== null &&
+        typeof inst === "object" &&
+        ((inst as { constructor?: { name?: string } }).constructor?.name === "Buffer" ||
+          (inst as { _isBuffer?: boolean })._isBuffer === true)
+      );
+    },
+    configurable: true,
+  });
+} catch {}
+
 // Ensure React knows act() is supported in test environment
 // @ts-expect-error IS_REACT_ACT_ENVIRONMENT is a global flag for React
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;

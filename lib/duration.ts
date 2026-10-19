@@ -127,20 +127,28 @@ export function deriveDuration(
   if (diffMs <= 0) return null;
 
   // Check if preferredUnit matches exactly
+  // Exact years match?
+  const y = endDate.getFullYear() - startDate.getFullYear();
+  if (y > 0 && addDurationToLocal(start, String(y), "years") === end) {
+    return { amount: String(y), unit: "years" };
+  }
+
+  // Exact months match?
+  const m =
+    (endDate.getFullYear() - startDate.getFullYear()) * 12 +
+    (endDate.getMonth() - startDate.getMonth());
+  if (m > 0 && addDurationToLocal(start, String(m), "months") === end) {
+    return { amount: String(m), unit: "months" };
+  }
+
   if (preferredUnit && isDurationUnit(preferredUnit)) {
-    if (preferredUnit === "years") {
-      const y = endDate.getFullYear() - startDate.getFullYear();
-      if (y > 0 && addDurationToLocal(start, String(y), "years") === end) {
-        return { amount: String(y), unit: "years" };
-      }
-    } else if (preferredUnit === "months") {
-      const m =
-        (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-        (endDate.getMonth() - startDate.getMonth());
-      if (m > 0 && addDurationToLocal(start, String(m), "months") === end) {
-        return { amount: String(m), unit: "months" };
-      }
-    } else if (preferredUnit === "weeks") {
+    if (preferredUnit === "years" && y > 0 && addDurationToLocal(start, String(y), "years") === end) {
+      return { amount: String(y), unit: "years" };
+    }
+    if (preferredUnit === "months" && m > 0 && addDurationToLocal(start, String(m), "months") === end) {
+      return { amount: String(m), unit: "months" };
+    }
+    if (preferredUnit === "weeks") {
       const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
       if (
         diffDays > 0 &&
@@ -155,20 +163,6 @@ export function deriveDuration(
         return { amount: String(diffDays), unit: "days" };
       }
     }
-  }
-
-  // Exact years match?
-  const y = endDate.getFullYear() - startDate.getFullYear();
-  if (y > 0 && addDurationToLocal(start, String(y), "years") === end) {
-    return { amount: String(y), unit: "years" };
-  }
-
-  // Exact months match?
-  const m =
-    (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-    (endDate.getMonth() - startDate.getMonth());
-  if (m > 0 && addDurationToLocal(start, String(m), "months") === end) {
-    return { amount: String(m), unit: "months" };
   }
 
   // Exact weeks match?

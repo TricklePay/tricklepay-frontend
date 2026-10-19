@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useWallet } from "@/components/wallet-provider";
 import { useStreamPage } from "@/hooks/use-stream-page";
+import { DEFAULT_PAGE_SIZE } from "@/lib/page-size";
 import type { StreamView } from "@/types/stream";
 
 import Home from "./page";
@@ -143,8 +144,8 @@ describe("Dashboard Page", () => {
     const el = Home();
     const htmlString = renderToStaticMarkup(el);
 
-    expect(useStreamPage).toHaveBeenCalledWith("recipient", expect.any(String), "streaming");
-    expect(useStreamPage).toHaveBeenCalledWith("sender", expect.any(String), "streaming");
+    expect(useStreamPage).toHaveBeenCalledWith("recipient", expect.any(String), "streaming", DEFAULT_PAGE_SIZE);
+    expect(useStreamPage).toHaveBeenCalledWith("sender", expect.any(String), "streaming", DEFAULT_PAGE_SIZE);
     expect(htmlString).toMatch(/aria-pressed="true"[^>]*>\s*Streaming/);
     expect(htmlString).toContain('aria-label="Clear filter"');
   });
@@ -155,7 +156,7 @@ describe("Dashboard Page", () => {
 
     const htmlString = renderToStaticMarkup(Home());
 
-    expect(useStreamPage).toHaveBeenCalledWith("recipient", expect.any(String), "all");
+    expect(useStreamPage).toHaveBeenCalledWith("recipient", expect.any(String), "all", DEFAULT_PAGE_SIZE);
     expect(htmlString).not.toContain('aria-label="Clear filter"');
   });
 

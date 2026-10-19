@@ -1,9 +1,8 @@
 /* @vitest-environment jsdom */
 
+import * as freighter from "@stellar/freighter-api";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import type { StreamView } from "@/types/stream";
 
 // Switching accounts in Freighter must carry the whole app to the new account
 // in place: the address badge, the controls a stream offers (they depend on
@@ -101,14 +100,13 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   }),
 }));
 
-import * as freighter from "@stellar/freighter-api";
-
 import Home from "@/app/page";
 import { StreamDetail } from "@/components/stream-detail";
 import { WalletButton } from "@/components/wallet-button";
 import { WalletProvider } from "@/components/wallet-provider";
 import { listStreams } from "@/lib/api";
 import { truncateAddress } from "@/lib/format";
+import type { StreamView } from "@/types/stream";
 
 function emitAccount(address: string) {
   act(() => {
@@ -140,7 +138,7 @@ describe("switching wallet accounts", () => {
 
   it("starts watching for account changes once a session is restored", async () => {
     renderApp();
-    await screen.findByText(truncateAddress(ALICE));
+    await screen.findByRole("button", { name: `Disconnect wallet ${truncateAddress(ALICE)}` });
     expect(watchers.size).toBe(1);
   });
 
@@ -149,7 +147,7 @@ describe("switching wallet accounts", () => {
 
     // Alice: her address, the recipient's Withdraw control on Bob's stream,
     // and her own incoming (#101) and outgoing (#202) streams.
-    await screen.findByText(truncateAddress(ALICE));
+    await screen.findByRole("button", { name: `Disconnect wallet ${truncateAddress(ALICE)}` });
     expect(screen.getByRole("button", { name: "Withdraw" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Cancel stream" })).toBeNull();
     await screen.findByText("#202");
@@ -157,8 +155,8 @@ describe("switching wallet accounts", () => {
     emitAccount(BOB);
 
     // The badge follows.
-    await screen.findByText(truncateAddress(BOB));
-    expect(screen.queryByText(truncateAddress(ALICE))).toBeNull();
+    await screen.findByRole("button", { name: `Disconnect wallet ${truncateAddress(BOB)}` });
+    expect(screen.queryByRole("button", { name: `Disconnect wallet ${truncateAddress(ALICE)}` })).toBeNull();
 
     // Bob is the sender of the same stream, so he gets Cancel, not Withdraw.
     expect(screen.getByRole("button", { name: "Cancel stream" })).toBeTruthy();
@@ -182,10 +180,10 @@ describe("switching wallet accounts", () => {
 
   it("follows the switch without a reload or a new connection prompt", async () => {
     renderApp();
-    await screen.findByText(truncateAddress(ALICE));
+    await screen.findByRole("button", { name: `Disconnect wallet ${truncateAddress(ALICE)}` });
 
     emitAccount(BOB);
-    await screen.findByText(truncateAddress(BOB));
+    await screen.findByRole("button", { name: `Disconnect wallet ${truncateAddress(BOB)}` });
 
     // The session was restored once on mount and never again: the switch came
     // from the watcher, not from remounting the provider or reconnecting.
@@ -195,17 +193,17 @@ describe("switching wallet accounts", () => {
 
   it("ignores an empty address from a locked wallet", async () => {
     renderApp();
-    await screen.findByText(truncateAddress(ALICE));
+    await screen.findByRole("button", { name: `Disconnect wallet ${truncateAddress(ALICE)}` });
 
     emitAccount("");
 
-    expect(screen.getByText(truncateAddress(ALICE))).toBeTruthy();
+    expect(screen.getAllByText(truncateAddress(ALICE)).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Withdraw" })).toBeTruthy();
   });
 
   it("stops watching once the user disconnects", async () => {
     renderApp();
-    await screen.findByText(truncateAddress(ALICE));
+    await screen.findByRole("button", { name: `Disconnect wallet ${truncateAddress(ALICE)}` });
 
     act(() => screen.getByRole("button", { name: /Disconnect wallet/ }).click());
 
