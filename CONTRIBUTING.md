@@ -205,6 +205,9 @@ To keep presentation copy easy to review and maintain, user-facing strings are k
 - **`lib/create-stream-validation.ts` & `lib/validation.ts`**: Field-level validation strings and required-field messages for stream creation forms.
 - **`lib/amount.ts`**: Validation error messages for token amount parsing, decimal limits, and withdrawable balance boundary checks (`withdrawalAmountError`).
 
+For the end-to-end procedure for adding error codes and testing messages, see
+[Maintaining contract error messages](docs/contract-error-messages.md).
+
 > **Rule of thumb**: When adding new user-facing messages, avoid defining strings inline within transaction logic or deep component hierarchies. Define reusable messages in the corresponding `lib/*-messages.ts` module so copy and logic can be reviewed independently.
 
 ---
