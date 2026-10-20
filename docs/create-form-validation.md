@@ -85,7 +85,7 @@ Stricter than the recipient field on purpose: a token is always a contract, so a
 |---|---|---|
 | Must not be empty (submit) | `Amount is required.` | `""` |
 | Must be a plain non-negative decimal | `Amount must be a positive number (e.g. 100 or 1.5).` | `abc`, `-3`, `+5`, `1e5`, `1.2.3` |
-| At most 7 decimal places | `Amount cannot have more than 7 decimal places.` | `100.12345678` |
+| At most the token's decimal places (7 by default) | `Amount cannot have more than 7 decimal places.` | `100.12345678` for a 7-decimal token |
 | Must be greater than zero | `Amount must be greater than zero.` | `0`, `0.0000000` |
 
 Details:
@@ -94,10 +94,36 @@ Details:
   *only* whitespace trims to empty and reports `Amount is required.`
 - `1e5` and `1.2.3` are rejected rather than coerced; the rule is a single
   `^\d+(\.\d+)?$` match.
-- More than 7 decimals is an error, not a silent rounding — the field's own hint
-  says "Up to 7 decimal places (e.g. 1.0000001)".
-- The value stays a string until submit; the conversion to 7-decimal base units
-  (the Stellar stroop standard) happens once, in `parseAmount`.
+- More than the allowed number of decimals is an error, not a silent rounding —
+  the field's own hint says "Up to 7 decimal places (e.g. 1.0000001)" for a
+  7-decimal token, and the message substitutes the token's actual precision
+  when it is known.
+- The value stays a string until submit; the conversion to base units happens
+  once, in `parseAmount`, using the token's decimals.
+
+### Token decimals
+
+`parseAmount`, `formatAmount`, and `parseHumanAmount` take a `decimals`
+argument and **default to 7** (`STROOP_DECIMALS`), the Stellar stroop
+convention used by the native asset and most Stellar assets. Seven is an
+assumption, not a guarantee for an arbitrary SEP-41 token. If a 6-decimal
+token is parsed or formatted with 7 decimals, a base-unit balance is displayed
+10 times too small and the human amount the user enters is interpreted as 10
+times too large on-chain; each additional place of difference multiplies the
+error by 10.
+
+The create form avoids that for the token it is about to stream: it reads
+`decimals()` from the token contract and uses the result for the amount rule,
+the hint, the rate preview, review, and the submitted `totalAmount`. If the
+read fails it falls back to 7 and shows "Could not read token decimals from
+contract. Defaulting to 7 decimals." beside the field. Reading the precision
+from the contract is the fix tracked by
+[#532 — Read a token's decimals from the token contract](https://github.com/TricklePay/tricklepay-frontend/issues/532);
+callers that skip that read still inherit the 7-decimal limitation.
+
+Code outside this form that calls the formatting or parsing helpers without a
+`decimals` argument inherits the 7-decimal assumption and must pass the
+token's real precision when it has one.
 
 ### Start
 
@@ -168,9 +194,10 @@ nothing.
 
 Validation passing does **not** send anything. It moves the form to the review
 step (`components/stream-review.tsx`), where the exact parameters that will go
-on-chain are shown — amount converted to 7-decimal base units, dates converted to
-Unix seconds, a blank cliff defaulted to the start time. Only "Create stream" on
-that step builds, signs, and submits the transaction.
+on-chain are shown — amount converted to base units using the token's decimals
+(7 by default), dates converted to Unix seconds, a blank cliff defaulted to the
+start time. Only "Create stream" on that step builds, signs, and submits the
+transaction.
 
 ---
 

@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // useStreamPage drives its state machine through real React hooks, which
@@ -118,6 +120,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
 });
 
 import { listStreams } from "@/lib/api";
+import type { StreamView } from "@/types/stream";
 
 import {
   useStreamPage,
@@ -126,10 +129,58 @@ import {
 } from "./use-stream-page";
 
 const ADDRESS = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
+const OTHER_ADDRESS = "GBBBI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
+const TOKEN = "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC";
+
+function stream(id: string): StreamView {
+  return {
+    id,
+    sender: ADDRESS,
+    recipient: ADDRESS,
+    token: TOKEN,
+    totalAmount: "1000000000",
+    withdrawn: "0",
+    vested: "500000000",
+    withdrawable: "500000000",
+    locked: "500000000",
+    startTime: "1000",
+    endTime: "2000",
+    cliffTime: "1000",
+    cancelled: false,
+    status: "streaming",
+    progress: 5_000,
+  };
+}
+
+function pageOf(streams: StreamView[]) {
+  return { streams, total: streams.length, limit: PAGE_SIZE, offset: 0 };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
+function setVisibility(state: DocumentVisibilityState) {
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    get: () => state,
+  });
+}
 
 // Drains the promise chain listStreams' rejection sets off (catch, then
-// finally) before the test reads the resulting state back.
-const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+// finally) before the test reads the resulting state back. Under fake timers a
+// real setTimeout never fires, so advance the fake clock instead.
+const flush = async () => {
+  if (vi.isFakeTimers()) {
+    await vi.advanceTimersByTimeAsync(0);
+    return;
+  }
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+};
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -329,5 +380,179 @@ describe("useStreamPage — background refresh failure threshold and reset", () 
 
     expect(page.consecutiveRefreshFailures).toBe(0);
     expect(page.refreshWarning).toBeNull();
+  });
+});
+
+describe("useStreamPage — background refresh triggers", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    Reflect.deleteProperty(document, "visibilityState");
+  });
+
+  it("refetches the first page on a 15-second interval", async () => {
+    vi.mocked(listStreams)
+      .mockResolvedValueOnce(pageOf([stream("1")]))
+      .mockResolvedValueOnce(pageOf([stream("2")]));
+
+    harness.render(() => useStreamPage("sender", ADDRESS));
+    await flush();
+    let page = harness.render(() => useStreamPage("sender", ADDRESS));
+
+    expect(page.streams.map((item) => item.id)).toEqual(["1"]);
+    expect(listStreams).toHaveBeenCalledTimes(1);
+
+    // Nothing happens just before the interval elapses.
+    await vi.advanceTimersByTimeAsync(14_999);
+    expect(listStreams).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await flush();
+    page = harness.render(() => useStreamPage("sender", ADDRESS));
+
+    expect(listStreams).toHaveBeenCalledTimes(2);
+    expect(listStreams).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sender: ADDRESS, offset: 0 }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+    expect(page.streams.map((item) => item.id)).toEqual(["2"]);
+  });
+
+  it("refetches when the window regains focus", async () => {
+    vi.mocked(listStreams).mockResolvedValue(pageOf([stream("1")]));
+
+    harness.render(() => useStreamPage("sender", ADDRESS));
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(1);
+
+    window.dispatchEvent(new Event("focus"));
+    await flush();
+
+    const page = harness.render(() => useStreamPage("sender", ADDRESS));
+    expect(listStreams).toHaveBeenCalledTimes(2);
+    expect(page.streams.map((item) => item.id)).toEqual(["1"]);
+  });
+
+  it("skips the interval and focus refresh while the tab is hidden, then refetches on visibilitychange when visible", async () => {
+    vi.mocked(listStreams).mockResolvedValue(pageOf([stream("1")]));
+    setVisibility("hidden");
+
+    harness.render(() => useStreamPage("sender", ADDRESS));
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(1);
+
+    // Neither the timer nor a focus event fetches while the tab is hidden.
+    await vi.advanceTimersByTimeAsync(15_000);
+    window.dispatchEvent(new Event("focus"));
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(1);
+
+    // Becoming visible again triggers a refresh through visibilitychange.
+    setVisibility("visible");
+    document.dispatchEvent(new Event("visibilitychange"));
+    await flush();
+
+    const page = harness.render(() => useStreamPage("sender", ADDRESS));
+    expect(listStreams).toHaveBeenCalledTimes(2);
+    expect(page.streams.map((item) => item.id)).toEqual(["1"]);
+  });
+
+  it("keeps existing rows and error state when a background refresh fails", async () => {
+    vi.mocked(listStreams)
+      .mockResolvedValueOnce(pageOf([stream("1")]))
+      .mockRejectedValueOnce(new Error("503 Service Unavailable"));
+
+    harness.render(() => useStreamPage("sender", ADDRESS));
+    await flush();
+    let page = harness.render(() => useStreamPage("sender", ADDRESS));
+
+    expect(page.streams.map((item) => item.id)).toEqual(["1"]);
+    expect(page.error).toBeNull();
+    expect(page.loading).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    await flush();
+    page = harness.render(() => useStreamPage("sender", ADDRESS));
+
+    // A silent refresh must not clear the list or flash an error.
+    expect(page.streams.map((item) => item.id)).toEqual(["1"]);
+    expect(page.error).toBeNull();
+    expect(page.requestId).toBeNull();
+    expect(page.loading).toBe(false);
+    expect(page.consecutiveRefreshFailures).toBe(1);
+    expect(page.refreshWarning).toBeNull();
+  });
+
+  it("does not replace an existing error when a background refresh fails", async () => {
+    const firstPage = {
+      ...pageOf(Array.from({ length: PAGE_SIZE }, (_, index) => stream(String(index + 1)))),
+      total: PAGE_SIZE + 5,
+    };
+    vi.mocked(listStreams)
+      .mockResolvedValueOnce(firstPage)
+      .mockRejectedValueOnce(new Error("Load more failed"))
+      .mockRejectedValueOnce(new Error("Background refresh failed"));
+
+    harness.render(() => useStreamPage("sender", ADDRESS));
+    await flush();
+    let page = harness.render(() => useStreamPage("sender", ADDRESS));
+
+    page.loadMore();
+    await flush();
+    page = harness.render(() => useStreamPage("sender", ADDRESS));
+    expect(page.error).toBe("Load more failed");
+    expect(page.streams).toHaveLength(PAGE_SIZE);
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    await flush();
+    page = harness.render(() => useStreamPage("sender", ADDRESS));
+
+    expect(page.error).toBe("Load more failed");
+    expect(page.requestId).toBeNull();
+    expect(page.streams).toHaveLength(PAGE_SIZE);
+    expect(page.consecutiveRefreshFailures).toBe(1);
+  });
+
+  it("ignores a background refresh that resolves after the address changes", async () => {
+    let addressRequests = 0;
+    const staleRefresh = deferred<ReturnType<typeof pageOf>>();
+
+    vi.mocked(listStreams).mockImplementation((params) => {
+      if (params?.sender === ADDRESS) {
+        addressRequests += 1;
+        if (addressRequests === 1) {
+          return Promise.resolve(pageOf([stream("old")]));
+        }
+        return staleRefresh.promise;
+      }
+      return Promise.resolve(pageOf([stream("new")]));
+    });
+
+    harness.render(() => useStreamPage("sender", ADDRESS));
+    await flush();
+    let page = harness.render(() => useStreamPage("sender", ADDRESS));
+    expect(page.streams.map((item) => item.id)).toEqual(["old"]);
+
+    // Start a silent refresh for the old address, then switch addresses before
+    // it resolves. The new address's first page has its own generation.
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(addressRequests).toBe(2);
+
+    harness.render(() => useStreamPage("sender", OTHER_ADDRESS));
+    await flush();
+    page = harness.render(() => useStreamPage("sender", OTHER_ADDRESS));
+    expect(page.streams.map((item) => item.id)).toEqual(["new"]);
+
+    staleRefresh.resolve(pageOf([stream("stale")]));
+    await flush();
+    page = harness.render(() => useStreamPage("sender", OTHER_ADDRESS));
+
+    // The old response is dropped rather than replacing the new address's rows.
+    expect(page.streams.map((item) => item.id)).toEqual(["new"]);
+    expect(page.total).toBe(1);
   });
 });

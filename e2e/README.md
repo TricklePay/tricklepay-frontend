@@ -48,83 +48,71 @@ a wrong argument order, or a mis-encoded value would still pass here as long as
 it decodes. Vesting maths is covered separately, as unit tests, in
 `lib/vesting.test.ts`.
 
-## Visual regression suite
+## Spec files
 
-The visual suite is a smoke test, not a full visual coverage suite. It captures
-a small set of representative screens so that an unintentional layout or styling
-regression is caught in CI before it ships.
+Each spec file owns one slice of the UI. Use this table to decide where a new
+scenario belongs and which fixtures it needs.
 
-### What it covers
+| Spec | What it covers | Fixtures it relies on |
+| --- | --- | --- |
+| `cancel-confirm.spec.ts` | The two-step cancel confirmation on the stream detail page: dismissing keeps the stream and sends nothing; confirming submits exactly once and links to the transaction. | chain, freighter |
+| `cancel-stream.spec.ts` | A sender cancelling end to end: the vested balance stays withdrawable for the recipient, the unvested balance returns to the sender, and the dashboard shows the stream as cancelled. | chain, freighter |
+| `copy-button.spec.ts` | The "Copy From" button writes the sender address to the clipboard and shows a temporary "Copied" confirmation. | chain (`stubApi`, `streamingStream`); browser clipboard permission |
+| `create-form-validation.spec.ts` | Empty-submit messages, clearing a field error after a valid edit, the 7-decimal amount rule, end-before-start, and the review step opening once every field is valid. | chain, freighter |
+| `create-withdraw.spec.ts` | The create-to-withdraw happy path through review, signing, submission, confirmation, the success notice, a reload, and withdrawal, including Stellar Expert links. | chain, freighter |
+| `native-xlm.spec.ts` | The "Use native XLM" shortcut fills the token field with the configured native asset contract id. The review-label assertion is currently marked `test.fixme` pending a native-asset label bug. | chain, freighter |
+| `shared-wallet-state.spec.ts` | Disconnecting in the header clears the dashboard and detail-page actions, and the wallet is probed once per page load rather than once per consumer. | chain, freighter |
+| `stream-not-found.spec.ts` | An unknown stream id renders the "Stream not found" heading, names the id, and offers a link back to the dashboard. | chain (`stubApi`) |
+| `streams-pagination.spec.ts` | The dashboard loads 25 rows and fetches the next page on "Load more"; the API stub also verifies unknown query parameters are rejected and `total` is only returned with `includeTotal`. | chain (`stubApi`, `streamingStream`) |
+| `theme-persistence.spec.ts` | Toggling the theme writes the choice to `localStorage` and the light theme survives a reload. | none |
+| `timeout-recovery.spec.ts` | A transaction that stays `PENDING` for 30 polls shows the timeout alert; "Re-check status" keeps polling without re-submitting and clears the alert on success. | chain, freighter, Playwright clock |
+| `visual-smoke.spec.ts` | Three page screenshots: dashboard, create form desktop, and create form mobile. See [Visual regression suite](#visual-regression-suite). | chain, freighter |
+| `wrong-network.spec.ts` | A wallet on `PUBLIC` is refused before signing with a message naming both networks; the mismatch banner appears, and a wallet on the expected network is not blocked. | chain, freighter |
 
-The snapshots are taken from the same Playwright browser against the same faked
-wallet and chain as the functional e2e tests. Each snapshot covers a key state
-of the app:
+"chain" means `e2e/fixtures/chain.ts`, which exports `stubApi`, `stubChain`,
+`streamingStream`, `TOKEN_ID`, `TX_HASH`, and the `StreamStore` type.
+"freighter" means `e2e/fixtures/freighter.ts`, which exports
+`installFreighterStub` and `TEST_ADDRESS`.
 
-- **Stream list / empty state** — the landing view with no streams, including
-  the empty-state copy and layout.
-- **Stream detail** — the vesting progress, balances, and action controls for a
-  seeded stream.
-- **Create stream form** — the form in its default and validation-error states.
-- **Wallet connected vs. disconnected** — the differences in the header and
-  available actions.
+## Running one spec or one test
 
-The suite deliberately does **not** attempt to cover every component, every breakpoint,
-or every interaction. The functional e2e tests and unit tests are responsible for
-correctness. The visual suite is responsible for catching unintentional visual
-changes to those screens.
-
-### Running the suite
+Run a single spec from the repository root with `npx playwright test`, or pass
+the path through the npm script:
 
 ```bash
-npm run test:e2e -- visual
+npx playwright test e2e/cancel-stream.spec.ts
+npm run test:e2e -- e2e/cancel-stream.spec.ts
 ```
 
-The first run on a new machine may report diffs because of font rendering,
-sub-pixel anti-aliasing, or a different browser build. Snapshots are committed
-and expected to be generated in the same environment as CI (the pinned
-Playwright image). If local diffs appear on a machine that is not the CI image,
- re-run in the pinned container before concluding there is a regression.
+Narrow further to one test by title with `-g`:
 
-### Updating a snapshot deliberately
+```bash
+npx playwright test e2e/cancel-stream.spec.ts -g "cancels through the UI"
+```
 
-A snapshot should only be updated when the visual change is itself the
-intented change. To update it:
+Playwright starts the dev server on port 3100 using the stub-friendly
+environment in `playwright.config.ts`. The visual spec is just another file:
 
-1. Make the code change that alters the UI.
-2. Run the suite and inspect the reported diff (Playwright writes a
-   `*-diff.png` and an HTML report under `test-results/`).
-3. Confirm the diff matches the intended change and nothing else.
-4. Update the snapshot explicitly:
+```bash
+npx playwright test e2e/visual-smoke.spec.ts
+```
 
-   ```bash
-   npm run test:e2e -- visual --update-snapshots
-   ```
+## Visual regression suite
 
-5. Re-run the suite without `--update-snapshots` to confirm it passes.
-6. Commit the updated snapshot files alongside the code change that caused them,
-   with a commit message that explains the visual change.
+The visual suite is a smoke test, not a full visual coverage suite. It is one
+file, `visual-smoke.spec.ts`, and captures exactly three page screenshots:
+the dashboard at the desktop default viewport, the create form at the same
+desktop viewport, and the create form at 375 × 667. Each capture allows a 5%
+pixel difference and masks nothing. The wallet, backend, and chain are the same
+fakes the functional specs use.
 
-### Reviewing a visual diff
+It deliberately does **not** cover landing, auth, modals, individual components
+and their states, light theme, or other breakpoints. Functional correctness
+belongs to the other specs and the unit tests.
 
-When a pull request includes changed snapshots, review the images, not just the
-code:
-
--1 Open the changed `*.png files in the GitHub files view. GitHub renders
-  image diffs for committed snapshots.
--2 Check that every changed pixel belongs to the described feature or fix.
--3 If the diff is unexplained or touches unrelated screens, request changes and
-   ask for the snapshot to be reverted.
--4 Run the suite locally on the branch if the rendered diff is ambiguous.
-
-### Warning: do not update snapshots to silence a failure
-
-Never run `--update-snapshots` just to make a failing suite green. A failing
-snapshot is a signal: either the code changed the UI in a way you did not intend,
-or the snapshot was written in a different environment. Blindly accepting the
-new image deletes the only evidence that something broke, and the regression will
-ship. If you cannot explain why the image changed, treat the failure as a bug in
-the code or in the test environment, fix that cause, and only then re-generate
-the snapshot.
+The full description — including baseline locations, regeneration commands, and
+how to review a diff — is in
+[docs/visual-regression.md](../docs/visual-regression.md).
 
 ## Notes for anyone extending these
 

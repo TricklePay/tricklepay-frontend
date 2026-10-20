@@ -57,6 +57,7 @@ See also [Running locally](#running-locally) for the short version,
   - [Folder Structure and Conventions](#folder-structure-and-conventions)
   - [Module Map](#module-map)
 - [API contract](#api-contract)
+  - [Amount precision](#amount-precision)
 - [Documentation](#documentation)
 - [Related repositories](#related-repositories)
 - [Code of Conduct](#code-of-conduct)
@@ -445,6 +446,26 @@ tricklepay-backend REST API (`lib/api.ts`) and the Soroban stream contract,
 invoked directly (`lib/contract.ts`). Request/response shapes, amount and
 time encoding, the write transaction lifecycle, and the on-chain error-code
 mapping are all documented in [docs/api-contract.md](docs/api-contract.md).
+
+### Amount precision
+
+Amounts are base-unit integers encoded as strings. `formatAmount`,
+`parseAmount`, and `parseHumanAmount` accept an optional `decimals` argument
+and **default to 7** (`STROOP_DECIMALS`), the Stellar stroop convention used by
+the native asset and most Stellar assets. That default is an assumption, not a
+guarantee for an arbitrary SEP-41 token: if a 6-decimal token is formatted or
+parsed with 7 decimals, its displayed base-unit balance is 10 times too small
+and a human amount the user enters is interpreted as 10 times too large
+on-chain. Each additional place of difference multiplies the error by 10.
+
+The create form reads `decimals()` from the token contract and uses the result
+for the amount field, base-unit conversions, and the review step, falling back
+to 7 with a visible notice when the read fails. That behaviour comes from
+[#532 — Read a token's decimals from the token contract](https://github.com/TricklePay/tricklepay-frontend/issues/532).
+Any other caller that displays or parses a token amount must pass the token's
+actual decimals rather than relying on the default. See
+[docs/create-form-validation.md](docs/create-form-validation.md#token-decimals)
+for the form-level consequences.
 
 ## Documentation
 
