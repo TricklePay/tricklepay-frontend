@@ -1,73 +1,148 @@
-# Visual Regression Suite
+# Visual regression smoke suite
 
-This document describes the visual regression (smoke) suite for the TricklePay frontend, what it covers, how to deliberately update a snapshot, and how to review a visual diff.
+The visual regression suite is a small smoke test, not an exhaustive visual
+coverage tool. It lives in
+[`e2e/visual-smoke.spec.ts`](../e2e/visual-smoke.spec.ts) and captures three
+page screenshots so that an unintended layout or styling change on the
+dashboard or the create form is caught before it ships.
 
-## What the Suite Covers
+The functional end-to-end specs and the unit tests remain responsible for
+correctness. This suite is responsible only for spotting visual changes.
 
-The visual suite captures snapshots of key rendered views and components so that unintended visual changes are detected early. It is a smoke test, not an exhaustive visual coverage tool. It focuses on the high-value surfaces most likely to regress or to be affected by shared styling changes:
+## What it captures
 
-- Top-level page layouts and routing outlets (e.g. landing, dashboard, and auth flows).
-- Core UI components and their variants (buttons, inputs, modals, cards, alerts, and navigation).
-- Representative states for each component, including default, hover/focus where applicable, disabled, loading, and error states.
-- Responsive breakpoints for the layouts that are covered.
-- Theme variations (light and dark) where the app supports them.
+| Screenshot | Test case | Viewport | Screen |
+| --- | --- | --- | --- |
+| `dashboard-smoke.png` | "dashboard page renders clean responsive layout without visual shifts" | Playwright's desktop Chromium default, 1280 × 720 | The dashboard with a connected wallet and no streams, including the header, main region, footer, and wallet status button |
+| `create-stream-smoke.png` | "create stream page renders form fields and actions in desktop and mobile viewports" | 1280 × 720 | The create-stream form in its default state: recipient address, token contract id, amount, and the "Review stream" action |
+| `create-stream-mobile-smoke.png` | The same test case, after `page.setViewportSize` | 375 × 667 | The same create-stream page at a mobile width |
 
-Snapshots are committed to the repository and are treated as artifacts of the codebase. A change to a snapshot is a visible change to the app and must be justified in the pull request.
+The dashboard case also asserts that the `banner`, `main`, and `contentinfo`
+landmarks are visible, and that the wallet status button renders. The create
+case asserts that the three primary fields and the "Review stream" button are
+visible. Those assertions run alongside each screenshot, so a missing region
+fails the test even when the remaining pixels happen to match.
 
-## Running the Suite
+There is no fourth screen and no separate component gallery. The suite does
+**not** cover landing pages, authentication, modals, every button, input, card,
+alert, or navigation state, hover/focus/disabled/loading variants, light theme,
+or breakpoints other than the two viewports above. The app has no auth flow or
+modal surface to capture.
 
-Run the visual suite as part of the standard test command:
+## What is stubbed
+
+Every case runs the real Next.js UI against the same fakes used by the
+functional end-to-end suite. A `beforeEach` installs:
+
+- **The wallet.** `installFreighterStub` from `e2e/fixtures/freighter.ts`
+  answers the Freighter `postMessage` protocol as an unlocked, already-authorised
+  wallet on testnet, using `TEST_ADDRESS`. Signing is a pass-through; nothing in
+  these screens involves a transaction.
+- **The backend.** `stubApi` from `e2e/fixtures/chain.ts` serves `GET /status`,
+  `GET /health`, and the stream endpoints. The visual suite seeds it with
+  `{ streams: [] }`, so both dashboard lists are empty.
+- **The chain.** `stubChain` from `e2e/fixtures/chain.ts` serves Soroban RPC
+  account lookup, simulation, submission, and confirmation. The create form may
+  use it for read-only fee and balance previews; no transaction is submitted.
+
+Both `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_RPC_URL` point at unreachable hosts.
+Every request is fulfilled by these stubs, so a request that escapes them fails
+loudly instead of reaching a real network.
+
+## What is masked
+
+Nothing is masked. The screenshots capture the visible page viewport
+(Playwright's default; `fullPage` is not set) with no `mask` entries. Instead,
+each screenshot allows a small tolerance:
+`maxDiffPixelRatio: 0.05`, meaning up to 5% of pixels may differ before the
+comparison fails. Playwright also disables animations and hides the text caret
+for screenshots by default; the spec does not override those defaults.
+
+## Running the suite
+
+The repository has no separate `test:visual` script. Run the spec through the
+normal Playwright command:
 
 ```bash
-npm test
+npm run test:e2e -- e2e/visual-smoke.spec.ts
 ```
 
-To run only the visual suite locally, use the dedicated script:
+Or directly:
 
 ```bash
-npm run test:visual
-`if
+npx playwright test e2e/visual-smoke.spec.ts
+```
 
-A non-zero exit code means one or more snapshots differ from the committed baseline. The report artifacts (image diffs, expected images, and actual images) are written to the configured output directory so you can inspect them.
+A failure means one or more screenshots differ from the committed baseline. The
+expected image, actual image, and diff are written under `test-results/`, and
+the HTML report can be opened with:
 
-## Updating a Snapshot Deliberately
+```bash
+npx playwright show-report
+```
 
-Update a snapshot only when the visual change is intentional and reviewed. The typical workflow is:
+## Where the baselines live
+
+Playwright stores baselines next to the spec, in
+`e2e/visual-smoke.spec.ts-snapshots/`, with a name that includes the project and
+platform, for example `dashboard-smoke-chromium-darwin.png` or
+`dashboard-smoke-chromium-linux.png`. Baselines are platform-specific because
+fonts and anti-aliasing differ between operating systems; compare against
+baselines generated on the same platform and browser build.
+
+If no baseline exists for the current platform, Playwright reports a missing
+snapshot and writes the actual image. Treat that first image as a proposal, not
+as automatically correct.
+
+## Regenerating a baseline deliberately
+
+Update a baseline only when the visual change is intentional and reviewed.
 
 1. Make the code change that alters the rendered output.
-2. Run the visual suite and inspect the reported diffs.
-3. Confirm each diff is expected and explainable by your change.
-4. Regenerate the baselines with the update command:
+2. Run the suite without the update flag and inspect the reported diff.
+3. Confirm that every difference is explained by your change.
+4. Regenerate the baselines explicitly:
 
    ```bash
-   npm run test:visual -- --update-snapshots
+   npm run test:e2e -- e2e/visual-smoke.spec.ts --update-snapshots
    ```
 
-   If the suite uses a separate update script, use `npm run test:visual:update` instead.
-5. Re-run the suite without the update flag to confirm it passes against the new baselines.
-6. Commit the updated snapshot files alongside the code change that caused them.
+   To regenerate only one capture, narrow the run by test name:
 
-The update command rewrites the committed baseline images. Treat those files as part of the change under review, not as generated noise.
+   ```bash
+   npm run test:e2e -- e2e/visual-smoke.spec.ts --update-snapshots -g "dashboard"
+   ```
 
-## Reviewing a Visual Diff
+5. Re-run the suite without `--update-snapshots` to confirm it passes against the
+   new images.
+6. Commit the changed files under `e2e/visual-smoke.spec.ts-snapshots/`
+   alongside the code change that caused them, and explain the visual change in
+   the pull request.
 
-When a pull request changes a snapshot, review the diff before approving:
+## Reviewing a visual diff
 
-1. Open the diff report from the test run or the committed snapshot changes in the pull request.
-2. Compare the expected image against the actual image and examine the diff overlay to locate what moved, resized, recolored, or disappeared.
-3. Confirm the change matches the intent of the code change and does not introduce unintended effects in other components.
-4. Check that the change is consistent across the covered breakpoints and themes.
-5. If anything is unexplained, request changes rather than accepting the new baseline.
+When a pull request includes changed screenshots:
 
-## Why You Must Not Update Snapshots to Silence a Failure
+1. Look at the committed PNGs in the GitHub files view. GitHub renders an image
+   diff for each changed baseline.
+2. Compare expected, actual, and the diff overlay from `test-results/` to see
+   what moved, resized, recoloured, or disappeared.
+3. Confirm the change is limited to the screen and area your code change
+   touches. Changes on an unrelated screen usually mean a shared style, font, or
+   layout primitive moved.
+4. Check that the diff matches the intent of the change and is acceptable at
+   both captured viewports.
+5. If the difference is unexplained, request changes rather than accepting the
+   new baseline.
 
-Never regenerate a snapshot just to make a failing test pass. A failing snapshot is evidence that the rendered output changed. Overwriting the baseline without understanding the cause hides regressions, makes the suite meaningless, and ships unintended visual changes to users.
+## Do not update snapshots to silence a failure
 
-If a snapshot fails unexpectedly:
+Never run `--update-snapshots` just to make a failing test green. A failing
+screenshot is evidence that the rendered output changed. Overwriting the
+baseline without understanding why hides regressions and makes the suite
+meaningless.
 
-- Investigate the root cause before changing any baseline.
-- Check for unintended style, layout, or dependency changes.
-- Fix the code if the change was a regression.
-- Only update the snapshot when the new output is the intended result, and say so in the pull request description.
-
-A snapshot update without a corresponding, justified code change is a redflag in review and should be rejected.
+If a screenshot fails unexpectedly, investigate the cause first: look for an
+unintended style, layout, dependency, font, or viewport change. Fix the code if
+the change was a regression. Update the baseline only when the new output is the
+intended result, and say so in the pull request.
