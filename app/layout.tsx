@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import type { JSX } from "react";
 
-import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { Header } from "@/components/header";
 import { IndexerLagBanner } from "@/components/indexer-lag-banner";
 import { OfflineBanner } from "@/components/offline-banner";
 import { SkipLink } from "@/components/skip-link";

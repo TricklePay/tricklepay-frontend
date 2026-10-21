@@ -2,16 +2,16 @@
 
 import type { JSX } from "react";
 
+import { AccountNotFoundAlert } from "@/components/account-not-found-alert";
 import { CancelStreamControl } from "@/components/cancel-stream-control";
 import { CopyButton } from "@/components/copy-button";
 import { TimeoutRecoveryAlert } from "@/components/timeout-recovery-alert";
 import { TransactionProgress } from "@/components/transaction-progress";
 import { WithdrawPanel } from "@/components/withdraw-panel";
-import { AccountNotFoundAlert } from "@/components/account-not-found-alert";
 import { useStreamActions } from "@/hooks/use-stream-actions";
 import { config } from "@/lib/config";
-import { txExplorerUrl } from "@/lib/explorer";
 import { ACCOUNT_NOT_FOUND_MESSAGE } from "@/lib/contract-messages";
+import { txExplorerUrl } from "@/lib/explorer";
 import { blockedReason, canSenderCancel } from "@/lib/stream-actions";
 import { isStreamRecipient } from "@/lib/stream-role";
 import type { StreamView } from "@/types/stream";

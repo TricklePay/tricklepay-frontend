@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getStream, listStreams } from "./api";
 import { parseStreamListResponse, parseStreamView } from "./api-schema";
-
 import error400 from "../test/fixtures/api/error-400.json";
 import error404 from "../test/fixtures/api/error-404.json";
 import error429 from "../test/fixtures/api/error-429.json";

@@ -1,5 +1,3 @@
-const STROOP_DECIMALS = 7n;
-
 // Characters kept from each end of a truncated address: enough to tell
 // addresses apart at a glance while fitting cards and table cells.
 const ADDRESS_EDGE_LENGTH = 4;
@@ -11,6 +9,7 @@ const SECONDS_PER_MINUTE = 60;
 const SECONDS_PER_HOUR = 3600;
 const SECONDS_PER_DAY = 86400;
 
+import { getCachedTokenDecimals } from "@/lib/token-decimals";
 import {
   getCachedTokenMetadata,
   KNOWN_TOKEN_METADATA,
@@ -56,7 +55,6 @@ export function formatTokenDisplay(tokenAddress: string): string {
   return truncateAddress(tokenAddress);
 }
 
-import { getCachedTokenDecimals } from "@/lib/token-decimals";
 
 /**
  * Formats a base-unit token amount as a decimal string using the token's decimals

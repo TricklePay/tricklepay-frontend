@@ -1,8 +1,15 @@
 /* @vitest-environment jsdom */
 
+import * as freighter from "@stellar/freighter-api";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import Home from "@/app/page";
+import { StreamDetail } from "@/components/stream-detail";
+import { WalletButton } from "@/components/wallet-button";
+import { WalletProvider } from "@/components/wallet-provider";
+import { listStreams } from "@/lib/api";
+import { truncateAddress } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
 // Switching accounts in Freighter must carry the whole app to the new account
@@ -100,15 +107,6 @@ vi.mock("@/lib/api", async (importOriginal) => ({
     return { streams, total: streams.length, limit: 25, offset: 0 };
   }),
 }));
-
-import * as freighter from "@stellar/freighter-api";
-
-import Home from "@/app/page";
-import { StreamDetail } from "@/components/stream-detail";
-import { WalletButton } from "@/components/wallet-button";
-import { WalletProvider } from "@/components/wallet-provider";
-import { listStreams } from "@/lib/api";
-import { truncateAddress } from "@/lib/format";
 
 function emitAccount(address: string) {
   act(() => {

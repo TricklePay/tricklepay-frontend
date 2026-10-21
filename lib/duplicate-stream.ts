@@ -2,24 +2,11 @@
 // to start from now while preserving the duration and cliff offset.
 // Pure, so it can be tested without React.
 
-import { nowAsDatetimeLocal, addDurationToLocal } from "@/lib/duration";
-import { formatAmount } from "@/lib/format";
 import { EMPTY_FORM_DRAFT } from "@/lib/create-form-draft";
+import { nowAsDatetimeLocal } from "@/lib/duration";
+import { formatAmount } from "@/lib/format";
 import type { FormDraft } from "@/types/form";
 import type { StreamView } from "@/types/stream";
-
-/**
- * Formats a Unix-second bigint as a `datetime-local` input string
- * ("YYYY-MM-DDTHH:mm") in local wall-clock time.
- */
-function unixToDatetimeLocal(unixSeconds: bigint): string {
-  const date = new Date(Number(unixSeconds) * 1000);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
-  );
-}
 
 /**
  * Builds a create-form draft pre-filled from an existing stream.

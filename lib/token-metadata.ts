@@ -211,9 +211,15 @@ export function useTokenMetadata(tokenAddress: string): TokenMetadata | null {
 export function useTokensMetadata(tokenAddresses: string[]): void {
   const [, setTick] = useState(0);
 
+  // The effect keys off the addresses themselves, not the array identity: a
+  // caller that builds the list inline would otherwise re-run on every render.
+  // Deriving the key here also satisfies the linter's demand for a statically
+  // checkable dependency instead of a call expression.
+  const addressKey = tokenAddresses.join(",");
+
   useEffect(() => {
     let cancelled = false;
-    const unique = Array.from(new Set(tokenAddresses.map((t) => t.trim()))).filter(
+    const unique = Array.from(new Set(addressKey.split(",").map((t) => t.trim()))).filter(
       (t) =>
         Boolean(t) &&
         isValidContractAddress(t) &&
@@ -235,5 +241,5 @@ export function useTokensMetadata(tokenAddresses: string[]): void {
       cancelled = true;
       unsubscribe();
     };
-  }, [tokenAddresses.join(",")]);
+  }, [addressKey]);
 }

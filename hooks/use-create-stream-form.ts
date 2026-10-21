@@ -13,7 +13,6 @@ import {
   wrongNetworkMessage,
 } from "@/lib/contract-messages";
 import { clearFormDraft, EMPTY_FORM_DRAFT, readFormDraft, writeFormDraft } from "@/lib/create-form-draft";
-import { clearLastToken, readLastToken, writeLastToken } from "@/lib/last-token";
 import { submitCreateStream } from "@/lib/create-stream-submission";
 import {
   amountFieldError,
@@ -26,6 +25,7 @@ import {
 } from "@/lib/create-stream-validation";
 import { addDurationToLocal, deriveDuration, durationFieldError, isDurationUnit } from "@/lib/duration";
 import { formatDuration } from "@/lib/format";
+import { clearLastToken, readLastToken, writeLastToken } from "@/lib/last-token";
 import { setPendingNotice } from "@/lib/pending-notice";
 import { applySchedulePreset, SCHEDULE_PRESETS } from "@/lib/schedule-presets";
 import { readTokenBalance } from "@/lib/token-balance";
@@ -163,6 +163,12 @@ export function useCreateStreamForm(): CreateStreamForm {
 
   const { recipient, token, amount, start, end, cliff, durationAmount, durationUnit } = values;
 
+  // The decimals effect must read the *current* amount without re-fetching
+  // decimals every time the user types one. A ref gives it the latest value
+  // while keeping the dependency list down to `token`.
+  const amountRef = useRef(amount);
+  amountRef.current = amount;
+
   function setFieldErrors(next: CreateFormErrors) {
     setErrors((prev) => ({ ...prev, ...next }));
   }
@@ -205,16 +211,16 @@ export function useCreateStreamForm(): CreateStreamForm {
         if (!active) return;
         setTokenDecimals(dec);
         setDecimalsNotice(null);
-        if (amount) {
-          setFieldErrors({ amount: amountFieldError(amount, dec) });
+        if (amountRef.current) {
+          setFieldErrors({ amount: amountFieldError(amountRef.current, dec) });
         }
       })
       .catch(() => {
         if (!active) return;
         setTokenDecimals(DEFAULT_TOKEN_DECIMALS);
         setDecimalsNotice("Could not read token decimals from contract. Defaulting to 7 decimals.");
-        if (amount) {
-          setFieldErrors({ amount: amountFieldError(amount, DEFAULT_TOKEN_DECIMALS) });
+        if (amountRef.current) {
+          setFieldErrors({ amount: amountFieldError(amountRef.current, DEFAULT_TOKEN_DECIMALS) });
         }
       });
 

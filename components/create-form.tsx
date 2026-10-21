@@ -2,11 +2,11 @@
 
 import type { JSX } from "react";
 
+import { AccountNotFoundAlert } from "@/components/account-not-found-alert";
 import { CreateStreamFields } from "@/components/create-stream-fields";
 import { StreamReview } from "@/components/stream-review";
 import { TimeoutRecoveryAlert } from "@/components/timeout-recovery-alert";
 import { TransactionProgress } from "@/components/transaction-progress";
-import { AccountNotFoundAlert } from "@/components/account-not-found-alert";
 import { useCreateStreamForm } from "@/hooks/use-create-stream-form";
 import { config } from "@/lib/config";
 import { ACCOUNT_NOT_FOUND_MESSAGE } from "@/lib/contract-messages";

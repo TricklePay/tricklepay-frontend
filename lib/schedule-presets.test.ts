@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  applySchedulePreset,
-  SCHEDULE_PRESETS,
-  type SchedulePreset,
-} from "./schedule-presets";
+import { applySchedulePreset, SCHEDULE_PRESETS } from "./schedule-presets";
 
 describe("SCHEDULE_PRESETS", () => {
   it("defines the three standard presets", () => {
