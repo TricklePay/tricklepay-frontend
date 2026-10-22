@@ -22,6 +22,16 @@ describe("readTokenBalance", () => {
     await expect(readTokenBalance(TOKEN, HOLDER)).resolves.toBe(5_000_000n);
   });
 
+  it("throws when simulation succeeds but has no result", async () => {
+    simulateTransaction.mockResolvedValue({
+      transactionData: {},
+    });
+
+    await expect(readTokenBalance(TOKEN, HOLDER)).rejects.toThrow(
+      "Balance read did not return a value."
+    );
+  });
+
   it("throws when the read fails, so callers treat it as best-effort", async () => {
     simulateTransaction.mockResolvedValue({ error: "HostError: contract not found" });
 
