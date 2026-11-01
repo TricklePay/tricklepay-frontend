@@ -227,19 +227,6 @@ async function request<T>(
   handle: (res: Response) => Promise<T>,
 ): Promise<T> {
   const callerSignal = options.signal;
-
-  // When caller explicitly provided a cancellation signal and did not specify a timeout override,
-  // pass the caller's signal directly through to fetch so caller retains direct signal reference.
-  if (callerSignal && options.timeoutMs === undefined) {
-    if (callerSignal.aborted) {
-      const error = new Error("The operation was aborted.");
-      error.name = "AbortError";
-      throw error;
-    }
-    const res = await fetch(url, { cache: "no-store", signal: callerSignal });
-    return await handle(res);
-  }
-
   const timeoutMs = options.timeoutMs ?? config.apiTimeoutMs;
   const controller = new AbortController();
   const forwardAbort = () => controller.abort();
