@@ -7,6 +7,7 @@ import {
   isTimeoutError,
   ApiTimeoutError,
 } from "./api";
+import { config } from "./config";
 
 function abortError(): Error {
   const error = new Error("The operation was aborted.");
@@ -44,6 +45,17 @@ describe("request timeout", () => {
     const assertion = expect(pending).rejects.toBeInstanceOf(ApiTimeoutError);
 
     await vi.advanceTimersByTimeAsync(5000);
+    await assertion;
+  });
+
+  it("bounds signal-carrying requests with the API timeout", async () => {
+    global.fetch = hangingFetch() as unknown as typeof global.fetch;
+
+    const controller = new AbortController();
+    const pending = listStreams({}, { signal: controller.signal });
+    const assertion = expect(pending).rejects.toBeInstanceOf(ApiTimeoutError);
+
+    await vi.advanceTimersByTimeAsync(config.apiTimeoutMs);
     await assertion;
   });
 

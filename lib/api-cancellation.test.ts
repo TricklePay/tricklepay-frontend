@@ -48,17 +48,18 @@ describe("request cancellation", () => {
   });
 
   describe("listStreams", () => {
-    it("passes the caller signal through to fetch", async () => {
+    it("aborts fetch when the caller signal aborts", async () => {
       const { fetch, signalOf } = abortableFetch();
       global.fetch = fetch as unknown as typeof global.fetch;
 
       const controller = new AbortController();
       const pending = listStreams({}, { signal: controller.signal });
 
-      expect(signalOf(0)).toBe(controller.signal);
+      expect(signalOf(0)?.aborted).toBe(false);
 
       controller.abort();
       await expect(pending).rejects.toSatisfy(isAbortError);
+      expect(signalOf(0)?.aborted).toBe(true);
     });
 
     it("rejects immediately when handed an already-aborted signal", async () => {
@@ -85,17 +86,18 @@ describe("request cancellation", () => {
   });
 
   describe("getStream", () => {
-    it("passes the caller signal through to fetch", async () => {
+    it("aborts fetch when the caller signal aborts", async () => {
       const { fetch, signalOf } = abortableFetch();
       global.fetch = fetch as unknown as typeof global.fetch;
 
       const controller = new AbortController();
       const pending = getStream("1", { signal: controller.signal });
 
-      expect(signalOf(0)).toBe(controller.signal);
+      expect(signalOf(0)?.aborted).toBe(false);
 
       controller.abort();
       await expect(pending).rejects.toSatisfy(isAbortError);
+      expect(signalOf(0)?.aborted).toBe(true);
     });
 
     it("reports an abort during body decoding as a cancellation, not a bad payload", async () => {
