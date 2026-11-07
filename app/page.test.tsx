@@ -230,6 +230,60 @@ describe("Dashboard Page", () => {
     expect(htmlString).toContain("Outgoing");
   });
 
+  it("renders the Updated freshness label after a successful load and calls downloadCsv when Export CSV is clicked (#493)", () => {
+    mockConnectedWithData();
+    const loadedAt = Date.now() - 15_000;
+    vi.mocked(useStreamPage).mockReturnValue({
+      ...vi.mocked(useStreamPage).mock.results[0]?.value,
+      streams: [
+        {
+          id: "stream-1",
+          sender: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7",
+          recipient: "GBBBI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7",
+          token: "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
+          totalAmount: "10000000",
+          withdrawn: "0",
+          vested: "0",
+          withdrawable: "0",
+          locked: "10000000",
+          startTime: "1000",
+          endTime: "2000",
+          cliffTime: "1000",
+          cancelled: false,
+          status: "streaming",
+          progress: 0,
+        } as StreamView,
+      ],
+      total: 1,
+      loading: false,
+      loadingMore: false,
+      hasMore: false,
+      error: null,
+      requestId: null,
+      consecutiveRefreshFailures: 0,
+      refreshWarning: null,
+      refresh: vi.fn(),
+      loadMore: vi.fn(),
+      lastUpdated: loadedAt,
+    });
+
+    render(Home());
+
+    const updatedLabels = screen.getAllByText(/^Updated\s+/i);
+    expect(updatedLabels.length).toBe(2);
+
+    const exportIncomingBtn = screen.getByRole("button", {
+      name: "Export loaded incoming streams as CSV",
+    });
+    fireEvent.click(exportIncomingBtn);
+
+    expect(downloadCsv).toHaveBeenCalledTimes(1);
+    expect(downloadCsv).toHaveBeenCalledWith(
+      "tricklepay-incoming-streams.csv",
+      expect.stringContaining("stream-1"),
+    );
+  });
+
   describe("streams total (#311)", () => {
     it("displays the total across visible streams clearly labelled", () => {
       mockConnectedWithData();
