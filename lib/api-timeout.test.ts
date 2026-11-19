@@ -7,6 +7,7 @@ import {
   isTimeoutError,
   ApiTimeoutError,
 } from "./api";
+import { config } from "./config";
 
 function abortError(): Error {
   const error = new Error("The operation was aborted.");
@@ -77,6 +78,39 @@ describe("request timeout", () => {
 
     const controller = new AbortController();
     const pending = listStreams({}, { signal: controller.signal, timeoutMs: 5000 }).catch(
+      (error: unknown) => error,
+    );
+
+    controller.abort();
+    const error = await pending;
+
+    expect(isAbortError(error)).toBe(true);
+    expect(isTimeoutError(error)).toBe(false);
+  });
+
+  it("applies the configured timeout to a request that passes a caller signal", async () => {
+    // useStreamPage always passes a signal and no timeoutMs; such a request
+    // must still be bounded by config.apiTimeoutMs (NEXT_PUBLIC_API_TIMEOUT_MS).
+    global.fetch = hangingFetch() as unknown as typeof global.fetch;
+
+    const controller = new AbortController();
+    const pending = listStreams({}, { signal: controller.signal }).catch(
+      (error: unknown) => error,
+    );
+
+    await vi.advanceTimersByTimeAsync(config.apiTimeoutMs);
+    const error = await pending;
+
+    expect(error).toBeInstanceOf(ApiTimeoutError);
+    expect(isAbortError(error)).toBe(false);
+    expect((error as ApiTimeoutError).timeoutMs).toBe(config.apiTimeoutMs);
+  });
+
+  it("keeps a caller abort as an AbortError under the default timeout", async () => {
+    global.fetch = hangingFetch() as unknown as typeof global.fetch;
+
+    const controller = new AbortController();
+    const pending = listStreams({}, { signal: controller.signal }).catch(
       (error: unknown) => error,
     );
 

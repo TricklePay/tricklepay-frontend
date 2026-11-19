@@ -4,7 +4,7 @@
 // server without rebuilding has no effect. Defaults target testnet against a
 // local backend so the app runs with no setup in development.
 
-import { StrKey } from "@stellar/stellar-sdk";
+import { isValidContract } from "@/lib/strkey";
 
 const NETWORK_PASSPHRASES: Record<"testnet" | "mainnet", string> = {
   testnet: "Test SDF Network ; September 2015",
@@ -153,7 +153,7 @@ if (!contractId) {
       "Add it to your .env file (it starts with C).",
     );
   }
-} else if (!StrKey.isValidContract(contractId)) {
+} else if (!isValidContract(contractId)) {
   throw new Error(
     `Configuration error: NEXT_PUBLIC_CONTRACT_ID "${contractId}" is not a valid Stellar contract address. ` +
     "It must be a 56-character string starting with C.",

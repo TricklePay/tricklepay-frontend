@@ -1,5 +1,5 @@
 import { nativeToScVal } from "@stellar/stellar-sdk";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { simulateTransaction } = vi.hoisted(() => ({ simulateTransaction: vi.fn() }));
 
@@ -9,7 +9,9 @@ vi.mock("@/lib/contract-network", () => ({
 
 import { nativeAssetContractId } from "@/lib/native-asset";
 import {
+  CachedTokenMetadataError,
   clearTokenMetadataCache,
+  FAILED_TOKEN_METADATA_TTL_MS,
   getCachedTokenMetadata,
   KNOWN_TOKEN_METADATA,
   readTokenMetadata,
@@ -24,6 +26,10 @@ describe("token metadata helper", () => {
   beforeEach(() => {
     clearTokenMetadataCache();
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("resolves unknown tokens once through read-only simulation and caches them", async () => {
@@ -115,5 +121,64 @@ describe("token metadata helper", () => {
 
     clearTokenMetadataCache();
     expect(getCachedTokenMetadata(UNKNOWN_TOKEN)).toBeNull();
+  });
+
+  it("caches failed lookups with a distinct error and retries after the TTL", async () => {
+    vi.useFakeTimers();
+    simulateTransaction.mockResolvedValueOnce({
+      error: "HostError: symbol not implemented",
+    });
+
+    await expect(readTokenMetadata(UNKNOWN_TOKEN)).rejects.toThrow(
+      "HostError: symbol not implemented",
+    );
+    expect(simulateTransaction).toHaveBeenCalledTimes(1);
+
+    // Within the TTL, subsequent calls throw CachedTokenMetadataError without hitting RPC.
+    await expect(readTokenMetadata(UNKNOWN_TOKEN)).rejects.toBeInstanceOf(
+      CachedTokenMetadataError,
+    );
+    expect(simulateTransaction).toHaveBeenCalledTimes(1);
+
+    // Once the TTL elapses, the next lookup retries RPC.
+    vi.advanceTimersByTime(FAILED_TOKEN_METADATA_TTL_MS);
+    simulateTransaction
+      .mockResolvedValueOnce({
+        transactionData: {},
+        result: { retval: nativeToScVal("USDC", { type: "string" }) },
+      })
+      .mockResolvedValueOnce({
+        transactionData: {},
+        result: { retval: nativeToScVal("USD Coin", { type: "string" }) },
+      });
+
+    const meta = await readTokenMetadata(UNKNOWN_TOKEN);
+    expect(meta).toEqual({ symbol: "USDC", name: "USD Coin" });
+    expect(simulateTransaction).toHaveBeenCalledTimes(3);
+  });
+
+  it("bypasses a cached failure when forceRefresh is true", async () => {
+    simulateTransaction.mockResolvedValueOnce({
+      error: "HostError: transient failure",
+    });
+
+    await expect(readTokenMetadata(UNKNOWN_TOKEN)).rejects.toThrow(
+      "HostError: transient failure",
+    );
+    expect(simulateTransaction).toHaveBeenCalledTimes(1);
+
+    simulateTransaction
+      .mockResolvedValueOnce({
+        transactionData: {},
+        result: { retval: nativeToScVal("EURC", { type: "string" }) },
+      })
+      .mockResolvedValueOnce({
+        transactionData: {},
+        result: { retval: nativeToScVal("Euro Coin", { type: "string" }) },
+      });
+
+    const meta = await readTokenMetadata(UNKNOWN_TOKEN, { forceRefresh: true });
+    expect(meta).toEqual({ symbol: "EURC", name: "Euro Coin" });
+    expect(simulateTransaction).toHaveBeenCalledTimes(3);
   });
 });

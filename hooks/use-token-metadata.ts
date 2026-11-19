@@ -6,6 +6,7 @@ import {
   type TokenMetadata,
   KNOWN_TOKEN_METADATA,
   getCachedTokenMetadata,
+  isTokenMetadataFailureCached,
   readTokenMetadata,
   subscribeTokenMetadata,
 } from "@/lib/token-metadata";
@@ -74,7 +75,8 @@ export function useTokensMetadata(tokenAddresses: string[]): void {
       (t) =>
         isValidContractAddress(t) &&
         !getCachedTokenMetadata(t) &&
-        !KNOWN_TOKEN_METADATA[t],
+        !KNOWN_TOKEN_METADATA[t] &&
+        !isTokenMetadataFailureCached(t),
     );
 
     for (const token of unique) {

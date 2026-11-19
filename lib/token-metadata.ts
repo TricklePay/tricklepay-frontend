@@ -2,10 +2,39 @@
 import { config } from "@/lib/config";
 import { TRANSACTION_BASE_FEE, TX_TIMEOUT_SECONDS } from "@/lib/contract-config";
 import { nativeAssetContractId } from "@/lib/native-asset";
+import { isValidContract } from "@/lib/strkey";
 
 export interface TokenMetadata {
   name: string;
   symbol: string;
+}
+
+export interface ReadTokenMetadataOptions {
+  /** Bypass any cached lookup failure and re-simulate against RPC immediately. */
+  forceRefresh?: boolean;
+}
+
+/** How long a failed metadata lookup is cached before retrying RPC (5 minutes). */
+export const FAILED_TOKEN_METADATA_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * Thrown when `readTokenMetadata` skips an RPC call because a recent lookup
+ * for the same contract failed within `FAILED_TOKEN_METADATA_TTL_MS`.
+ */
+export class CachedTokenMetadataError extends Error {
+  readonly tokenContractId: string;
+  readonly retryAt: number;
+  readonly originalError: Error;
+
+  constructor(tokenContractId: string, retryAt: number, originalError: Error) {
+    super(
+      `Token metadata lookup for ${tokenContractId} recently failed; retry after ${new Date(retryAt).toISOString()}.`,
+    );
+    this.name = "CachedTokenMetadataError";
+    this.tokenContractId = tokenContractId;
+    this.retryAt = retryAt;
+    this.originalError = originalError;
+  }
 }
 
 // Known token contracts used in the app and its fixtures as fallback.
@@ -24,6 +53,7 @@ const READ_ONLY_SOURCE_ACCOUNT = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7L
 
 // In-memory cache for token metadata during the browser session.
 const metadataCache = new Map<string, TokenMetadata>();
+const failedMetadataCache = new Map<string, { expiresAt: number; error: Error }>();
 const inFlightRequests = new Map<string, Promise<TokenMetadata>>();
 const listeners = new Set<() => void>();
 
@@ -51,13 +81,29 @@ export function getCachedTokenMetadata(tokenContractId: string): TokenMetadata |
 }
 
 /**
+ * Returns whether a recent failed lookup for this token is still within its TTL.
+ */
+export function isTokenMetadataFailureCached(tokenContractId: string): boolean {
+  const address = tokenContractId.trim();
+  const entry = failedMetadataCache.get(address);
+  if (!entry) return false;
+  if (Date.now() >= entry.expiresAt) {
+    failedMetadataCache.delete(address);
+    return false;
+  }
+  return true;
+}
+
+/**
  * Caches token metadata for the session.
  */
 export function setCachedTokenMetadata(
   tokenContractId: string,
   metadata: TokenMetadata,
 ): void {
-  metadataCache.set(tokenContractId.trim(), metadata);
+  const address = tokenContractId.trim();
+  failedMetadataCache.delete(address);
+  metadataCache.set(address, metadata);
   notifyListeners();
 }
 
@@ -66,6 +112,7 @@ export function setCachedTokenMetadata(
  */
 export function clearTokenMetadataCache(): void {
   metadataCache.clear();
+  failedMetadataCache.clear();
   inFlightRequests.clear();
   notifyListeners();
 }
@@ -118,6 +165,7 @@ async function simulateTokenCall(
  */
 export async function readTokenMetadata(
   tokenContractId: string,
+  options?: ReadTokenMetadataOptions,
 ): Promise<TokenMetadata> {
   const address = tokenContractId.trim();
 
@@ -125,9 +173,21 @@ export async function readTokenMetadata(
     throw new Error("Token contract address is required.");
   }
 
-  const cached = metadataCache.get(address);
-  if (cached) {
-    return cached;
+  if (options?.forceRefresh) {
+    failedMetadataCache.delete(address);
+  } else {
+    const cached = metadataCache.get(address);
+    if (cached) {
+      return cached;
+    }
+
+    const failed = failedMetadataCache.get(address);
+    if (failed) {
+      if (Date.now() < failed.expiresAt) {
+        throw new CachedTokenMetadataError(address, failed.expiresAt, failed.error);
+      }
+      failedMetadataCache.delete(address);
+    }
   }
 
   const inFlight = inFlightRequests.get(address);
@@ -153,6 +213,7 @@ export async function readTokenMetadata(
       }
 
       const result: TokenMetadata = { symbol, name };
+      failedMetadataCache.delete(address);
       metadataCache.set(address, result);
       notifyListeners();
 
@@ -164,6 +225,12 @@ export async function readTokenMetadata(
       if (fallback) {
         return fallback;
       }
+
+      const error = err instanceof Error ? err : new Error(String(err));
+      failedMetadataCache.set(address, {
+        expiresAt: Date.now() + FAILED_TOKEN_METADATA_TTL_MS,
+        error,
+      });
 
       throw err;
     }

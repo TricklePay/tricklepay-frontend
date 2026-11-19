@@ -1,13 +1,12 @@
-import { StrKey } from "@stellar/stellar-sdk";
-
 import { parseDecimalAmount } from "@/lib/amount-parser";
+import { isValidContract, isValidEd25519PublicKey } from "@/lib/strkey";
 
 /**
  * A Stellar address is valid if it is a public key (G...) or a contract (C...).
  */
 export function isValidStellarAddress(value: string): boolean {
   if (!value) return false;
-  return StrKey.isValidEd25519PublicKey(value) || StrKey.isValidContract(value);
+  return isValidEd25519PublicKey(value) || isValidContract(value);
 }
 
 /**
@@ -15,7 +14,7 @@ export function isValidStellarAddress(value: string): boolean {
  */
 export function isValidContractAddress(value: string): boolean {
   if (!value) return false;
-  return StrKey.isValidContract(value);
+  return isValidContract(value);
 }
 
 /**
