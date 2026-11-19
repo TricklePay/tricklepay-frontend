@@ -30,7 +30,9 @@ function formatEventAmounts(event: StreamEvent, streamToken: string): string | n
 
   const parts: string[] = [];
   if (event.recipientAmount != null) {
-    parts.push(`${formatTokenAmount(event.recipientAmount, token)} to recipient`);
+    parts.push(
+      `${formatTokenAmount(event.recipientAmount, token)} claimable by recipient`,
+    );
   }
   if (event.senderRefund != null) {
     parts.push(`${formatTokenAmount(event.senderRefund, token)} refunded to sender`);

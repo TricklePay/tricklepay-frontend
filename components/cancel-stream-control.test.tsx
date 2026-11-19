@@ -42,6 +42,9 @@ describe("CancelStreamControl", () => {
     // The alertdialog contains a message and a div with buttons
     const [, actionsDiv] = confirmingElement.props.children;
     const [confirmBtn, dismissBtn] = actionsDiv.props.children;
+    expect(confirmingElement.props.children[0].props.children).toContain(
+      "The vested balance is claimable by the recipient",
+    );
 
     // Triggering the confirm button should now fire onConfirm
     confirmBtn.props.onClick();
