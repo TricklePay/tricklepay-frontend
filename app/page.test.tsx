@@ -488,4 +488,66 @@ describe("Dashboard Page", () => {
       }
     });
   });
+
+  describe("dashboard helpers (#493)", () => {
+    it("renders the Updated freshness label after a successful load and exports CSV on click", () => {
+      vi.mocked(useWallet).mockReturnValue({
+        address: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7",
+        network: "testnet",
+        connecting: false,
+        error: null,
+        connect: vi.fn(),
+        disconnect: vi.fn(),
+      });
+
+      const stream: StreamView = {
+        id: "stream-1",
+        sender: "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7",
+        recipient: "GBBBI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7",
+        token: "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
+        totalAmount: "10000000",
+        withdrawn: "0",
+        vested: "0",
+        withdrawable: "0",
+        locked: "10000000",
+        startTime: "1000",
+        endTime: "2000",
+        cliffTime: "1000",
+        cancelled: false,
+        status: "streaming",
+        progress: 0,
+      };
+
+      vi.mocked(useStreamPage).mockReturnValue({
+        streams: [stream],
+        total: 1,
+        loading: false,
+        loadingMore: false,
+        hasMore: false,
+        error: null,
+        requestId: null,
+        consecutiveRefreshFailures: 0,
+        refreshWarning: null,
+        refresh: vi.fn(),
+        loadMore: vi.fn(),
+        lastUpdated: Date.now() - 60_000,
+      });
+
+      render(Home());
+
+      const updatedLabels = screen.getAllByText(/Updated 1 minute ago/i);
+      expect(updatedLabels.length).toBeGreaterThan(0);
+
+      const exportIncomingBtn = screen.getByRole("button", {
+        name: "Export loaded incoming streams as CSV",
+      });
+      fireEvent.click(exportIncomingBtn);
+
+      expect(downloadCsv).toHaveBeenCalledTimes(1);
+      expect(downloadCsv).toHaveBeenCalledWith(
+        "tricklepay-incoming-streams.csv",
+        streamsToCsv([stream]),
+      );
+    });
+  });
 });
