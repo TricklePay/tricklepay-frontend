@@ -1,10 +1,10 @@
 
-import { StrKey } from "@stellar/stellar-sdk";
 import { useEffect, useRef, useState } from "react";
 
 import { config } from "@/lib/config";
 import { TRANSACTION_BASE_FEE, TX_TIMEOUT_SECONDS } from "@/lib/contract-config";
 import { nativeAssetContractId } from "@/lib/native-asset";
+import { isValidContract } from "@/lib/strkey";
 
 export interface TokenMetadata {
   name: string;
@@ -70,7 +70,7 @@ function notifyListeners(): void {
  */
 function isValidContractAddress(address: string): boolean {
   try {
-    return StrKey.isValidContract(address);
+    return isValidContract(address);
   } catch {
     return false;
   }
