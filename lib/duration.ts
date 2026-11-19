@@ -120,8 +120,14 @@ export function addDurationToLocal(
  * Used when the user edits `end` directly so the displayed duration updates and
  * stays in sync with `end`.
  *
- * Checks for exact year, month, or week matches first (honoring `preferredUnit`
- * when it matches the span), and falls back to whole days.
+ * The largest unit that represents the span exactly always wins: an exact
+ * number of years, then months, then weeks, falling back to whole days.
+ * `preferredUnit` (the unit shown before the edit) is only a tie-breaker
+ * between representations of the same span that are equally exact — today
+ * that is days vs. weeks, so a span of 14 days stays "14 days" when the
+ * previous unit was days and reads "2 weeks" otherwise. It never hides an
+ * exact larger unit: going from 30 days to an end exactly one year later
+ * shows "1 year", not "365 days".
  *
  * Returns `null` if either date does not parse, or if `end <= start`.
  */
@@ -141,32 +147,6 @@ export function deriveDuration(
   const diffMs = endDate.getTime() - startDate.getTime();
   if (diffMs <= 0) return null;
 
-  // Check if preferredUnit matches exactly (for years, months, weeks)
-  if (preferredUnit && isDurationUnit(preferredUnit) && preferredUnit !== "days") {
-    if (preferredUnit === "years") {
-      const y = endDate.getFullYear() - startDate.getFullYear();
-      if (y > 0 && addDurationToLocal(start, String(y), "years") === end) {
-        return { amount: String(y), unit: "years" };
-      }
-    } else if (preferredUnit === "months") {
-      const m =
-        (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-        (endDate.getMonth() - startDate.getMonth());
-      if (m > 0 && addDurationToLocal(start, String(m), "months") === end) {
-        return { amount: String(m), unit: "months" };
-      }
-    } else if (preferredUnit === "weeks") {
-      const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
-      if (
-        diffDays > 0 &&
-        diffDays % 7 === 0 &&
-        addDurationToLocal(start, String(diffDays / 7), "weeks") === end
-      ) {
-        return { amount: String(diffDays / 7), unit: "weeks" };
-      }
-    }
-  }
-
   // Exact years match?
   const y = endDate.getFullYear() - startDate.getFullYear();
   if (y > 0 && addDurationToLocal(start, String(y), "years") === end) {
@@ -181,8 +161,18 @@ export function deriveDuration(
     return { amount: String(m), unit: "months" };
   }
 
-  // Exact weeks match?
   const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
+
+  // Exact days match? Weeks are a fixed multiple of days, so a span that is
+  // an exact number of weeks is equally exact in days: that is the one tie
+  // the previous unit gets to break.
+  const exactDays =
+    diffDays > 0 && addDurationToLocal(start, String(diffDays), "days") === end;
+  if (exactDays && preferredUnit === "days") {
+    return { amount: String(diffDays), unit: "days" };
+  }
+
+  // Exact weeks match?
   if (
     diffDays > 0 &&
     diffDays % 7 === 0 &&
@@ -192,7 +182,7 @@ export function deriveDuration(
   }
 
   // Fallback to days
-  const days = Math.max(1, Math.round(diffMs / (24 * 60 * 60 * 1000)));
+  const days = Math.max(1, diffDays);
   return { amount: String(days), unit: "days" };
 }
 

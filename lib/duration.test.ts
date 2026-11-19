@@ -122,6 +122,58 @@ describe("deriveDuration", () => {
     });
   });
 
+  describe("with the previous unit as a preference", () => {
+    it("switches from days to years when the end is exactly a year later", () => {
+      expect(deriveDuration(START, "2027-08-27T10:00", "days")).toEqual({
+        amount: "1",
+        unit: "years",
+      });
+    });
+
+    it("switches from days to months when the end is exactly some months later", () => {
+      expect(deriveDuration(START, "2026-11-27T10:00", "days")).toEqual({
+        amount: "3",
+        unit: "months",
+      });
+    });
+
+    it("switches from weeks to days when the span is no longer whole weeks", () => {
+      expect(deriveDuration(START, "2026-09-06T10:00", "weeks")).toEqual({
+        amount: "10",
+        unit: "days",
+      });
+    });
+
+    it("keeps days over weeks for a span that is exact in both", () => {
+      expect(deriveDuration(START, "2026-09-03T10:00", "days")).toEqual({
+        amount: "7",
+        unit: "days",
+      });
+    });
+
+    it("keeps weeks over days for a span that is exact in both", () => {
+      expect(deriveDuration(START, "2026-09-03T10:00", "weeks")).toEqual({
+        amount: "1",
+        unit: "weeks",
+      });
+    });
+
+    it("does not let a weeks preference hide an exact month", () => {
+      // 2026-02-01 to 2026-03-01 is both 4 weeks and exactly 1 month.
+      expect(deriveDuration("2026-02-01T10:00", "2026-03-01T10:00", "weeks")).toEqual({
+        amount: "1",
+        unit: "months",
+      });
+    });
+
+    it("does not let a months preference hide an exact year", () => {
+      expect(deriveDuration(START, "2027-08-27T10:00", "months")).toEqual({
+        amount: "1",
+        unit: "years",
+      });
+    });
+  });
+
   it("returns null when end is equal to or before start", () => {
     expect(deriveDuration(START, START)).toBeNull();
     expect(deriveDuration(START, "2026-08-26T10:00")).toBeNull();
