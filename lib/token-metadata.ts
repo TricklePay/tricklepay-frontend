@@ -1,7 +1,4 @@
 
-import { StrKey } from "@stellar/stellar-sdk";
-import { useEffect, useRef, useState } from "react";
-
 import { config } from "@/lib/config";
 import { TRANSACTION_BASE_FEE, TX_TIMEOUT_SECONDS } from "@/lib/contract-config";
 import { nativeAssetContractId } from "@/lib/native-asset";
@@ -33,17 +30,6 @@ const listeners = new Set<() => void>();
 function notifyListeners(): void {
   for (const listener of listeners) {
     listener();
-  }
-}
-
-/**
- * Checks whether a string is a valid Stellar contract address.
- */
-function isValidContractAddress(address: string): boolean {
-  try {
-    return StrKey.isValidContract(address);
-  } catch {
-    return false;
   }
 }
 
@@ -190,105 +176,4 @@ export async function readTokenMetadata(
   } finally {
     inFlightRequests.delete(address);
   }
-}
-
-/**
- * React hook to get token metadata. Returns cached metadata or triggers simulation
- * for unknown tokens and updates reactively.
- */
-export function useTokenMetadata(tokenAddress: string): TokenMetadata | null {
-  const [metadata, setMetadata] = useState<TokenMetadata | null>(() => {
-    const candidate = tokenAddress.trim();
-    return (
-      getCachedTokenMetadata(candidate) ??
-      KNOWN_TOKEN_METADATA[candidate] ??
-      null
-    );
-  });
-
-  useEffect(() => {
-    let cancelled = false;
-    const candidate = tokenAddress.trim();
-
-    if (!candidate || !isValidContractAddress(candidate)) {
-      setMetadata(null);
-      return;
-    }
-
-    const current =
-      getCachedTokenMetadata(candidate) ??
-      KNOWN_TOKEN_METADATA[candidate] ??
-      null;
-
-    if (current) {
-      setMetadata(current);
-      return;
-    }
-
-    const unsubscribe = subscribeTokenMetadata(() => {
-      if (!cancelled) {
-        setMetadata(
-          getCachedTokenMetadata(candidate) ??
-            KNOWN_TOKEN_METADATA[candidate] ??
-            null,
-        );
-      }
-    });
-
-    readTokenMetadata(candidate)
-      .then((meta) => {
-        if (!cancelled) setMetadata(meta);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setMetadata(KNOWN_TOKEN_METADATA[candidate] ?? null);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [tokenAddress]);
-
-  return metadata;
-}
-
-/**
- * React hook to resolve metadata for a list of tokens in the background.
- */
-export function useTokensMetadata(tokenAddresses: string[]): void {
-  const [, setTick] = useState(0);
-  const tokenAddressesKey = tokenAddresses.join(",");
-  const tokenAddressesRef = useRef(tokenAddresses);
-  tokenAddressesRef.current = tokenAddresses;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const unique = Array.from(
-      new Set(tokenAddressesRef.current.map((token) => token.trim())),
-    ).filter(
-      (token) =>
-        Boolean(token) &&
-        isValidContractAddress(token) &&
-        !getCachedTokenMetadata(token) &&
-        !KNOWN_TOKEN_METADATA[token],
-    );
-
-    for (const token of unique) {
-      readTokenMetadata(token).catch(() => {});
-    }
-
-    const unsubscribe = subscribeTokenMetadata(() => {
-      if (!cancelled) {
-        setTick((tick) => tick + 1);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      unsubscribe();
-    };
-  }, [tokenAddressesKey]);
 }
