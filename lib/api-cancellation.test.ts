@@ -48,16 +48,19 @@ describe("request cancellation", () => {
   });
 
   describe("listStreams", () => {
-    it("passes the caller signal through to fetch", async () => {
+    it("forwards a caller abort to the signal fetch receives", async () => {
       const { fetch, signalOf } = abortableFetch();
       global.fetch = fetch as unknown as typeof global.fetch;
 
       const controller = new AbortController();
       const pending = listStreams({}, { signal: controller.signal });
 
-      expect(signalOf(0)).toBe(controller.signal);
+      // The caller signal is merged with the timeout into one internal signal,
+      // so fetch sees a different object that follows the caller's abort.
+      expect(signalOf(0)?.aborted).toBe(false);
 
       controller.abort();
+      expect(signalOf(0)?.aborted).toBe(true);
       await expect(pending).rejects.toSatisfy(isAbortError);
     });
 
@@ -85,16 +88,19 @@ describe("request cancellation", () => {
   });
 
   describe("getStream", () => {
-    it("passes the caller signal through to fetch", async () => {
+    it("forwards a caller abort to the signal fetch receives", async () => {
       const { fetch, signalOf } = abortableFetch();
       global.fetch = fetch as unknown as typeof global.fetch;
 
       const controller = new AbortController();
       const pending = getStream("1", { signal: controller.signal });
 
-      expect(signalOf(0)).toBe(controller.signal);
+      // The caller signal is merged with the timeout into one internal signal,
+      // so fetch sees a different object that follows the caller's abort.
+      expect(signalOf(0)?.aborted).toBe(false);
 
       controller.abort();
+      expect(signalOf(0)?.aborted).toBe(true);
       await expect(pending).rejects.toSatisfy(isAbortError);
     });
 
