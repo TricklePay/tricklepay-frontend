@@ -44,7 +44,6 @@ import { mockGetStream, mockGetStreamEvents, mockListStreams } from "@/lib/mock-
 import type {
   StreamEvent,
   StreamListResponse,
-  StreamStatus,
   StreamView,
 } from "@/types/stream";
 
@@ -56,7 +55,6 @@ export interface ListStreamsParams {
   limit?: number;
   offset?: number;
   cursor?: string;
-  status?: StreamStatus | "all";
   includeTotal?: boolean;
 }
 
@@ -263,7 +261,7 @@ async function request<T>(
   }
 }
 
-// Fetches a page of streams from the backend, optionally filtered by party and status. The
+// Fetches a page of streams from the backend, optionally filtered by party. The
 // whole envelope is returned rather than just the rows so callers can page
 // through a result set larger than the backend's default limit. Results are not
 // cached so the list reflects the latest indexed state. The payload is checked
@@ -281,7 +279,6 @@ export async function listStreams(
   const url = new URL("/streams", config.apiUrl);
   if (params.sender) url.searchParams.set("sender", params.sender);
   if (params.recipient) url.searchParams.set("recipient", params.recipient);
-  if (params.status && params.status !== "all") url.searchParams.set("status", params.status);
   if (params.limit !== undefined) url.searchParams.set("limit", String(params.limit));
   if (params.offset !== undefined) url.searchParams.set("offset", String(params.offset));
   if (params.cursor !== undefined) url.searchParams.set("cursor", params.cursor);
