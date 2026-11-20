@@ -12,6 +12,7 @@ import { TransactionNotice } from "@/components/transaction-notice";
 import { useWallet } from "@/components/wallet-provider";
 import { useNow } from "@/hooks/use-now";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
+import { useTokenDecimals } from "@/hooks/use-token-decimals";
 import { streamsToCsv } from "@/lib/csv";
 import { downloadCsv } from "@/lib/csv-download";
 import { timeAgo } from "@/lib/format";
@@ -68,6 +69,7 @@ function StreamSection({
   const visible = sortStreams(filterStreamsByAddress(page.streams, addressQuery), sort);
   // Summed over the streams currently shown, which the active status filter
   // and search have already narrowed, so the figure follows both.
+  useTokenDecimals(visible.map((stream) => stream.token));
   const total = formatStreamsTotal(visible);
   // Re-render on an interval so a pending stream's "starts in …" countdown
   // in the lists keeps advancing while the absolute schedule stays on the

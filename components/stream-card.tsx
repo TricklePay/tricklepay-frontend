@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { JSX } from "react";
 
 import { StreamStatusBadge } from "@/components/stream-status-badge";
+import { useTokenDecimals } from "@/hooks/use-token-decimals";
 import { useTokenMetadata } from "@/hooks/use-token-metadata";
 import { formatTokenAmount, truncateAddress } from "@/lib/format";
 import { formatRemaining, formatSchedule } from "@/lib/schedule";
@@ -9,6 +10,7 @@ import { markNavigatingToStream } from "@/lib/scroll";
 import type { StreamView } from "@/types/stream";
 
 export function StreamCard({ stream }: { stream: StreamView }): JSX.Element {
+  useTokenDecimals([stream.token]);
   useTokenMetadata(stream.token);
   const remaining = formatRemaining(stream);
   // Only a cliff strictly after the start is worth a row; one at or before it
