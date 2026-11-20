@@ -17,7 +17,7 @@ export interface StreamEventsState {
  * Aborts any in-flight request when the stream id changes, a refresh is
  * triggered, or the page unmounts.
  */
-export function useStreamEvents(id: string, reloadTrigger = 0): StreamEventsState {
+export function useStreamEvents(id: string | null, reloadTrigger = 0): StreamEventsState {
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +28,7 @@ export function useStreamEvents(id: string, reloadTrigger = 0): StreamEventsStat
   }, []);
 
   useEffect(() => {
+    if (id === null) return;
     const controller = new AbortController();
     let cancelled = false;
     setLoading(true);
