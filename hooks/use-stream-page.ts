@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { isAbortError, listStreams, type ListStreamsParams } from "@/lib/api";
 import { MAX_PAGE_SIZE } from "@/lib/page-size";
-import type { StreamStatus, StreamView } from "@/types/stream";
+import type { StreamView } from "@/types/stream";
 
 // Rows per request. Kept under the backend's 50-row default so a large account
 // arrives in visible increments instead of one long stall.
@@ -62,7 +62,6 @@ export interface StreamPage {
 function pageQuery(
   role: StreamRole,
   address: string,
-  status: StreamStatus | "all" | undefined,
   pageSize: number,
   cursor?: string,
 ): ListStreamsParams {
@@ -72,7 +71,6 @@ function pageQuery(
     ...party,
     limit: pageSize,
     ...(cursor !== undefined ? { cursor } : {}),
-    status,
     includeTotal: true,
   };
 }
@@ -95,7 +93,6 @@ function pageQuery(
  * 
  * @param role - Whether to fetch streams where the address is "sender" or "recipient"
  * @param address - The wallet address to fetch streams for, or null if no wallet connected
- * @param status - Filter streams by status, or "all" to fetch streams of any status
  * @param pageSize - Rows requested per page; defaults to PAGE_SIZE
  *
  * @returns {StreamPage} An object containing:
@@ -113,7 +110,6 @@ function pageQuery(
 export function useStreamPage(
   role: StreamRole,
   address: string | null,
-  status: StreamStatus | "all" = "all",
   pageSize: number = PAGE_SIZE,
 ): StreamPage {
   const [streams, setStreams] = useState<StreamView[]>([]);
@@ -142,8 +138,8 @@ export function useStreamPage(
 
   // Controllers for requests that have not settled yet. The generation check
   // above already stops a stale response from being *written*; aborting stops
-  // it from being *waited for* — switching accounts, changing the status
-  // filter, or leaving the page drops the connection instead of holding a
+  // it from being *waited for* — switching accounts, changing the page
+  // size, or leaving the page drops the connection instead of holding a
   // socket open and decoding a body nobody will read. It also matters on a slow
   // link, where superseded page loads would otherwise queue up against the
   // browser's per-host connection limit and delay the one that counts.
@@ -186,7 +182,7 @@ export function useStreamPage(
       for (let attempt = 1; attempt <= FIRST_PAGE_MAX_ATTEMPTS; attempt += 1) {
         const controller = startRequest();
         try {
-          const page = await listStreams(pageQuery(role, address, status, pageSize), {
+          const page = await listStreams(pageQuery(role, address, pageSize), {
             signal: controller.signal,
           });
           endRequest(controller);
@@ -223,7 +219,7 @@ export function useStreamPage(
     run().finally(() => {
       if (generation.current === gen) setLoading(false);
     });
-  }, [role, address, status, pageSize, abortInFlight, startRequest, endRequest]);
+  }, [role, address, pageSize, abortInFlight, startRequest, endRequest]);
 
   useEffect(() => {
     loadFirstPage();
@@ -245,7 +241,7 @@ export function useStreamPage(
     // reset to the default page size.
     const refreshLimit = Math.min(MAX_PAGE_SIZE, Math.max(pageSize, streamsRef.current.length));
     const controller = startRequest();
-    listStreams(pageQuery(role, address, status, refreshLimit), { signal: controller.signal })
+    listStreams(pageQuery(role, address, refreshLimit), { signal: controller.signal })
       .then((page) => {
         if (generation.current !== gen) return;
         // If loadMore ran while this request was in flight, it has appended
@@ -274,7 +270,7 @@ export function useStreamPage(
       .finally(() => {
         endRequest(controller);
       });
-  }, [role, address, status, pageSize, startRequest, endRequest]);
+  }, [role, address, pageSize, startRequest, endRequest]);
 
   // Periodic and window-focus auto-refresh to reflect counterparty actions
   useEffect(() => {
@@ -307,7 +303,7 @@ export function useStreamPage(
     setLoadingMore(true);
     setError(null);
 
-    listStreams(pageQuery(role, address, status, pageSize, nextCursor), {
+    listStreams(pageQuery(role, address, pageSize, nextCursor), {
       signal: controller.signal,
     })
       .then((page) => {
@@ -348,7 +344,6 @@ export function useStreamPage(
     nextCursor,
     loading,
     loadingMore,
-    status,
     pageSize,
     startRequest,
     endRequest,
