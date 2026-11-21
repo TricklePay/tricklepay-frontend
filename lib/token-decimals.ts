@@ -1,5 +1,4 @@
-import { config } from "@/lib/config";
-import { TRANSACTION_BASE_FEE, TX_TIMEOUT_SECONDS } from "@/lib/contract-config";
+import { simulateRead } from "@/lib/contract-read";
 
 export const DEFAULT_TOKEN_DECIMALS = 7;
 
@@ -30,10 +29,6 @@ export class CachedTokenDecimalsError extends Error {
     this.originalError = originalError;
   }
 }
-
-// A valid source account for unsigned read-only transaction simulations.
-const READ_ONLY_SEQUENCE = "0";
-const READ_ONLY_SOURCE_ACCOUNT = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
 
 // In-memory cache for token decimals during the browser session.
 const decimalsCache = new Map<string, number>();
@@ -106,30 +101,7 @@ export async function readTokenDecimals(
 
   const promise = (async () => {
     try {
-      const [{ Account, Contract, rpc, scValToNative, TransactionBuilder }, { server }] =
-        await Promise.all([import("@stellar/stellar-sdk"), import("@/lib/contract-network")]);
-
-      const contract = new Contract(address);
-      const tx = new TransactionBuilder(new Account(READ_ONLY_SOURCE_ACCOUNT, READ_ONLY_SEQUENCE), {
-        fee: TRANSACTION_BASE_FEE,
-        networkPassphrase: config.networkPassphrase,
-      })
-        .addOperation(contract.call("decimals"))
-        .setTimeout(TX_TIMEOUT_SECONDS)
-        .build();
-
-      const simulation = await server().simulateTransaction(tx);
-      if (rpc.Api.isSimulationError(simulation)) {
-        throw new Error(simulation.error);
-      }
-      if (!rpc.Api.isSimulationSuccess(simulation)) {
-        throw new Error("Token decimals read did not complete.");
-      }
-      if (!simulation.result) {
-        throw new Error("Token decimals read did not return a value.");
-      }
-
-      const nativeVal = scValToNative(simulation.result.retval);
+      const nativeVal = await simulateRead(address, "decimals");
       const decimals = Number(nativeVal);
       if (!Number.isInteger(decimals) || decimals < 0 || decimals > 255) {
         throw new Error(`Invalid decimals returned by token contract: ${nativeVal}`);

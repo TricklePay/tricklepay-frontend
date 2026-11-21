@@ -13,6 +13,15 @@ describe("assertContractIdForBuild", () => {
     expect(() => assertContractIdForBuild({ NEXT_PUBLIC_MOCK_API: "false" })).toThrow();
   });
 
+  it("fails the build when GitHub Actions has no contract id", () => {
+    expect(() =>
+      assertContractIdForBuild({
+        GITHUB_ACTIONS: "true",
+        NEXT_PUBLIC_MOCK_API: "false",
+      }),
+    ).toThrow(/NEXT_PUBLIC_CONTRACT_ID is not set/);
+  });
+
   it("passes when the id is set", () => {
     expect(() => assertContractIdForBuild({ NEXT_PUBLIC_CONTRACT_ID: ID })).not.toThrow();
   });
