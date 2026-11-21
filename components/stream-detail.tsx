@@ -15,6 +15,7 @@ import { VestingProjection } from "@/components/vesting-projection";
 import { useWallet } from "@/components/wallet-provider";
 import { useAccrual } from "@/hooks/use-accrual";
 import { useNow } from "@/hooks/use-now";
+import { useTokenDecimals } from "@/hooks/use-token-decimals";
 import { formatTokenAmount, truncateAddress } from "@/lib/format";
 import { formatSchedule, NO_CLIFF_LABEL } from "@/lib/schedule";
 import { setSessionItem } from "@/lib/scroll";
@@ -78,6 +79,7 @@ export function StreamDetail({
   eventsError = null,
   onRetryEvents,
 }: StreamDetailProps): JSX.Element {
+  useTokenDecimals([stream.token]);
   const router = useRouter();
   const accrual = useAccrual(stream);
   const wallet = useWallet();

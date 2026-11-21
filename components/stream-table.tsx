@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { JSX } from "react";
 
 import { StreamStatusBadge } from "@/components/stream-status-badge";
+import { useTokenDecimals } from "@/hooks/use-token-decimals";
 import { useTokensMetadata } from "@/hooks/use-token-metadata";
 import { formatTokenAmount, truncateAddress } from "@/lib/format";
 import { formatRemaining } from "@/lib/schedule";
@@ -15,6 +16,7 @@ export function StreamTable({
   streams: StreamView[];
   emptyMessage?: string;
 }): JSX.Element {
+  useTokenDecimals(streams.map((stream) => stream.token));
   useTokensMetadata(streams.map((s) => s.token));
   return (
     /* Horizontal scroll on narrow viewports so columns never get crushed */
