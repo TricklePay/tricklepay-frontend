@@ -99,16 +99,6 @@ const makeConfig = (phase: string): NextConfig => {
   // lib/config.ts cannot enforce this during the build (prerendering has to
   // succeed), so the build fails here instead.
   if (phase === "phase-production-build") {
-    // GitHub Actions only compiles the app; it never deploys the result. The
-    // workflow does not provide a contract id, so fall back to the public
-    // testnet id used by the e2e config to let the production build validate.
-    if (
-      process.env.GITHUB_ACTIONS === "true" &&
-      !process.env.NEXT_PUBLIC_CONTRACT_ID?.trim()
-    ) {
-      process.env.NEXT_PUBLIC_CONTRACT_ID =
-        "CA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQGAXE";
-    }
     assertContractIdForBuild();
   }
   return withBundleAnalyzer(nextConfig);

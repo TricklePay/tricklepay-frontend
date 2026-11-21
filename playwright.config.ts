@@ -13,6 +13,8 @@ const env = {
 
 export default defineConfig({
   testDir: "./e2e",
+  snapshotPathTemplate:
+    "{snapshotDir}/{testFilePath}-snapshots/{arg}-{projectName}-linux{ext}",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

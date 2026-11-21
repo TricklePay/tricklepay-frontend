@@ -40,8 +40,9 @@ export function CancelStreamControl({
       className="flex flex-col gap-3 self-start rounded border border-red-900 bg-red-950/20 p-4"
     >
       <p id="cancel-confirm-heading" className="text-sm text-red-200">
-        Cancel this stream? Streaming stops immediately and any unstreamed
-        balance returns to the sender. This cannot be undone.
+        Cancel this stream? Streaming stops immediately. The vested balance is
+        claimable by the recipient, and any unstreamed balance returns to the
+        sender. This cannot be undone.
       </p>
       <div className="flex flex-wrap gap-2">
         <button
