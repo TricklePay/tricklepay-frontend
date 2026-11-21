@@ -158,6 +158,22 @@ describe("api client", () => {
     });
   });
 
+  it.each(["..", "/", "?", "#", "123\n", ""])(
+    "skips detail and event requests for invalid id %j",
+    async (id) => {
+      const fetch = vi.fn();
+      vi.stubGlobal("fetch", fetch);
+
+      try {
+        await expect(getStream(id)).resolves.toBeNull();
+        await expect(getStreamEvents(id)).resolves.toEqual([]);
+        expect(fetch).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    },
+  );
+
   describe("getStream", () => {
     it("returns stream data when found", async () => {
       const mockStream = {

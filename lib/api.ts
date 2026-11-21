@@ -41,6 +41,7 @@ import {
 } from "@/lib/api-schema";
 import { config } from "@/lib/config";
 import { mockGetStream, mockGetStreamEvents, mockListStreams } from "@/lib/mock-api";
+import { isValidStreamId } from "@/lib/validation";
 import type {
   StreamEvent,
   StreamListResponse,
@@ -314,6 +315,7 @@ export async function getStream(
   id: string,
   options: RequestOptions = {},
 ): Promise<StreamView | null> {
+  if (!isValidStreamId(id)) return null;
   if (config.mockApi) return mockGetStream(id);
 
   const url = apiEndpoint(`streams/${id}`);
@@ -333,6 +335,7 @@ export async function getStreamEvents(
   id: string,
   options: RequestOptions = {},
 ): Promise<StreamEvent[]> {
+  if (!isValidStreamId(id)) return [];
   if (config.mockApi) return mockGetStreamEvents(id);
 
   const url = apiEndpoint(`streams/${id}/events`);

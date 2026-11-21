@@ -107,3 +107,8 @@ export function validateStreamDates(
 
   return result;
 }
+
+/** Stream IDs are unsigned decimal integers represented as strings. */
+export function isValidStreamId(id: string): boolean {
+  return /^[0-9]+$/.test(id);
+}
