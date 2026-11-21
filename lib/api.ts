@@ -263,6 +263,13 @@ async function request<T>(
   }
 }
 
+// Treat the configured pathname as a directory, with or without a trailing slash.
+function apiEndpoint(path: string): URL {
+  const base = new URL(config.apiUrl);
+  base.pathname = base.pathname.replace(/\/+$/, "") + "/";
+  return new URL(path, base);
+}
+
 // Fetches a page of streams from the backend, optionally filtered by party and status. The
 // whole envelope is returned rather than just the rows so callers can page
 // through a result set larger than the backend's default limit. Results are not
@@ -278,7 +285,7 @@ export async function listStreams(
 ): Promise<StreamListResponse> {
   if (config.mockApi) return mockListStreams(params);
 
-  const url = new URL("/streams", config.apiUrl);
+  const url = apiEndpoint("streams");
   if (params.sender) url.searchParams.set("sender", params.sender);
   if (params.recipient) url.searchParams.set("recipient", params.recipient);
   if (params.status && params.status !== "all") url.searchParams.set("status", params.status);
@@ -309,7 +316,7 @@ export async function getStream(
 ): Promise<StreamView | null> {
   if (config.mockApi) return mockGetStream(id);
 
-  const url = new URL(`/streams/${id}`, config.apiUrl);
+  const url = apiEndpoint(`streams/${id}`);
 
   return request(url, `stream ${id}`, options, async (res) => {
     if (res.status === 404) return null;
@@ -328,7 +335,7 @@ export async function getStreamEvents(
 ): Promise<StreamEvent[]> {
   if (config.mockApi) return mockGetStreamEvents(id);
 
-  const url = new URL(`/streams/${id}/events`, config.apiUrl);
+  const url = apiEndpoint(`streams/${id}/events`);
 
   return request(url, `events for stream ${id}`, options, async (res) => {
     if (res.status === 404) return [];
@@ -350,7 +357,7 @@ const HEALTH_CHECK_TIMEOUT_MS = 5_000;
 // not". A caller-driven abort is the one exception and still rejects, so a
 // cancelled probe is never mistaken for an outage.
 export async function checkApiHealth(options: RequestOptions = {}): Promise<boolean> {
-  const url = new URL("/health", config.apiUrl);
+  const url = apiEndpoint("health");
   try {
     return await request(
       url,
@@ -370,7 +377,7 @@ export async function checkApiHealth(options: RequestOptions = {}): Promise<bool
 // figure is advisory, so every failure collapses to "unknown" instead of an
 // error; only a caller-driven abort still rejects.
 export async function getIndexerLag(options: RequestOptions = {}): Promise<number | null> {
-  const url = new URL("/status", config.apiUrl);
+  const url = apiEndpoint("status");
   try {
     return await request(url, "the indexer status", options, async (res) => {
       if (!res.ok) return null;

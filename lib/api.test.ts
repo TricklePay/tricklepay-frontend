@@ -1,11 +1,43 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-import { listStreams, getStream, getStreamEvents, ApiResponseError } from "./api";
+import { listStreams, getStream, getStreamEvents, ApiResponseError, checkApiHealth, getIndexerLag } from "./api";
 import { config } from "./config";
 
 describe("api client", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it.each([
+    ["https://example.com", ""],
+    ["https://example.com/", ""],
+    ["https://example.com/api/v1", "/api/v1"],
+    ["https://example.com/api/v1/", "/api/v1"],
+  ])("resolves endpoints from %s", async (base, prefix) => {
+    const previous = config.apiUrl;
+    config.apiUrl = base;
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ streams: [], total: 0 })))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }));
+    vi.stubGlobal("fetch", fetch);
+
+    try {
+      await listStreams({ limit: 25 });
+      await getStream("1");
+      await getStreamEvents("1");
+      await checkApiHealth();
+      await getIndexerLag();
+      expect(fetch.mock.calls.map(([url]) => url.href)).toEqual(
+        ["/streams?limit=25", "/streams/1", "/streams/1/events", "/health", "/status"]
+          .map((path) => `https://example.com${prefix}${path}`),
+      );
+    } finally {
+      config.apiUrl = previous;
+      vi.unstubAllGlobals();
+    }
   });
 
   describe("listStreams", () => {
