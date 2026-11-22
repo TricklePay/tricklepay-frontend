@@ -131,6 +131,25 @@ jobs:
             exit 1
           fi
 
+          mkdir -p "$LIGHTHOUSE_REPORT_DIR"
+          CHROME_FLAGS="--headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage"
+
+          npm_config_ignore_scripts=true timeout 120 npx --yes lighthouse@13.6.0 \
+            "${LIGHTHOUSE_BASE_URL}/" \
+            --config-path=.github/lighthouse/config.json \
+            --output=json --output=html \
+            --output-path="${LIGHTHOUSE_REPORT_DIR}/dashboard" \
+            --chrome-flags="$CHROME_FLAGS" \
+            --quiet
+
+          npm_config_ignore_scripts=true timeout 120 npx --yes lighthouse@13.6.0 \
+            "${LIGHTHOUSE_BASE_URL}/create" \
+            --config-path=.github/lighthouse/config.json \
+            --output=json --output=html \
+            --output-path="${LIGHTHOUSE_REPORT_DIR}/create" \
+            --chrome-flags="$CHROME_FLAGS" \
+            --quiet
+
           node .github/lighthouse/check-lighthouse.mjs
         env:
           LIGHTHOUSE_BASE_URL: "http://127.0.0.1:3000"

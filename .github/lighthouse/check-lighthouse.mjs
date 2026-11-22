@@ -1,13 +1,9 @@
 #!/usr/bin/env node
 
-import { execFileSync } from "node:child_process";
-import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-const LIGHTHOUSE_VERSION = "13.6.0";
-const BASE_URL = process.env.LIGHTHOUSE_BASE_URL ?? "http://127.0.0.1:3000";
 const REPORT_DIR = path.resolve(process.env.LIGHTHOUSE_REPORT_DIR ?? "lighthouse-reports");
-const CONFIG_PATH = path.resolve(".github/lighthouse/config.json");
 
 const PAGES = [
   { name: "dashboard", path: "/" },
@@ -31,42 +27,12 @@ const REQUIRED_AUDITS = [
   "document-title",
 ];
 
-mkdirSync(REPORT_DIR, { recursive: true });
-
 const failures = [];
 const summaryRows = [];
 
 for (const page of PAGES) {
-  const url = `${BASE_URL}${page.path}`;
-  const outPrefix = path.join(REPORT_DIR, page.name);
-
-  console.log(`\nRunning Lighthouse ${LIGHTHOUSE_VERSION} on ${page.name} (${url})...`);
-
-  execFileSync(
-    "npx",
-    [
-      "--yes",
-      `lighthouse@${LIGHTHOUSE_VERSION}`,
-      url,
-      `--config-path=${CONFIG_PATH}`,
-      "--output=json",
-      "--output=html",
-      `--output-path=${outPrefix}`,
-      "--chrome-flags=--headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage",
-      "--quiet",
-    ],
-    {
-      stdio: "inherit",
-      timeout: 120_000,
-      env: {
-        ...process.env,
-        // Avoid running lifecycle scripts when npx downloads Lighthouse at CI time.
-        npm_config_ignore_scripts: "true",
-      },
-    },
-  );
-
-  const report = JSON.parse(readFileSync(`${outPrefix}.report.json`, "utf8"));
+  const reportPath = path.join(REPORT_DIR, `${page.name}.report.json`);
+  const report = JSON.parse(readFileSync(reportPath, "utf8"));
 
   const a11yScore = report.categories?.accessibility?.score ?? 0;
   const bpScore = report.categories?.["best-practices"]?.score ?? 0;
