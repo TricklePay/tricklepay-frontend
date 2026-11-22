@@ -85,5 +85,10 @@ describe("API client against recorded backend fixtures", () => {
 
       await expect(listStreams({})).rejects.toThrow("Too Many Requests");
     });
+
+    it("keeps the 429 fixture an error body, not a recorded list response", () => {
+      expect(error429).toHaveProperty("error");
+      expect(error429).not.toHaveProperty("streams");
+    });
   });
 });
