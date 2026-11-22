@@ -5,18 +5,25 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      # Install without running package lifecycle scripts (preinstall/install/postinstall/prepare)
+      # to prevent install-time script execution in CI. Native binaries (SWC/esbuild) arrive
+      # via optional platform packages and no CI step requires prepare/husky hooks.
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
 
       - run: npm run lint
 
@@ -29,15 +36,18 @@ jobs:
   visual-regression:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
 
-      - run: npx playwright install --with-deps chromium
+      # Playwright browser binaries are downloaded explicitly rather than via npm lifecycle scripts.
+      - name: Install Playwright Chromium browser and system dependencies
+        run: npx playwright install --with-deps chromium
 
       - run: npm run test:e2e -- e2e/visual-smoke.spec.ts --project=chromium
