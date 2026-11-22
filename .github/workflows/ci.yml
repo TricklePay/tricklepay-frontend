@@ -25,6 +25,18 @@ jobs:
       - name: Install dependencies without lifecycle scripts
         run: npm ci --ignore-scripts
 
+      # Cache Next.js build cache (.next/cache) to speed up incremental builds.
+      # Key: <os>-nextjs-<lockfile-hash>-<source-hash>, falling back to <os>-nextjs-<lockfile-hash>-.
+      # Cache isolation: runs on push/pull_request with default actions/cache branch scoping, so
+      # PR-built caches cannot be restored by main or other PRs. node_modules is never cached.
+      - name: Cache Next.js build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('**/*.[jt]s', '**/*.[jt]sx', '!node_modules/**', '!.next/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+
       - run: npm run lint
 
       - run: npm run typecheck
@@ -46,8 +58,27 @@ jobs:
       - name: Install dependencies without lifecycle scripts
         run: npm ci --ignore-scripts
 
+      - name: Read installed Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('./node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # Cache Playwright Chromium binary (~/.cache/ms-playwright) keyed by <os>-playwright-<version>.
+      # Branch-scoped by default so PR caches cannot poison main.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
       # Playwright browser binaries are downloaded explicitly rather than via npm lifecycle scripts.
       - name: Install Playwright Chromium browser and system dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      # On a cache hit, the browser binary is restored but OS-level dependencies still need installing.
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - run: npm run test:e2e -- e2e/visual-smoke.spec.ts --project=chromium
