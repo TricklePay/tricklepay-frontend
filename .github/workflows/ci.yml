@@ -5,9 +5,22 @@ on:
     branches: [main]
   pull_request:
 
+# Restrict the default GITHUB_TOKEN to read-only repository contents; none of the
+# CI jobs comment on PRs, write checks, or push commits.
+permissions:
+  contents: read
+
+# Deduplicate runs per workflow and ref, cancelling only superseded pull request
+# runs so pushes to the default branch always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Bound runner usage if a dependency install, lint, test, or build step hangs.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +41,8 @@ jobs:
 
   visual-regression:
     runs-on: ubuntu-latest
+    # Allow extra time for Playwright Chromium + system dependency installation.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
