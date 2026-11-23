@@ -292,7 +292,7 @@ npm run setup-hooks
 ```
 
 #### What It Runs
-- **Lint**: Runs `eslint` on staged TypeScript and JavaScript files (`.ts`, `.tsx`, `.js`, `.mjs`).
+- **Lint**: Runs `eslint --max-warnings 0` on staged TypeScript and JavaScript files (`.ts`, `.tsx`, `.js`, `.mjs`) — lint warnings fail the check.
 - **Typecheck**: Runs `npm run typecheck` (`tsc --noEmit`) to verify project types.
 
 #### Bypassing the Hook
@@ -320,7 +320,9 @@ If you knowingly need to bypass the pre-commit checks (e.g. for temporary work-i
    npm run check
    ```
    This runs `lint`, `typecheck`, `test`, and `build` in order and stops at the
-   first failure. You can still run any of them individually while iterating.
+   first failure. You can still run any of them individually while iterating
+   (for example, `npm run lint` — note that lint warnings fail the build via
+   `--max-warnings 0`).
    CI runs these same four commands in the same order.
 
 3. **Commit Message Format**:
