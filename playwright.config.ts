@@ -19,7 +19,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? "line" : "list",
+  reporter: process.env.CI ? [["line"], ["html", { open: "never" }]] : "list",
   // The dev server compiles routes on demand, so a worker that is first to a
   // route waits on that build. With several workers navigating at once, that
   // plus a sign -> submit -> confirm round trip overruns the 5s default and

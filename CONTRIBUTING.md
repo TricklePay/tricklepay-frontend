@@ -321,6 +321,7 @@ If you knowingly need to bypass the pre-commit checks (e.g. for temporary work-i
    ```
    This runs `lint`, `typecheck`, `test`, and `build` in order and stops at the
    first failure. You can still run any of them individually while iterating.
+   CI runs these same four commands in the same order.
 
 3. **Commit Message Format**:
    Use conventional commits:

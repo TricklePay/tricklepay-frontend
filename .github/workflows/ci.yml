@@ -5,18 +5,35 @@ on:
     branches: [main]
   pull_request:
 
+# Restrict the default GITHUB_TOKEN to read-only repository contents; none of the
+# CI jobs comment on PRs, write checks, or push commits.
 permissions:
   contents: read
 
+# Deduplicate runs per workflow and ref, cancelling only superseded pull request
+# runs so pushes to the default branch always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  build:
+  build-matrix:
+    # Include the Node version in the check name so failures identify which version broke.
+    name: build (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    # Bound runner usage if a dependency install, lint, test, or build step hangs.
+    timeout-minutes: 15
+    strategy:
+      # Report results for every supported Node version even if one leg fails early.
+      fail-fast: false
+      matrix:
+        node-version: ["20", "22"]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: ${{ matrix.node-version }}
           cache: npm
 
       # Install without running package lifecycle scripts (preinstall/install/postinstall/prepare)
@@ -41,12 +58,32 @@ jobs:
 
       - run: npm run typecheck
 
+      - run: npm test
+
       - run: npm run build
         env:
           NEXT_PUBLIC_CONTRACT_ID: "CA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQGAXE"
 
+  # Aggregate job preserving the original `build` check name for branch protection.
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    needs: build-matrix
+    # Always run so branch protection receives a pass/fail status even if a matrix leg fails.
+    if: always()
+    timeout-minutes: 5
+    steps:
+      - name: Verify all matrix legs succeeded
+        run: |
+          if [ "${{ needs.build-matrix.result }}" != "success" ]; then
+            echo "Node matrix failed (result: ${{ needs.build-matrix.result }})"
+            exit 1
+          fi
+
   visual-regression:
     runs-on: ubuntu-latest
+    # Allow extra time for Playwright Chromium + system dependency installation.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -82,6 +119,63 @@ jobs:
         run: npx playwright install-deps chromium
 
       - run: npm run test:e2e -- e2e/visual-smoke.spec.ts --project=chromium
+
+  e2e:
+    # Run the full end-to-end suite on pull requests without gating pushes to main.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    # Allow time for browser setup, Next.js on-demand route compilation, and sequential retries.
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          # Re-use cached Chromium across runs as long as package-lock.json is unchanged.
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright Chromium and system dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system dependencies (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run Playwright end-to-end tests
+        run: npm run test:e2e
+        env:
+          CI: "true"
+
+      - name: Upload Playwright HTML report
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-report
+          path: playwright-report/
+          # Keep failure artifacts for 7 days to debug without retaining build logs indefinitely.
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
 
   lighthouse:
     runs-on: ubuntu-latest
