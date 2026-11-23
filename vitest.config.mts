@@ -31,5 +31,12 @@ export default defineConfig({
     env: {
       NEXT_PUBLIC_CONTRACT_ID: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
     },
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "lcov", "json-summary"],
+      reportsDirectory: "./coverage",
+      include: ["lib/**/*.ts", "lib/**/*.tsx", "components/**/*.ts", "components/**/*.tsx", "hooks/**/*.ts", "hooks/**/*.tsx", "app/**/*.ts", "app/**/*.tsx"],
+      exclude: ["**/*.test.ts", "**/*.test.tsx", "**/*.d.ts"],
+    },
   },
 });
