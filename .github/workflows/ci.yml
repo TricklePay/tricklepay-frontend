@@ -54,13 +54,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
 
-      - run: npm run lint
-
-      - run: npm run typecheck
-
-      - run: npm test
-
-      - run: npm run build
+      - run: npm run check
         env:
           NEXT_PUBLIC_CONTRACT_ID: "CA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQGAXE"
 
