@@ -76,6 +76,28 @@ describe("contract configuration", () => {
     const { config } = await import("./config");
     expect(config.contractId).not.toBe("");
   });
+
+  it("trims surrounding whitespace from a valid NEXT_PUBLIC_CONTRACT_ID", async () => {
+    stubMissingContractId();
+    const validId = "CA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQGAXE";
+    vi.stubEnv("NEXT_PUBLIC_CONTRACT_ID", `  ${validId}\n`);
+    const { config } = await import("./config");
+    expect(config.contractId).toBe(validId);
+  });
+
+  it("treats a whitespace-only NEXT_PUBLIC_CONTRACT_ID as missing", async () => {
+    stubMissingContractId();
+    vi.stubEnv("NEXT_PUBLIC_CONTRACT_ID", "   \n\t  ");
+    await expect(import("./config")).rejects.toThrow(/NEXT_PUBLIC_CONTRACT_ID is not set/);
+  });
+
+  it("shows the trimmed value in quotes when NEXT_PUBLIC_CONTRACT_ID is invalid", async () => {
+    stubMissingContractId();
+    vi.stubEnv("NEXT_PUBLIC_CONTRACT_ID", "  not-a-valid-contract\n");
+    await expect(import("./config")).rejects.toThrow(
+      'NEXT_PUBLIC_CONTRACT_ID "not-a-valid-contract" is not a valid Stellar contract address.',
+    );
+  });
 });
 
 describe("contract error mapping", () => {

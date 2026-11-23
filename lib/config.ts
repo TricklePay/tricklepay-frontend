@@ -108,6 +108,15 @@ function readApiTimeout(): number {
   return parsed;
 }
 
+function readContractId(): string {
+  const raw = process.env.NEXT_PUBLIC_CONTRACT_ID;
+  if (raw !== undefined) {
+    const trimmed = raw.trim();
+    if (trimmed !== "") return trimmed;
+  }
+  return mockApi ? MOCK_CONTRACT_ID : "";
+}
+
 export const config = {
   /** Base URL of the tricklepay-backend read API. */
   apiUrl: readApiUrl(),
@@ -124,7 +133,7 @@ export const config = {
   /** Soroban RPC endpoint, used to submit signed transactions. */
   rpcUrl: readRpcUrl(),
   /** Deployed stream contract id (starts with C). */
-  contractId: process.env.NEXT_PUBLIC_CONTRACT_ID || (mockApi ? MOCK_CONTRACT_ID : ""),
+  contractId: readContractId(),
   /** Serve fixture data instead of calling the backend (NEXT_PUBLIC_MOCK_API=true). */
   mockApi,
   /**
