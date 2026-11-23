@@ -292,8 +292,10 @@ npm run setup-hooks
 ```
 
 #### What It Runs
-- **Lint**: Runs `eslint` on staged TypeScript and JavaScript files (`.ts`, `.tsx`, `.js`, `.mjs`).
+- **Lint**: Runs `eslint --max-warnings 0` on staged TypeScript and JavaScript files (`.ts`, `.tsx`, `.js`, `.mjs`) — lint warnings fail the check.
 - **Typecheck**: Runs `npm run typecheck` (`tsc --noEmit`) to verify project types.
+
+For the full suite (including unit tests and production build) before pushing, run `npm run check`.
 
 #### Bypassing the Hook
 If you knowingly need to bypass the pre-commit checks (e.g. for temporary work-in-progress commits):
@@ -319,9 +321,17 @@ If you knowingly need to bypass the pre-commit checks (e.g. for temporary work-i
    ```bash
    npm run check
    ```
-   This runs `lint`, `typecheck`, `test`, and `build` in order and stops at the
-   first failure. You can still run any of them individually while iterating.
-   CI runs these same four commands in the same order.
+   This runs `lint`, `typecheck`, `test`, `build`, and `budget` in order and stops at the
+   first failure. You can still run any of them individually while iterating
+   (for example, `npm run lint` — note that lint warnings fail the build via
+   `--max-warnings 0`).
+   CI runs `npm run check` directly, so local runs and CI execute the exact same
+   command list in the same order.
+
+   **Bundle Size Budget (`npm run budget`)**:
+   - Limits for first-load JS (gzip level 9, in bytes) per route live in `bundle-budget.json`.
+   - `npm run budget` reads `.next/app-build-manifest.json` after `npm run build` and fails if any budgeted route exceeds its limit. There is no override flag or environment variable; raising a budget requires a deliberate edit to `bundle-budget.json`, and the PR must explain why.
+   - Use `npm run analyze` to inspect *what* is large in `.next/analyze/`; `npm run budget` enforces *when* first-load JS grows past the limit.
 
 3. **Commit Message Format**:
    Use conventional commits:
