@@ -8,6 +8,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { usePolling } from "./use-polling";
 
+function setVisibility(state: DocumentVisibilityState) {
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    value: state,
+  });
+}
+
+function setOnline(online: boolean) {
+  Object.defineProperty(navigator, "onLine", {
+    configurable: true,
+    value: online,
+  });
+}
+
 function Consumer({
   fn,
   intervalMs,
@@ -29,16 +43,20 @@ describe("usePolling", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
+    setVisibility("visible");
+    setOnline(true);
     vi.useFakeTimers();
   });
 
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
+    setVisibility("visible");
+    setOnline(true);
     vi.useRealTimers();
   });
 
-  it("calls fn immediately on mount and then on each interval", () => {
+  it("calls fn immediately on mount and then on each interval while visible and online", () => {
     const fn = vi.fn();
 
     act(() => {
@@ -149,5 +167,148 @@ describe("usePolling", () => {
     });
 
     expect(states.every((s) => s === "initial")).toBe(true);
+  });
+
+  it("stops probing while hidden and probes once immediately on becoming visible", () => {
+    const fn = vi.fn();
+
+    act(() => {
+      root.render(<Consumer fn={fn} intervalMs={1_000} />);
+    });
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      setVisibility("hidden");
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      setVisibility("visible");
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(fn).toHaveBeenCalledTimes(2);
+
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not probe on mount while hidden until becoming visible", () => {
+    setVisibility("hidden");
+    const fn = vi.fn();
+
+    act(() => {
+      root.render(<Consumer fn={fn} intervalMs={1_000} />);
+    });
+    expect(fn).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(3_000);
+    });
+    expect(fn).not.toHaveBeenCalled();
+
+    act(() => {
+      setVisibility("visible");
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("continues polling when visibilityState is prerender", () => {
+    setVisibility("prerender" as DocumentVisibilityState);
+    const fn = vi.fn();
+
+    act(() => {
+      root.render(<Consumer fn={fn} intervalMs={1_000} />);
+    });
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("pauses while offline and probes once immediately when coming back online", () => {
+    const fn = vi.fn();
+
+    act(() => {
+      root.render(<Consumer fn={fn} intervalMs={1_000} />);
+    });
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      setOnline(false);
+      window.dispatchEvent(new Event("offline"));
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      setOnline(true);
+      window.dispatchEvent(new Event("online"));
+    });
+    expect(fn).toHaveBeenCalledTimes(2);
+
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(fn).toHaveBeenCalledTimes(3);
+  });
+
+  it("waits until both visible and online before probing", () => {
+    setVisibility("hidden");
+    setOnline(false);
+    const fn = vi.fn();
+
+    act(() => {
+      root.render(<Consumer fn={fn} intervalMs={1_000} />);
+    });
+    expect(fn).not.toHaveBeenCalled();
+
+    act(() => {
+      setOnline(true);
+      window.dispatchEvent(new Event("online"));
+    });
+    expect(fn).not.toHaveBeenCalled();
+
+    act(() => {
+      setVisibility("visible");
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("removes visibility and network listeners on unmount", () => {
+    const fn = vi.fn();
+
+    act(() => {
+      root.render(<Consumer fn={fn} intervalMs={1_000} />);
+    });
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    act(() => root.unmount());
+
+    act(() => {
+      setVisibility("hidden");
+      document.dispatchEvent(new Event("visibilitychange"));
+      setVisibility("visible");
+      document.dispatchEvent(new Event("visibilitychange"));
+      setOnline(false);
+      window.dispatchEvent(new Event("offline"));
+      setOnline(true);
+      window.dispatchEvent(new Event("online"));
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(fn).toHaveBeenCalledTimes(1);
   });
 });
