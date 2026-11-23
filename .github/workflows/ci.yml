@@ -5,18 +5,37 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      # Install without running package lifecycle scripts (preinstall/install/postinstall/prepare)
+      # to prevent install-time script execution in CI. Native binaries (SWC/esbuild) arrive
+      # via optional platform packages and no CI step requires prepare/husky hooks.
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      # Cache Next.js build cache (.next/cache) to speed up incremental builds.
+      # Key: <os>-nextjs-<lockfile-hash>-<source-hash>, falling back to <os>-nextjs-<lockfile-hash>-.
+      # Cache isolation: runs on push/pull_request with default actions/cache branch scoping, so
+      # PR-built caches cannot be restored by main or other PRs. node_modules is never cached.
+      - name: Cache Next.js build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('**/*.[jt]s', '**/*.[jt]sx', '!node_modules/**', '!.next/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
 
       - run: npm run lint
 
@@ -29,15 +48,117 @@ jobs:
   visual-regression:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
 
-      - run: npx playwright install --with-deps chromium
+      - name: Read installed Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('./node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # Cache Playwright Chromium binary (~/.cache/ms-playwright) keyed by <os>-playwright-<version>.
+      # Branch-scoped by default so PR caches cannot poison main.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+
+      # Playwright browser binaries are downloaded explicitly rather than via npm lifecycle scripts.
+      - name: Install Playwright Chromium browser and system dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      # On a cache hit, the browser binary is restored but OS-level dependencies still need installing.
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - run: npm run test:e2e -- e2e/visual-smoke.spec.ts --project=chromium
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      # Build with NEXT_PUBLIC_MOCK_API=true so the production server serves fixture data
+      # from lib/mock-api.ts and makes no external backend or wallet requests.
+      - name: Build production app with mocked API
+        run: npm run build
+        env:
+          NEXT_PUBLIC_MOCK_API: "true"
+          NEXT_PUBLIC_NETWORK: "testnet"
+          NEXT_PUBLIC_RPC_URL: "http://127.0.0.1:8000/soroban/rpc"
+          NEXT_PUBLIC_CONTRACT_ID: "CA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQGAXE"
+
+      # Starts the built Next.js server, waits for readiness, and runs pinned Lighthouse
+      # (installed via npx at CI time outside package-lock.json) against / and /create.
+      - name: Run Lighthouse accessibility and best-practices checks
+        run: |
+          npm run start -- --port 3000 > /tmp/next-start.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+
+          READY=0
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000 > /dev/null 2>&1; then
+              READY=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$READY" -ne 1 ]; then
+            echo "Next.js production server did not become ready within 30s"
+            cat /tmp/next-start.log || true
+            exit 1
+          fi
+
+          mkdir -p "$LIGHTHOUSE_REPORT_DIR"
+          CHROME_FLAGS="--headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage"
+
+          npm_config_ignore_scripts=true timeout 120 npx --yes lighthouse@13.6.0 \
+            "${LIGHTHOUSE_BASE_URL}/" \
+            --config-path=.github/lighthouse/config.json \
+            --output=json --output=html \
+            --output-path="${LIGHTHOUSE_REPORT_DIR}/dashboard" \
+            --chrome-flags="$CHROME_FLAGS" \
+            --quiet
+
+          npm_config_ignore_scripts=true timeout 120 npx --yes lighthouse@13.6.0 \
+            "${LIGHTHOUSE_BASE_URL}/create" \
+            --config-path=.github/lighthouse/config.json \
+            --output=json --output=html \
+            --output-path="${LIGHTHOUSE_REPORT_DIR}/create" \
+            --chrome-flags="$CHROME_FLAGS" \
+            --quiet
+
+          node .github/lighthouse/check-lighthouse.mjs
+        env:
+          LIGHTHOUSE_BASE_URL: "http://127.0.0.1:3000"
+          LIGHTHOUSE_REPORT_DIR: "lighthouse-reports"
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: lighthouse-reports
+          path: lighthouse-reports
+          retention-days: 14
