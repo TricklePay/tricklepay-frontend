@@ -8,16 +8,7 @@ import { rpc } from "@stellar/stellar-sdk";
 
 import { config } from "@/lib/config";
 import { WALLET_NETWORK_UNAVAILABLE_MESSAGE, wrongNetworkMessage } from "@/lib/contract-messages";
-
-// Local copy of the wallet-utils normalisation so this module does not
-// depend on unrelated helpers; mirrors wallet-provider.tsx so the wallet vs
-// app comparison stays consistent.
-export function normalizeNetwork(network: string): string {
-  const lower = network.toLowerCase();
-  if (lower.includes("test")) return "testnet";
-  if (lower.includes("public")) return "mainnet";
-  return lower;
-}
+import { normalizeNetwork } from "@/lib/wallet-utils";
 
 export function server(): rpc.Server {
   return new rpc.Server(config.rpcUrl, { allowHttp: config.rpcUrl.startsWith("http://") });

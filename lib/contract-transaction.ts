@@ -17,9 +17,10 @@ import { parseContractError } from "@/lib/contract-errors";
 import {
   ACCOUNT_NOT_FOUND_MESSAGE,
   isAccountNotFoundError,
+  parseRpcTransactionError,
+  parseSigningError,
   TX_NETWORK_REJECTED_MESSAGE,
   TX_RPC_BUSY_MESSAGE,
-  TX_SIGNING_REJECTED_MESSAGE,
 } from "@/lib/contract-messages";
 
 function sleep(ms: number): Promise<void> {
@@ -84,7 +85,7 @@ export async function signPreparedTransaction(
     address: caller,
   });
   if (signed.error) {
-    throw new Error(TX_SIGNING_REJECTED_MESSAGE);
+    throw new Error(parseSigningError(signed.error));
   }
   return signed.signedTxXdr;
 }
@@ -114,6 +115,9 @@ export async function submitSignedTransaction(srv: rpc.Server, signedTxXdr: stri
         continue;
       }
       throw new Error(TX_RPC_BUSY_MESSAGE);
+    }
+    if (sent.status === "ERROR") {
+      throw new Error(parseRpcTransactionError(sent));
     }
     throw new Error(TX_NETWORK_REJECTED_MESSAGE);
   }

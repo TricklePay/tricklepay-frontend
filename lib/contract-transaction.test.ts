@@ -1,9 +1,23 @@
-import { rpc, TransactionBuilder } from "@stellar/stellar-sdk";
+import { signTransaction } from "@stellar/freighter-api";
+import { rpc, TransactionBuilder, xdr } from "@stellar/stellar-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SUBMIT_MAX_ATTEMPTS, SUBMIT_RETRY_BASE_DELAY_MS } from "@/lib/contract-config";
-import { TX_NETWORK_REJECTED_MESSAGE, TX_RPC_BUSY_MESSAGE } from "@/lib/contract-messages";
-import { submitSignedTransaction } from "@/lib/contract-transaction";
+import {
+  parseSigningError,
+  RPC_TX_ERROR_MESSAGES,
+  TX_NETWORK_REJECTED_MESSAGE,
+  TX_RPC_BUSY_MESSAGE,
+  TX_SIGNING_REJECTED_MESSAGE,
+  TX_SIGNING_WALLET_ERROR_MESSAGE,
+  TX_WALLET_LOCKED_MESSAGE,
+  TX_WRONG_ACCOUNT_MESSAGE,
+} from "@/lib/contract-messages";
+import { signPreparedTransaction, submitSignedTransaction } from "@/lib/contract-transaction";
+
+vi.mock("@stellar/freighter-api", () => ({
+  signTransaction: vi.fn(),
+}));
 
 vi.mock("@stellar/stellar-sdk", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@stellar/stellar-sdk")>();
@@ -67,6 +81,65 @@ describe("submitSignedTransaction", () => {
     expect(sendTransaction).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    ["txBadSeq", "AAAAAAAAAA////7AAAAAAA==", RPC_TX_ERROR_MESSAGES.txBadSeq],
+    ["txInsufficientFee", "AAAAAAAAAA////3AAAAAAA==", RPC_TX_ERROR_MESSAGES.txInsufficientFee],
+    ["txTooLate", "AAAAAAAAAA////9AAAAAAA==", RPC_TX_ERROR_MESSAGES.txTooLate],
+    [
+      "txInsufficientBalance",
+      "AAAAAAAAAA////5AAAAAAA==",
+      RPC_TX_ERROR_MESSAGES.txInsufficientBalance,
+    ],
+  ])("decodes %s XDR errorResult to a specific user message", async (_code, xdrBase64, expected) => {
+    const sendTransaction = vi.fn().mockResolvedValue({
+      status: "ERROR",
+      hash: "0xerror",
+      errorResult: xdr.TransactionResult.fromXDR(xdrBase64, "base64"),
+    });
+
+    await expect(submitSignedTransaction(mockServer(sendTransaction), "AAAA")).rejects.toThrow(
+      expected,
+    );
+    expect(sendTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("includes the XDR code name for unknown errorResult codes", async () => {
+    // txMalformed (-16) XDR fixture
+    const sendTransaction = vi.fn().mockResolvedValue({
+      status: "ERROR",
+      hash: "0xerror",
+      errorResult: xdr.TransactionResult.fromXDR("AAAAAAAAAA////wAAAAAAA==", "base64"),
+    });
+
+    await expect(submitSignedTransaction(mockServer(sendTransaction), "AAAA")).rejects.toThrow(
+      "txMalformed",
+    );
+  });
+
+  it("decodes base64 errorResultXdr when errorResult object is absent", async () => {
+    const sendTransaction = vi.fn().mockResolvedValue({
+      status: "ERROR",
+      hash: "0xerror",
+      errorResultXdr: "AAAAAAAAAA////7AAAAAAA==",
+    });
+
+    await expect(submitSignedTransaction(mockServer(sendTransaction), "AAAA")).rejects.toThrow(
+      RPC_TX_ERROR_MESSAGES.txBadSeq,
+    );
+  });
+
+  it("falls back to TX_NETWORK_REJECTED_MESSAGE when errorResultXdr is invalid", async () => {
+    const sendTransaction = vi.fn().mockResolvedValue({
+      status: "ERROR",
+      hash: "0xerror",
+      errorResultXdr: "not-valid-xdr",
+    });
+
+    await expect(submitSignedTransaction(mockServer(sendTransaction), "AAAA")).rejects.toThrow(
+      TX_NETWORK_REJECTED_MESSAGE,
+    );
+  });
+
   it("retries TRY_AGAIN_LATER with exponential backoff and succeeds on PENDING", async () => {
     const sendTransaction = vi
       .fn()
@@ -98,5 +171,98 @@ describe("submitSignedTransaction", () => {
 
     await assertion;
     expect(sendTransaction).toHaveBeenCalledTimes(SUBMIT_MAX_ATTEMPTS);
+  });
+});
+
+describe("signPreparedTransaction", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns signedTxXdr when Freighter succeeds", async () => {
+    vi.mocked(signTransaction).mockResolvedValueOnce({
+      signedTxXdr: "SIGNED_XDR",
+      signerAddress: "GABC",
+    });
+
+    const result = await signPreparedTransaction("PREPARED_XDR", "GABC");
+    expect(result).toBe("SIGNED_XDR");
+  });
+
+  it("maps user rejection to TX_SIGNING_REJECTED_MESSAGE", async () => {
+    vi.mocked(signTransaction).mockResolvedValueOnce({
+      signedTxXdr: "",
+      signerAddress: "",
+      error: "User declined access",
+    } as unknown as Awaited<ReturnType<typeof signTransaction>>);
+
+    await expect(signPreparedTransaction("PREPARED_XDR", "GABC")).rejects.toThrow(
+      TX_SIGNING_REJECTED_MESSAGE,
+    );
+  });
+
+  it("maps locked wallet error to TX_WALLET_LOCKED_MESSAGE", async () => {
+    vi.mocked(signTransaction).mockResolvedValueOnce({
+      signedTxXdr: "",
+      signerAddress: "",
+      error: { code: -1, message: "Freighter is locked" },
+    } as unknown as Awaited<ReturnType<typeof signTransaction>>);
+
+    await expect(signPreparedTransaction("PREPARED_XDR", "GABC")).rejects.toThrow(
+      TX_WALLET_LOCKED_MESSAGE,
+    );
+  });
+
+  it("maps wrong account error to TX_WRONG_ACCOUNT_MESSAGE", async () => {
+    vi.mocked(signTransaction).mockResolvedValueOnce({
+      signedTxXdr: "",
+      signerAddress: "",
+      error: { code: -1, message: "Selected account does not match" },
+    } as unknown as Awaited<ReturnType<typeof signTransaction>>);
+
+    await expect(signPreparedTransaction("PREPARED_XDR", "GABC")).rejects.toThrow(
+      TX_WRONG_ACCOUNT_MESSAGE,
+    );
+  });
+
+  it("maps internal wallet errors to TX_SIGNING_WALLET_ERROR_MESSAGE", async () => {
+    vi.mocked(signTransaction).mockResolvedValueOnce({
+      signedTxXdr: "",
+      signerAddress: "",
+      error: { code: -1, message: "Internal error in Freighter" },
+    } as unknown as Awaited<ReturnType<typeof signTransaction>>);
+
+    await expect(signPreparedTransaction("PREPARED_XDR", "GABC")).rejects.toThrow(
+      TX_SIGNING_WALLET_ERROR_MESSAGE,
+    );
+  });
+
+  it("surfaces the wallet's own message for unknown errors", async () => {
+    vi.mocked(signTransaction).mockResolvedValueOnce({
+      signedTxXdr: "",
+      signerAddress: "",
+      error: { code: 500, message: "Hardware device disconnected" },
+    } as unknown as Awaited<ReturnType<typeof signTransaction>>);
+
+    await expect(signPreparedTransaction("PREPARED_XDR", "GABC")).rejects.toThrow(
+      "Hardware device disconnected",
+    );
+  });
+});
+
+describe("parseSigningError", () => {
+  it("handles code -4 without a message as rejection", () => {
+    expect(parseSigningError({ code: -4 })).toBe(TX_SIGNING_REJECTED_MESSAGE);
+  });
+
+  it("handles empty or non-string error objects as other wallet error", () => {
+    expect(parseSigningError({})).toBe(TX_SIGNING_WALLET_ERROR_MESSAGE);
+    expect(parseSigningError("")).toBe(TX_SIGNING_WALLET_ERROR_MESSAGE);
+  });
+
+  it("returns unknown string errors verbatim", () => {
+    expect(parseSigningError("Unexpected USB transport failure")).toBe(
+      "Unexpected USB transport failure",
+    );
   });
 });
