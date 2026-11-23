@@ -35,6 +35,12 @@ export function wrongNetworkMessage(walletNetwork: string, expectedNetwork: stri
   return `Wrong network: wallet is on ${walletNetwork}, app expects ${expectedNetwork}. Switch networks in Freighter.`;
 }
 
+// Shown when Freighter's active network cannot be read before signing (error
+// result or rejected promise). Failing closed prevents signing against an
+// unknown or mismatched network.
+export const WALLET_NETWORK_UNAVAILABLE_MESSAGE =
+  "Could not read the active network from Freighter. Unlock or reconnect your wallet and try again.";
+
 // Shown when Freighter reports signed.error after the signing prompt.
 // Covers explicit rejection and expired XDR (the user took longer than the
 // TX_TIMEOUT_SECONDS window to approve).

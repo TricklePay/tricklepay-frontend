@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TransactionTimeoutError, confirmTransaction, createStream, isTransactionPending } from "@/lib/contract";
 import { CONTRACT_ERROR_MESSAGES, GENERIC_FAILURE, parseContractError } from "@/lib/contract-errors";
-import { TX_STAGES, TX_STAGE_LABELS } from "@/lib/contract-messages";
+import { TX_STAGES, TX_STAGE_LABELS, WALLET_NETWORK_UNAVAILABLE_MESSAGE } from "@/lib/contract-messages";
 import type { CreateStreamParams, TxStage } from "@/types/contract";
 
 vi.mock("@stellar/freighter-api", () => ({
@@ -198,17 +198,17 @@ describe("contract submission guard", () => {
   it("releases the guard after a failed submission", async () => {
     vi.mocked(getNetwork).mockRejectedValueOnce(new Error("wallet unreachable"));
 
-    await expect(createStream(PARAMS)).rejects.toThrow("wallet unreachable");
+    await expect(createStream(PARAMS)).rejects.toThrow(WALLET_NETWORK_UNAVAILABLE_MESSAGE);
     expect(isTransactionPending()).toBe(false);
   });
 
   it("accepts a further submission after a failure", async () => {
     vi.mocked(getNetwork).mockRejectedValue(new Error("wallet unreachable"));
 
-    await expect(createStream(PARAMS)).rejects.toThrow("wallet unreachable");
+    await expect(createStream(PARAMS)).rejects.toThrow(WALLET_NETWORK_UNAVAILABLE_MESSAGE);
     expect(isTransactionPending()).toBe(false);
 
-    await expect(createStream(PARAMS)).rejects.toThrow("wallet unreachable");
+    await expect(createStream(PARAMS)).rejects.toThrow(WALLET_NETWORK_UNAVAILABLE_MESSAGE);
     expect(vi.mocked(getNetwork)).toHaveBeenCalledTimes(2);
     expect(isTransactionPending()).toBe(false);
   });
