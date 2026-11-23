@@ -5,7 +5,7 @@ import zlib from "node:zlib";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { checkBundleBudget } from "../scripts/check-bundle-budget.mjs";
+import { checkBundleBudget } from "../scripts/check-bundle-budget.js";
 
 const tempDirs: string[] = [];
 

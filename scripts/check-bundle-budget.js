@@ -1,7 +1,6 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import zlib from "node:zlib";
+const fs = require("node:fs");
+const path = require("node:path");
+const zlib = require("node:zlib");
 
 const GZIP_LEVEL = 9;
 
@@ -10,7 +9,7 @@ const GZIP_LEVEL = 9;
  * @param {number} bytes
  * @returns {string}
  */
-export function formatBytes(bytes) {
+function formatBytes(bytes) {
   const kib = (bytes / 1024).toFixed(2);
   return `${bytes} B (${kib} KiB)`;
 }
@@ -20,7 +19,7 @@ export function formatBytes(bytes) {
  * @param {string} nextDir
  * @returns {{ pages: Record<string, string[]> }}
  */
-export function readAppBuildManifest(nextDir) {
+function readAppBuildManifest(nextDir) {
   const manifestPath = path.join(nextDir, "app-build-manifest.json");
   if (!fs.existsSync(manifestPath)) {
     throw new Error(
@@ -52,7 +51,7 @@ export function readAppBuildManifest(nextDir) {
  * @param {string} manifestKey
  * @returns {{ actualBytes: number, chunkCount: number }}
  */
-export function computeRouteFirstLoadBytes(nextDir, manifest, route, manifestKey) {
+function computeRouteFirstLoadBytes(nextDir, manifest, route, manifestKey) {
   const entries = manifest.pages[manifestKey];
   if (!Array.isArray(entries)) {
     throw new Error(
@@ -84,7 +83,7 @@ export function computeRouteFirstLoadBytes(nextDir, manifest, route, manifestKey
  * @param {{ budgetPath: string, nextDir: string }} options
  * @returns {{ passed: boolean, results: Array<{ route: string, manifestKey: string, actualBytes: number, limitBytes: number, diffBytes: number, chunkCount: number, ok: boolean }>, messages: string[] }}
  */
-export function checkBundleBudget({ budgetPath, nextDir }) {
+function checkBundleBudget({ budgetPath, nextDir }) {
   if (!fs.existsSync(budgetPath)) {
     throw new Error(`Missing bundle budget config at ${budgetPath}.`);
   }
@@ -155,9 +154,13 @@ function main() {
   }
 }
 
-const isDirectRun =
-  Boolean(process.argv[1]) && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-
-if (isDirectRun) {
+if (require.main === module) {
   main();
 }
+
+module.exports = {
+  checkBundleBudget,
+  computeRouteFirstLoadBytes,
+  formatBytes,
+  readAppBuildManifest,
+};
