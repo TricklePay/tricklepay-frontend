@@ -7,7 +7,7 @@ import { getNetwork } from "@stellar/freighter-api";
 import { rpc } from "@stellar/stellar-sdk";
 
 import { config } from "@/lib/config";
-import { wrongNetworkMessage } from "@/lib/contract-messages";
+import { WALLET_NETWORK_UNAVAILABLE_MESSAGE, wrongNetworkMessage } from "@/lib/contract-messages";
 
 // Local copy of the wallet-utils normalisation so this module does not
 // depend on unrelated helpers; mirrors wallet-provider.tsx so the wallet vs
@@ -24,18 +24,23 @@ export function server(): rpc.Server {
 }
 
 /**
- * Rejects immediately if Freighter's active network does not match the
- * network the app is configured for. A transaction built against the wrong
- * passphrase would be rejected by the RPC anyway; checking here gives a
- * clear, actionable error before any round-trip or signing prompt.
- * A Freighter failure here is silently skipped rather than blocking the call.
+ * Rejects immediately if Freighter's active network cannot be read or does not
+ * match the network the app is configured for. A transaction built against the
+ * wrong passphrase would be rejected by the RPC anyway; failing closed here
+ * gives a clear, actionable error before any round-trip or signing prompt.
  */
 export async function ensureWalletNetwork(): Promise<void> {
-  const netResult = await getNetwork();
-  if (!netResult.error) {
-    const walletNetwork = normalizeNetwork(netResult.network);
-    if (walletNetwork !== config.network) {
-      throw new Error(wrongNetworkMessage(walletNetwork, config.network));
-    }
+  let netResult;
+  try {
+    netResult = await getNetwork();
+  } catch {
+    throw new Error(WALLET_NETWORK_UNAVAILABLE_MESSAGE);
+  }
+  if (netResult.error) {
+    throw new Error(WALLET_NETWORK_UNAVAILABLE_MESSAGE);
+  }
+  const walletNetwork = normalizeNetwork(netResult.network);
+  if (walletNetwork !== config.network) {
+    throw new Error(wrongNetworkMessage(walletNetwork, config.network));
   }
 }

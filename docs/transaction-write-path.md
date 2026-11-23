@@ -26,6 +26,7 @@ sequenceDiagram
     Note over Guard: ❌ another write in flight →<br/>TX_ALREADY_IN_PROGRESS_MESSAGE
     Invoke->>Net: ensureWalletNetwork()
     Net->>Wallet: getNetwork()
+    Note over Net: ❌ wallet network unreadable →<br/>WALLET_NETWORK_UNAVAILABLE_MESSAGE
     Note over Net: ❌ wallet on another network →<br/>wrongNetworkMessage(wallet, expected)
 
     rect rgb(240, 240, 240)
@@ -73,7 +74,8 @@ sequenceDiagram
 | Step | Raised in | Message |
 | --- | --- | --- |
 | Concurrency guard | `lib/contract-invoke.ts` | `TX_ALREADY_IN_PROGRESS_MESSAGE` |
-| Network guard | `lib/contract-network.ts` | `wrongNetworkMessage(...)` |
+| Network guard (unreadable) | `lib/contract-network.ts` | `WALLET_NETWORK_UNAVAILABLE_MESSAGE` |
+| Network guard (mismatch) | `lib/contract-network.ts` | `wrongNetworkMessage(...)` |
 | Account lookup | `lib/contract-transaction.ts` | `ACCOUNT_NOT_FOUND_MESSAGE` |
 | Simulation | `lib/contract-transaction.ts` | `parseContractError` → contract/token/generic message |
 | Signing | `lib/contract-transaction.ts` | `TX_SIGNING_REJECTED_MESSAGE` |

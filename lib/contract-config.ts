@@ -25,3 +25,12 @@ export const CONFIRM_POLL_INTERVAL_MS = 1_000;
 // matching the Soroban RPC's typical ledger-close cadence while keeping the
 // UI from waiting indefinitely on a stuck transaction.
 export const CONFIRM_POLL_ATTEMPTS = 30;
+
+// Maximum sendTransaction attempts when the RPC responds with TRY_AGAIN_LATER.
+// 3 attempts with exponential backoff (500 ms, 1000 ms) gives a transient RPC
+// spike ~1.5 s to clear without eating into TX_TIMEOUT_SECONDS.
+export const SUBMIT_MAX_ATTEMPTS = 3;
+
+// Base delay in milliseconds before retrying a TRY_AGAIN_LATER response;
+// doubled after each failed attempt.
+export const SUBMIT_RETRY_BASE_DELAY_MS = 500;
