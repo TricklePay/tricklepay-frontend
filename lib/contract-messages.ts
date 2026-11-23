@@ -40,9 +40,14 @@ export function wrongNetworkMessage(walletNetwork: string, expectedNetwork: stri
 // TX_TIMEOUT_SECONDS window to approve).
 export const TX_SIGNING_REJECTED_MESSAGE = "Signing was rejected in the wallet.";
 
-// Shown when the RPC rejects the broadcast outright (expired XDR, duplicate
-// submission, fee too low). The transaction never entered the pending pool.
+// Shown when the RPC rejects the broadcast outright (expired XDR, bad sequence,
+// fee too low). The transaction never entered the pending pool.
 export const TX_NETWORK_REJECTED_MESSAGE = "The network rejected the transaction.";
+
+// Shown when the RPC repeatedly returns TRY_AGAIN_LATER across all submission
+// retries because it is temporarily overloaded.
+export const TX_RPC_BUSY_MESSAGE =
+  "The network RPC is busy. Please try again in a moment.";
 
 // Default message for TransactionTimeoutError: polling gave up waiting, not
 // proof the transaction failed — it may still confirm later, hence the
