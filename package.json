@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "budget": "node scripts/check-bundle-budget.mjs",
     "analyze": "ANALYZE=true next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
@@ -15,7 +16,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "check": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build && npm run budget",
     "setup-hooks": "sh scripts/install-hooks.sh"
   },
   "dependencies": {
