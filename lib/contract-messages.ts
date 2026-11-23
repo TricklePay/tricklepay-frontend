@@ -41,10 +41,73 @@ export function wrongNetworkMessage(walletNetwork: string, expectedNetwork: stri
 export const WALLET_NETWORK_UNAVAILABLE_MESSAGE =
   "Could not read the active network from Freighter. Unlock or reconnect your wallet and try again.";
 
-// Shown when Freighter reports signed.error after the signing prompt.
-// Covers explicit rejection and expired XDR (the user took longer than the
-// TX_TIMEOUT_SECONDS window to approve).
+// Shown when Freighter reports a user-rejected signing request.
 export const TX_SIGNING_REJECTED_MESSAGE = "Signing was rejected in the wallet.";
+
+// Shown when Freighter reports that the wallet is locked.
+export const TX_WALLET_LOCKED_MESSAGE =
+  "Your wallet is locked. Unlock Freighter and try again.";
+
+// Shown when Freighter has a different account selected than the connected caller.
+export const TX_WRONG_ACCOUNT_MESSAGE =
+  "The wrong account is selected in Freighter. Switch to the connected account and try again.";
+
+// Shown when Freighter reports an internal or generic signing failure.
+export const TX_SIGNING_WALLET_ERROR_MESSAGE =
+  "The wallet encountered an error while signing. Please try again.";
+
+/**
+ * Maps a Freighter `signed.error` value (string or `{ code, message }` object)
+ * to a distinct, actionable user-facing message for known error shapes, or
+ * surfaces the wallet's own message for unknown errors.
+ */
+export function parseSigningError(error: unknown): string {
+  let code: number | undefined;
+  let message = "";
+
+  if (typeof error === "string") {
+    message = error.trim();
+  } else if (typeof error === "object" && error !== null) {
+    if ("code" in error && typeof error.code === "number") {
+      code = error.code;
+    }
+    if ("message" in error && typeof error.message === "string") {
+      message = error.message.trim();
+    }
+  }
+
+  const lower = message.toLowerCase();
+
+  if (
+    code === -4 ||
+    /\b(reject(?:ed)?|declin(?:ed)?|cancel(?:led|ed)?|denied|dismiss(?:ed)?)\b/.test(lower)
+  ) {
+    return TX_SIGNING_REJECTED_MESSAGE;
+  }
+
+  if (/\b(locked|unlock)\b/.test(lower)) {
+    return TX_WALLET_LOCKED_MESSAGE;
+  }
+
+  if (
+    /(wrong account|account.*mismatch|address.*mismatch|mismatch.*account|mismatch.*address|account not found|invalid account|different account|not the.*account|selected account)/.test(
+      lower,
+    )
+  ) {
+    return TX_WRONG_ACCOUNT_MESSAGE;
+  }
+
+  if (
+    !message ||
+    /(internal error|internal failure|freighter.*error|extension.*error|failed to sign|unable to sign|signing failed|unexpected error)/.test(
+      lower,
+    )
+  ) {
+    return TX_SIGNING_WALLET_ERROR_MESSAGE;
+  }
+
+  return message;
+}
 
 // Shown when the RPC rejects the broadcast outright (expired XDR, bad sequence,
 // fee too low). The transaction never entered the pending pool.

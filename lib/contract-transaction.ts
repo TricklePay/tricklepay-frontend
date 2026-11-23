@@ -17,9 +17,9 @@ import { parseContractError } from "@/lib/contract-errors";
 import {
   ACCOUNT_NOT_FOUND_MESSAGE,
   isAccountNotFoundError,
+  parseSigningError,
   TX_NETWORK_REJECTED_MESSAGE,
   TX_RPC_BUSY_MESSAGE,
-  TX_SIGNING_REJECTED_MESSAGE,
 } from "@/lib/contract-messages";
 
 function sleep(ms: number): Promise<void> {
@@ -84,7 +84,7 @@ export async function signPreparedTransaction(
     address: caller,
   });
   if (signed.error) {
-    throw new Error(TX_SIGNING_REJECTED_MESSAGE);
+    throw new Error(parseSigningError(signed.error));
   }
   return signed.signedTxXdr;
 }
