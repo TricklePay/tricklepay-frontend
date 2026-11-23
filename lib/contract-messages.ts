@@ -6,6 +6,8 @@
 // ("preparing" | "signing" | "submitting" | "confirming") or throw one of
 // these strings, never define the wording inline.
 
+import { xdr } from "@stellar/stellar-sdk";
+
 import type { TxStage, TxStageInfo } from "@/types/contract";
 
 export const TX_STAGES: TxStageInfo[] = [
@@ -112,6 +114,57 @@ export function parseSigningError(error: unknown): string {
 // Shown when the RPC rejects the broadcast outright (expired XDR, bad sequence,
 // fee too low). The transaction never entered the pending pool.
 export const TX_NETWORK_REJECTED_MESSAGE = "The network rejected the transaction.";
+
+// Maps common Stellar TransactionResultCode names to actionable user messages.
+export const RPC_TX_ERROR_MESSAGES: Record<string, string> = {
+  txBadSeq: "Transaction sequence number is out of date. Please try again.",
+  txInsufficientFee:
+    "Transaction fee is too low for current network conditions. Please try again.",
+  txTooLate: "Transaction expired before it could be submitted. Please try again.",
+  txTooEarly: "Transaction is not valid yet. Please try again in a moment.",
+  txInsufficientBalance: "Insufficient XLM balance to cover transaction fees.",
+  txBadAuth: "Transaction signature is invalid or missing. Please sign again.",
+  txNoAccount: "This account has not been funded yet. Fund it before signing transactions.",
+  txFailed: "The transaction failed during execution.",
+  txSorobanInvalid: "The transaction is not valid for Soroban execution.",
+};
+
+/**
+ * Decodes the `errorResult` (or `errorResultXdr`) from an RPC `sendTransaction`
+ * ERROR response and maps known `TransactionResultCode`s to specific user
+ * messages. Unknown codes include their XDR enum name; missing or unreadable
+ * results fall back to `TX_NETWORK_REJECTED_MESSAGE`.
+ */
+export function parseRpcTransactionError(sent: {
+  errorResult?: unknown;
+  errorResultXdr?: unknown;
+}): string {
+  try {
+    let txResult: xdr.TransactionResult | undefined;
+
+    if (
+      typeof sent.errorResult === "object" &&
+      sent.errorResult !== null &&
+      "result" in sent.errorResult &&
+      typeof (sent.errorResult as { result?: unknown }).result === "function"
+    ) {
+      txResult = sent.errorResult as xdr.TransactionResult;
+    } else if (typeof sent.errorResult === "string" && sent.errorResult.length > 0) {
+      txResult = xdr.TransactionResult.fromXDR(sent.errorResult, "base64");
+    } else if (typeof sent.errorResultXdr === "string" && sent.errorResultXdr.length > 0) {
+      txResult = xdr.TransactionResult.fromXDR(sent.errorResultXdr, "base64");
+    }
+
+    if (!txResult) {
+      return TX_NETWORK_REJECTED_MESSAGE;
+    }
+
+    const codeName = txResult.result().switch().name;
+    return RPC_TX_ERROR_MESSAGES[codeName] ?? `The network rejected the transaction (${codeName}).`;
+  } catch {
+    return TX_NETWORK_REJECTED_MESSAGE;
+  }
+}
 
 // Shown when the RPC repeatedly returns TRY_AGAIN_LATER across all submission
 // retries because it is temporarily overloaded.

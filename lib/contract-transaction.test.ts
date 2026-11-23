@@ -1,10 +1,11 @@
 import { signTransaction } from "@stellar/freighter-api";
-import { rpc, TransactionBuilder } from "@stellar/stellar-sdk";
+import { rpc, TransactionBuilder, xdr } from "@stellar/stellar-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SUBMIT_MAX_ATTEMPTS, SUBMIT_RETRY_BASE_DELAY_MS } from "@/lib/contract-config";
 import {
   parseSigningError,
+  RPC_TX_ERROR_MESSAGES,
   TX_NETWORK_REJECTED_MESSAGE,
   TX_RPC_BUSY_MESSAGE,
   TX_SIGNING_REJECTED_MESSAGE,
@@ -78,6 +79,65 @@ describe("submitSignedTransaction", () => {
       TX_NETWORK_REJECTED_MESSAGE,
     );
     expect(sendTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["txBadSeq", "AAAAAAAAAA////7AAAAAAA==", RPC_TX_ERROR_MESSAGES.txBadSeq],
+    ["txInsufficientFee", "AAAAAAAAAA////3AAAAAAA==", RPC_TX_ERROR_MESSAGES.txInsufficientFee],
+    ["txTooLate", "AAAAAAAAAA////9AAAAAAA==", RPC_TX_ERROR_MESSAGES.txTooLate],
+    [
+      "txInsufficientBalance",
+      "AAAAAAAAAA////5AAAAAAA==",
+      RPC_TX_ERROR_MESSAGES.txInsufficientBalance,
+    ],
+  ])("decodes %s XDR errorResult to a specific user message", async (_code, xdrBase64, expected) => {
+    const sendTransaction = vi.fn().mockResolvedValue({
+      status: "ERROR",
+      hash: "0xerror",
+      errorResult: xdr.TransactionResult.fromXDR(xdrBase64, "base64"),
+    });
+
+    await expect(submitSignedTransaction(mockServer(sendTransaction), "AAAA")).rejects.toThrow(
+      expected,
+    );
+    expect(sendTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("includes the XDR code name for unknown errorResult codes", async () => {
+    // txMalformed (-16) XDR fixture
+    const sendTransaction = vi.fn().mockResolvedValue({
+      status: "ERROR",
+      hash: "0xerror",
+      errorResult: xdr.TransactionResult.fromXDR("AAAAAAAAAA////wAAAAAAA==", "base64"),
+    });
+
+    await expect(submitSignedTransaction(mockServer(sendTransaction), "AAAA")).rejects.toThrow(
+      "txMalformed",
+    );
+  });
+
+  it("decodes base64 errorResultXdr when errorResult object is absent", async () => {
+    const sendTransaction = vi.fn().mockResolvedValue({
+      status: "ERROR",
+      hash: "0xerror",
+      errorResultXdr: "AAAAAAAAAA////7AAAAAAA==",
+    });
+
+    await expect(submitSignedTransaction(mockServer(sendTransaction), "AAAA")).rejects.toThrow(
+      RPC_TX_ERROR_MESSAGES.txBadSeq,
+    );
+  });
+
+  it("falls back to TX_NETWORK_REJECTED_MESSAGE when errorResultXdr is invalid", async () => {
+    const sendTransaction = vi.fn().mockResolvedValue({
+      status: "ERROR",
+      hash: "0xerror",
+      errorResultXdr: "not-valid-xdr",
+    });
+
+    await expect(submitSignedTransaction(mockServer(sendTransaction), "AAAA")).rejects.toThrow(
+      TX_NETWORK_REJECTED_MESSAGE,
+    );
   });
 
   it("retries TRY_AGAIN_LATER with exponential backoff and succeeds on PENDING", async () => {

@@ -17,6 +17,7 @@ import { parseContractError } from "@/lib/contract-errors";
 import {
   ACCOUNT_NOT_FOUND_MESSAGE,
   isAccountNotFoundError,
+  parseRpcTransactionError,
   parseSigningError,
   TX_NETWORK_REJECTED_MESSAGE,
   TX_RPC_BUSY_MESSAGE,
@@ -114,6 +115,9 @@ export async function submitSignedTransaction(srv: rpc.Server, signedTxXdr: stri
         continue;
       }
       throw new Error(TX_RPC_BUSY_MESSAGE);
+    }
+    if (sent.status === "ERROR") {
+      throw new Error(parseRpcTransactionError(sent));
     }
     throw new Error(TX_NETWORK_REJECTED_MESSAGE);
   }
