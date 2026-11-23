@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { usePolling } from "@/hooks/use-polling";
 import { checkApiHealth, isAbortError } from "@/lib/api";
 
 // How often the backend is probed once the first check is done. Health changes
@@ -22,33 +23,19 @@ export type ApiHealth = "checking" | "reachable" | "unreachable";
 export function useApiHealth(enabled = true): ApiHealth {
   const [health, setHealth] = useState<ApiHealth>("checking");
 
-  useEffect(() => {
-    if (!enabled) return;
-
-    let controller: AbortController | null = null;
-
-    const probe = () => {
-      controller?.abort();
-      const current = new AbortController();
-      controller = current;
-      checkApiHealth({ signal: current.signal })
+  usePolling(
+    (signal) => {
+      checkApiHealth({ signal })
         .then((ok) => {
-          if (!current.signal.aborted) setHealth(ok ? "reachable" : "unreachable");
+          if (!signal.aborted) setHealth(ok ? "reachable" : "unreachable");
         })
         .catch((error: unknown) => {
-          // Only an abort reaches here, and that is our own cleanup.
           if (!isAbortError(error)) setHealth("unreachable");
         });
-    };
-
-    probe();
-    const interval = setInterval(probe, API_HEALTH_INTERVAL_MS);
-
-    return () => {
-      clearInterval(interval);
-      controller?.abort();
-    };
-  }, [enabled]);
+    },
+    API_HEALTH_INTERVAL_MS,
+    enabled,
+  );
 
   return health;
 }
