@@ -92,6 +92,7 @@ readers without moving focus.
 | Transaction success | `role="status"`, `aria-live="polite"` (explorer link has an `sr-only` "opens in a new tab") | `components/transaction-notice.tsx` |
 | Copy confirmation | nested `sr-only` `role="status"` / `aria-live="polite"` reading "Copied … to clipboard" | `components/copy-button.tsx` |
 | Live balance | `sr-only` polite status announcing the withdrawable balance on an interval, only while a stream is `streaming` | `components/stream-detail.tsx` |
+| Offline status | `role="status"`, `aria-live="polite"`, `aria-atomic="true"` always-mounted live region; renders a non-dismissible notice while offline and clears automatically when back online | `components/offline-banner.tsx` |
 | Errors that block the user | `role="alert"` (assertive) | field errors in `components/create-stream-fields.tsx`; form error in `components/create-form.tsx`; wallet errors and wrong-network warning in `components/wallet-button.tsx`; confirmation timeout in `components/timeout-recovery-alert.tsx` |
 | Destructive confirmation | `role="alertdialog"` labelled by its question | `components/cancel-stream-control.tsx` |
 

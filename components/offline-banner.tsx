@@ -5,8 +5,8 @@ import type { JSX } from "react";
 import { useOnline } from "@/hooks/use-online";
 
 /**
- * Displays a dismissible banner when the browser loses internet connectivity
- * and removes it automatically when the connection returns.
+ * Displays a non-dismissible banner when the browser loses internet
+ * connectivity and removes it automatically when the connection returns.
  *
  * `aria-live="polite"` announces the message to screen readers without
  * interrupting the current reading flow. The region is always rendered in
