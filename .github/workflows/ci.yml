@@ -60,23 +60,6 @@ jobs:
 
       - run: npm test
 
-      - name: Install Vitest v8 coverage provider
-        if: matrix.node-version == '22'
-        run: npm install --no-save --ignore-scripts @vitest/coverage-v8@4.1.12
-
-      - name: Run unit test coverage
-        if: matrix.node-version == '22'
-        run: npm run test:coverage
-
-      - name: Upload coverage report
-        if: always() && matrix.node-version == '22'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: unit-test-coverage
-          path: coverage/
-          retention-days: 14
-          if-no-files-found: ignore
-
       - run: npm run build
         env:
           NEXT_PUBLIC_CONTRACT_ID: "CA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQGAXE"
