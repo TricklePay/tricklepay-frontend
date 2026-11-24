@@ -10,7 +10,7 @@ import { useMinimumLoadingDuration } from "@/hooks/use-minimum-loading-duration"
 import { useStreamEvents } from "@/hooks/use-stream-events";
 import { useStreamTitle } from "@/hooks/use-stream-title";
 import { getStream, isAbortError } from "@/lib/api";
-import { clearReturningFromStream, setSessionItem } from "@/lib/scroll";
+import { clearReturningFromStream, navigateBack } from "@/lib/scroll";
 import { isValidStreamId } from "@/lib/validation";
 import type { StreamView } from "@/types/stream";
 
@@ -129,10 +129,7 @@ export default function StreamDetailPage(): JSX.Element {
       <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
         <button
           type="button"
-          onClick={() => {
-            setSessionItem("tricklepay:from_stream_detail", "true");
-            router.back();
-          }}
+          onClick={() => navigateBack(router)}
           className="inline-flex items-center min-h-[44px] px-2 py-2 text-xs text-neutral-500 hover:text-neutral-300"
         >
           &larr; Back
@@ -155,10 +152,7 @@ export default function StreamDetailPage(): JSX.Element {
       <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
         <button
           type="button"
-          onClick={() => {
-            setSessionItem("tricklepay:from_stream_detail", "true");
-            router.back();
-          }}
+          onClick={() => navigateBack(router)}
           className="inline-flex items-center min-h-[44px] px-2 py-2 text-xs text-neutral-500 hover:text-neutral-300"
         >
           &larr; Back
