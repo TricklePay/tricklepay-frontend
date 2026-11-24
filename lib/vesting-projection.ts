@@ -21,6 +21,8 @@ export interface VestingProjection {
  * - Before start (or before cliff): vested = 0.
  * - After end: vested = totalAmount.
  * - During the stream: linearly interpolated.
+ * - Cancelled stream: never above the frozen `vested` amount, since a
+ *   cancelled stream stops vesting at cancellation.
  *
  * @param stream  The stream to project.
  * @param atTime  The chosen instant as Unix seconds (bigint).
@@ -33,7 +35,11 @@ export function projectVesting(stream: StreamView, atTime: bigint): VestingProje
   const cliffTime = BigInt(stream.cliffTime);
   const withdrawn = BigInt(stream.withdrawn);
 
-  const vested = vestedAmount(totalAmount, startTime, endTime, cliffTime, atTime);
+  let vested = vestedAmount(totalAmount, startTime, endTime, cliffTime, atTime);
+  if (stream.status === "cancelled" || stream.cancelled) {
+    const frozen = BigInt(stream.vested);
+    if (vested > frozen) vested = frozen;
+  }
   const withdrawable = withdrawableAmount(vested, withdrawn);
 
   return { atTime, vested, withdrawable };
