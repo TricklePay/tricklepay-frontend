@@ -248,6 +248,21 @@ export function useStreamPage(
     listStreams(pageQuery(role, address, status, refreshLimit), { signal: controller.signal })
       .then((page) => {
         if (generation.current !== gen) return;
+        // Past the page ceiling the refresh can only cover the first rows.
+        // Swap those in and keep the loaded tail and its cursor, so the list
+        // keeps updating instead of discarding the response.
+        if (
+          streamsRef.current.length > MAX_PAGE_SIZE &&
+          page.streams.length >= refreshLimit
+        ) {
+          const head = page.streams.length;
+          setStreams((previous) => [...page.streams, ...previous.slice(head)]);
+          setTotal(page.total ?? streamsRef.current.length);
+          setLastUpdated(Date.now());
+          setConsecutiveRefreshFailures(0);
+          setRefreshWarning(null);
+          return;
+        }
         // If loadMore ran while this request was in flight, it has appended
         // rows beyond what we fetched. Applying a shorter list would silently
         // drop them, so skip this refresh result; the next interval will cover
