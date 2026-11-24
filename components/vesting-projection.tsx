@@ -3,6 +3,7 @@
 import { type JSX, useState } from "react";
 
 import { formatAmount } from "@/lib/format";
+import { DEFAULT_TOKEN_DECIMALS, getCachedTokenDecimals } from "@/lib/token-decimals";
 import { parseDatetimeLocal, projectVesting } from "@/lib/vesting-projection";
 import type { StreamView } from "@/types/stream";
 
@@ -20,6 +21,7 @@ interface Props {
 export function VestingProjection({ stream }: Props): JSX.Element {
   const [dateInput, setDateInput] = useState("");
 
+  const decimals = getCachedTokenDecimals(stream.token) ?? DEFAULT_TOKEN_DECIMALS;
   const atTime = parseDatetimeLocal(dateInput);
   const result = atTime !== null ? projectVesting(stream, atTime) : null;
 
@@ -75,13 +77,13 @@ export function VestingProjection({ stream }: Props): JSX.Element {
             <div>
               <dt className="text-xs text-neutral-500">Vested at that time</dt>
               <dd className="font-mono tabular-nums text-neutral-100">
-                {formatAmount(result.vested.toString())}
+                {formatAmount(result.vested.toString(), decimals)}
               </dd>
             </div>
             <div>
               <dt className="text-xs text-neutral-500">Withdrawable at that time</dt>
               <dd className="font-mono tabular-nums text-neutral-100">
-                {formatAmount(result.withdrawable.toString())}
+                {formatAmount(result.withdrawable.toString(), decimals)}
               </dd>
             </div>
           </dl>
