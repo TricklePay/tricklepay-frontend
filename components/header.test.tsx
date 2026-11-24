@@ -120,4 +120,27 @@ describe("Header", () => {
     const nonActiveLink = mobileNav?.querySelector('a[href="/create"]');
     expect(nonActiveLink?.getAttribute("aria-current")).toBeNull();
   });
+
+  it("moves focus to the first mobile link on open and closes on Escape back to the toggle", async () => {
+    await act(async () => {
+      root.render(<Header />);
+    });
+
+    const toggleButton = container.querySelector(
+      'button[aria-controls="mobile-nav"]',
+    ) as HTMLButtonElement;
+    await act(async () => {
+      toggleButton.click();
+    });
+
+    const firstLink = container.querySelector('nav[aria-label="Mobile navigation"] a');
+    expect(document.activeElement).toBe(firstLink);
+
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+
+    expect(container.querySelector('nav[aria-label="Mobile navigation"]')).toBeNull();
+    expect(document.activeElement).toBe(toggleButton);
+  });
 });
