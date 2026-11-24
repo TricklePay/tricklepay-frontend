@@ -39,6 +39,7 @@ See also [Running locally](#running-locally) for the short version,
 - [Browser Support](#browser-support)
 - [Wallet Requirement](#wallet-requirement)
 - [Running locally](#running-locally)
+  - [Git hooks](#git-hooks)
 - [Testing](#testing)
   - [Running unit tests (Vitest)](#running-unit-tests-vitest)
   - [Running end-to-end tests (Playwright)](#running-end-to-end-tests-playwright)
@@ -141,6 +142,47 @@ npm run dev
 ```
 
 Open http://localhost:3000.
+
+### Git hooks
+
+The repository ships one optional Git hook, [`.githooks/pre-commit`](.githooks/pre-commit).
+It is **not** enabled by `npm install`; turn it on yourself:
+
+```bash
+npm run setup-hooks
+```
+
+This runs [`scripts/install-hooks.sh`](scripts/install-hooks.sh), which sets
+`git config core.hooksPath .githooks` (or, if that fails, copies the hook into
+`.git/hooks/pre-commit`).
+
+When staged files include `.ts`, `.tsx`, `.js`, or `.mjs` files, the hook runs:
+
+| Step | Command | CI equivalent |
+| --- | --- | --- |
+| Lint the staged files | `npx eslint <staged files>` | `npm run lint` (`eslint . --max-warnings 0`) |
+| Type check the project | `npm run typecheck` (`tsc --noEmit`) | `npm run typecheck` |
+
+The hook lints only staged files and does not pass `--max-warnings 0`, so a
+lint warning that CI rejects can still pass locally. It also skips tests and
+the build. Run `npm run check` before pushing to cover everything CI checks.
+
+To skip the hook for one commit, use `git commit --no-verify` (or `-n`), or set
+`SKIP_HOOKS`:
+
+```bash
+SKIP_HOOKS=1 git commit -m "wip: checkpoint changes"
+```
+
+To disable it, run `git config --unset core.hooksPath` (or delete
+`.git/hooks/pre-commit` if the script fell back to copying it).
+
+> [!WARNING]
+> Git hooks are repository code that runs on your machine on every commit.
+> Read `.githooks/` and `scripts/install-hooks.sh` before enabling them, and
+> again when a pull or a branch you check out changes them: with
+> `core.hooksPath` set, a changed hook runs on your next commit without
+> being reinstalled.
 
 ## Testing
 
