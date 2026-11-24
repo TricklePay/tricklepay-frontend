@@ -69,6 +69,40 @@ resolved `null` rather than a thrown error — callers branch on `null` to
 render the not-found state (`app/streams/[id]/page.tsx`), not on a caught
 exception. Any other non-2xx status still throws.
 
+### `GET /streams/:id/events`
+
+Response body: a JSON array of `StreamEvent` objects (`types/stream.ts`) for
+one stream, in ascending chain order. Each event carries `eventId` (the
+ordering key), `kind` (`created`, `withdrawn` or `cancelled`), `streamId`,
+`ledger` and `txHash`, plus optional amount and time fields that depend on the
+kind (for example `totalAmount` on `created`, `amount` on `withdrawn`,
+`recipientAmount` and `senderRefund` on `cancelled`). Amounts and times are
+decimal strings.
+
+`getStreamEvents` (`lib/api.ts`) validates the body with `parseStreamEvents`.
+A `404`, or an id that is not a valid stream id, resolves to an empty array
+instead of throwing. Any other non-2xx status throws an `ApiError`.
+
+### Error body and headers
+
+A non-2xx response from the backend is expected to carry a JSON body:
+
+| Field | Meaning |
+| --- | --- |
+| `code` | Machine-readable error code, kept on `ApiError.code` |
+| `error` | Human-readable message, used as the `ApiError` message when present |
+| `requestId` | Backend request id, kept on `ApiError.requestId` and shown to the user for support |
+
+`createApiError` (`lib/api.ts`) tolerates a missing or non-JSON body and falls
+back to a message built from the HTTP status. The backend also reports how far
+the indexer is behind the chain in the `X-Indexer-Lag-Ledgers` header; the
+client currently reads the same value as `lagLedgers` from `GET /status`
+(`getIndexerLag`) to drive the indexer lag banner.
+
+Recorded error bodies are in `test/fixtures/api/error-400.json`,
+`error-404.json` and `error-429.json`. See
+[Recording and updating backend fixtures](#recording-and-updating-backend-fixtures).
+
 ### `StreamView` field contract
 
 ```ts
