@@ -108,3 +108,19 @@ export interface StreamEvent {
   /** Ledger close time in Unix seconds for the event, as a decimal string */
   closedAt?: string | null;
 }
+
+/** Totals for one side (incoming or outgoing) of an account, from GET /accounts/:address/summary. */
+export interface AccountSideSummary {
+  /** Number of streams on this side, across every page */
+  count: number;
+  /** Amount totals in base units as decimal strings. The backend sums them across tokens. */
+  totalAmount: string;
+  withdrawn: string;
+  vested: string;
+  withdrawable: string;
+}
+
+export interface AccountSummary {
+  incoming: AccountSideSummary;
+  outgoing: AccountSideSummary;
+}

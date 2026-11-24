@@ -12,6 +12,8 @@
 // as it arrived so nothing downstream has to care that it passed through here.
 
 import type {
+  AccountSideSummary,
+  AccountSummary,
   StreamEvent,
   StreamEventKind,
   StreamListResponse,
@@ -221,4 +223,29 @@ export function parseStreamEvents(value: unknown): StreamEvent[] {
   if (!Array.isArray(value)) fail("response", "must be an array", value);
   value.forEach((event, index) => parseStreamEvent(event, `response[${index}]`));
   return value as unknown as StreamEvent[];
+}
+
+function parseAccountSide(value: unknown, path: string): AccountSideSummary {
+  if (!isRecord(value)) fail(path, "must be an object", value);
+
+  const count = value.count;
+  if (typeof count !== "number" || !Number.isInteger(count) || count < 0) {
+    fail(`${path}.count`, "must be a non-negative integer", count);
+  }
+  for (const key of ["totalAmount", "withdrawn", "vested", "withdrawable"]) {
+    requireIntegerString(value, key, path);
+  }
+
+  return value as unknown as AccountSideSummary;
+}
+
+/**
+ * Validates a `GET /accounts/:address/summary` response: an incoming and an
+ * outgoing side, each with a stream count and exact amount totals.
+ */
+export function parseAccountSummary(value: unknown): AccountSummary {
+  if (!isRecord(value)) fail("response", "must be an object", value);
+  parseAccountSide(value.incoming, "response.incoming");
+  parseAccountSide(value.outgoing, "response.outgoing");
+  return value as unknown as AccountSummary;
 }

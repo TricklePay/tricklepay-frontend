@@ -6,7 +6,13 @@
 // streaming stream is always mid-flight and visibly accruing.
 
 import type { ListStreamsParams, StreamApiClient } from "@/lib/api";
-import type { StreamEvent, StreamListResponse, StreamView } from "@/types/stream";
+import type {
+  AccountSideSummary,
+  AccountSummary,
+  StreamEvent,
+  StreamListResponse,
+  StreamView,
+} from "@/types/stream";
 
 const MOCK_SENDER = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
 const MOCK_RECIPIENT = "GBBZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
@@ -234,10 +240,33 @@ export const mockGetStreamEvents: StreamApiClient["getStreamEvents"] = async (
   return MOCK_EVENTS[id] ?? [];
 };
 
+function sumStreams(streams: StreamView[]): AccountSideSummary {
+  const sum = (pick: (s: StreamView) => string) =>
+    streams.reduce((total, s) => total + BigInt(pick(s)), 0n).toString();
+  return {
+    count: streams.length,
+    totalAmount: sum((s) => s.totalAmount),
+    withdrawn: sum((s) => s.withdrawn),
+    vested: sum((s) => s.vested),
+    withdrawable: sum((s) => s.withdrawable),
+  };
+}
+
+/**
+ * Mock counterpart of `getAccountSummary`. Like the list mock, the asking
+ * account is party to every fixture on both sides, so both sides total them all.
+ */
+export const mockGetAccountSummary: StreamApiClient["getAccountSummary"] = async (
+  _address: string,
+): Promise<AccountSummary> => {
+  return { incoming: sumStreams(MOCK_STREAMS), outgoing: sumStreams(MOCK_STREAMS) };
+};
+
 // Mock client, typed against the same contract as the real client in
 // `lib/api.ts` so a divergence fails the typecheck.
 export const mockApiClient: StreamApiClient = {
   listStreams: mockListStreams,
   getStream: mockGetStream,
   getStreamEvents: mockGetStreamEvents,
+  getAccountSummary: mockGetAccountSummary,
 };

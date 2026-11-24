@@ -13,9 +13,11 @@ import { TokenDisplay } from "@/components/token-display";
 import { VestingCurve } from "@/components/vesting-curve";
 import { VestingProjection } from "@/components/vesting-projection";
 import { useWallet } from "@/components/wallet-provider";
+import { WithdrawalNotifyToggle } from "@/components/withdrawal-notify-toggle";
 import { useAccrual } from "@/hooks/use-accrual";
 import { useNow } from "@/hooks/use-now";
 import { useTokenDecimals } from "@/hooks/use-token-decimals";
+import { downloadIcs, streamToIcs } from "@/lib/calendar";
 import { formatTokenAmount, truncateAddress } from "@/lib/format";
 import { formatSchedule, NO_CLIFF_LABEL } from "@/lib/schedule";
 import { setSessionItem } from "@/lib/scroll";
@@ -231,6 +233,17 @@ export function StreamDetail({
         Times above are shown in your local timezone —{" "}
         <span className="text-neutral-400">{resolvedTimeZoneLabel()}</span>.
       </p>
+      <button
+        type="button"
+        onClick={() => downloadIcs(`stream-${stream.id}.ics`, streamToIcs(stream))}
+        className="mt-3 inline-flex items-center justify-center min-h-[44px] rounded border border-neutral-700 px-3 py-2 text-xs text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+      >
+        Add to calendar
+      </button>
+      {wallet.address === stream.recipient &&
+        (stream.status === "streaming" || stream.status === "pending") && (
+          <WithdrawalNotifyToggle stream={stream} withdrawable={accrual.withdrawable} />
+        )}
 
       <VestingProjection stream={stream} />
 
