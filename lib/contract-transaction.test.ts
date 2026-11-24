@@ -69,6 +69,18 @@ describe("submitSignedTransaction", () => {
     expect(sendTransaction).toHaveBeenCalledTimes(1);
   });
 
+  it("throws TX_NETWORK_REJECTED_MESSAGE without retrying on an unrecognised status", async () => {
+    const sendTransaction = vi.fn().mockResolvedValue({
+      status: "SOMETHING_NEW",
+      hash: "0xunknown",
+    });
+
+    await expect(submitSignedTransaction(mockServer(sendTransaction), "AAAA")).rejects.toThrow(
+      TX_NETWORK_REJECTED_MESSAGE,
+    );
+    expect(sendTransaction).toHaveBeenCalledTimes(1);
+  });
+
   it("throws TX_NETWORK_REJECTED_MESSAGE without retrying when status is ERROR", async () => {
     const sendTransaction = vi.fn().mockResolvedValue({
       status: "ERROR",
