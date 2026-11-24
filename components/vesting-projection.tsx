@@ -26,6 +26,9 @@ export function VestingProjection({ stream }: Props): JSX.Element {
   // Determine a label for the result context.
   function resultLabel(): string {
     if (atTime === null) return "";
+    if (stream.status === "cancelled" || stream.cancelled) {
+      return "Stream was cancelled, so the vested amount is capped at its frozen value.";
+    }
     const start = BigInt(stream.startTime);
     const end = BigInt(stream.endTime);
     if (atTime < start) return "Before stream starts — nothing vested yet.";
