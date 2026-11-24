@@ -29,6 +29,7 @@ const CSV_COLUMNS = [
   "Start Time (UTC)",
   "End Time (UTC)",
   "Cliff Time (UTC)",
+  "Decimals",
 ] as const;
 
 /**
@@ -67,6 +68,7 @@ function streamRow(stream: StreamView): string[] {
     formatUtcFromUnixSeconds(stream.startTime),
     formatUtcFromUnixSeconds(stream.endTime),
     formatUtcFromUnixSeconds(stream.cliffTime),
+    String(decimals),
   ];
 }
 

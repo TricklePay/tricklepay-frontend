@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { escapeCsvField, streamsToCsv } from "@/lib/csv";
 import { formatAmount } from "@/lib/format";
 import { formatUtcFromUnixSeconds } from "@/lib/timezone";
+import { clearTokenDecimalsCache, setCachedTokenDecimals } from "@/lib/token-decimals";
 import type { StreamView } from "@/types/stream";
 
 describe("escapeCsvField", () => {
@@ -62,7 +63,7 @@ describe("streamsToCsv", () => {
 
     expect(lines[0]).toBe(
       "Stream ID,Status,Sender,Recipient,Token,Total Amount,Vested,Withdrawn," +
-        "Withdrawable,Locked,Start Time (UTC),End Time (UTC),Cliff Time (UTC)",
+        "Withdrawable,Locked,Start Time (UTC),End Time (UTC),Cliff Time (UTC),Decimals",
     );
     expect(lines[1].split(",")[0]).toBe("1");
     // Trailing CRLF after the last row, and nothing after it.
@@ -111,8 +112,19 @@ describe("streamsToCsv", () => {
         formatUtcFromUnixSeconds(BASE_STREAM.startTime),
         formatUtcFromUnixSeconds(BASE_STREAM.endTime),
         formatUtcFromUnixSeconds(BASE_STREAM.cliffTime),
+        "7",
       ].join(","),
     );
+  });
+
+  it("writes the decimals used for each stream's token", () => {
+    for (const decimals of [0, 6, 7]) {
+      setCachedTokenDecimals(BASE_STREAM.token, decimals);
+      const row = streamsToCsv([BASE_STREAM]).split("\r\n")[1].split(",");
+      expect(row.at(-1)).toBe(String(decimals));
+      expect(row[5]).toBe(formatAmount(BASE_STREAM.totalAmount, decimals));
+    }
+    clearTokenDecimalsCache();
   });
 
   it("escapes a field that contains a double quote", () => {
@@ -126,7 +138,7 @@ describe("streamsToCsv", () => {
     const csv = streamsToCsv([]);
     expect(csv.split("\r\n")).toEqual([
       "Stream ID,Status,Sender,Recipient,Token,Total Amount,Vested,Withdrawn," +
-        "Withdrawable,Locked,Start Time (UTC),End Time (UTC),Cliff Time (UTC)",
+        "Withdrawable,Locked,Start Time (UTC),End Time (UTC),Cliff Time (UTC),Decimals",
       "",
     ]);
   });
