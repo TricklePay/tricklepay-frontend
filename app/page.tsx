@@ -99,7 +99,7 @@ function StreamSection({
             </p>
           )}
           {page.lastUpdated !== null && (
-            <p role="status" aria-live="polite" className="text-xs text-neutral-500">
+            <p className="text-xs text-neutral-500">
               Updated {timeAgo(page.lastUpdated, now)}
             </p>
           )}
