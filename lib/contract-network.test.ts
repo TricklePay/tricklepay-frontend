@@ -1,9 +1,10 @@
 import { getNetwork } from "@stellar/freighter-api";
+import { rpc } from "@stellar/stellar-sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { config } from "@/lib/config";
 import { WALLET_NETWORK_UNAVAILABLE_MESSAGE, wrongNetworkMessage } from "@/lib/contract-messages";
-import { ensureWalletNetwork } from "@/lib/contract-network";
+import { ensureWalletNetwork, server } from "@/lib/contract-network";
 
 vi.mock("@stellar/freighter-api", () => ({
   getNetwork: vi.fn(),
@@ -36,6 +37,29 @@ describe("ensureWalletNetwork", () => {
     );
   });
 
+  it("normalises a full network label before comparing", async () => {
+    vi.mocked(getNetwork).mockResolvedValueOnce({
+      network:
+        config.network === "testnet"
+          ? "Test SDF Network ; September 2015"
+          : "Public Global Stellar Network ; September 2015",
+      networkPassphrase: config.networkPassphrase,
+    } as Awaited<ReturnType<typeof getNetwork>>);
+
+    await expect(ensureWalletNetwork()).resolves.toBeUndefined();
+  });
+
+  it("treats an unknown network label as a lower-cased mismatch", async () => {
+    vi.mocked(getNetwork).mockResolvedValueOnce({
+      network: "FUTURENET",
+      networkPassphrase: "",
+    } as Awaited<ReturnType<typeof getNetwork>>);
+
+    await expect(ensureWalletNetwork()).rejects.toThrow(
+      wrongNetworkMessage("futurenet", config.network),
+    );
+  });
+
   it("fails closed when getNetwork returns an error result", async () => {
     vi.mocked(getNetwork).mockResolvedValueOnce({
       network: "",
@@ -50,5 +74,25 @@ describe("ensureWalletNetwork", () => {
     vi.mocked(getNetwork).mockRejectedValueOnce(new Error("wallet unreachable"));
 
     await expect(ensureWalletNetwork()).rejects.toThrow(WALLET_NETWORK_UNAVAILABLE_MESSAGE);
+  });
+});
+
+describe("server", () => {
+  const originalRpcUrl = config.rpcUrl;
+
+  afterEach(() => {
+    config.rpcUrl = originalRpcUrl;
+  });
+
+  it("creates an RPC server for an https URL", () => {
+    config.rpcUrl = "https://soroban-testnet.stellar.org";
+
+    expect(server()).toBeInstanceOf(rpc.Server);
+  });
+
+  it("allows plain http only when the configured URL uses http", () => {
+    config.rpcUrl = "http://localhost:8000";
+
+    expect(server()).toBeInstanceOf(rpc.Server);
   });
 });
