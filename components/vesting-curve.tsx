@@ -29,8 +29,8 @@ interface Props {
  */
 export function VestingCurve({ stream }: Props): JSX.Element {
   // Re-render once per second so the "now" marker advances while the stream
-  // is active; useNow() already handles this.
-  const nowSec = Math.floor(useNow() / 1000);
+  // is active. The tick state lives here, so only the curve re-renders.
+  const nowSec = Math.floor(useNow(1_000) / 1000);
 
   const totalAmount = BigInt(stream.totalAmount);
   const startTime = BigInt(stream.startTime);
