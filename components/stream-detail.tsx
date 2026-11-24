@@ -13,6 +13,7 @@ import { TokenDisplay } from "@/components/token-display";
 import { VestingCurve } from "@/components/vesting-curve";
 import { VestingProjection } from "@/components/vesting-projection";
 import { useWallet } from "@/components/wallet-provider";
+import { WithdrawalNotifyToggle } from "@/components/withdrawal-notify-toggle";
 import { useAccrual } from "@/hooks/use-accrual";
 import { useNow } from "@/hooks/use-now";
 import { useTokenDecimals } from "@/hooks/use-token-decimals";
@@ -239,6 +240,10 @@ export function StreamDetail({
       >
         Add to calendar
       </button>
+      {wallet.address === stream.recipient &&
+        (stream.status === "streaming" || stream.status === "pending") && (
+          <WithdrawalNotifyToggle stream={stream} withdrawable={accrual.withdrawable} />
+        )}
 
       <VestingProjection stream={stream} />
 
