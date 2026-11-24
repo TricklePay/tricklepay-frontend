@@ -11,6 +11,8 @@ const withBundleAnalyzer = bundleAnalyzer({
   openAnalyzer: false,
 });
 
+const isProd = process.env.NODE_ENV === "production";
+
 const nextConfig: NextConfig = {
   async headers() {
     return [
@@ -28,6 +30,22 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Content-Type-Options", value: "nosniff" },
+          // The app never needs these browser features, so deny them outright.
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+          },
+          // HSTS is only sent for production builds, which are expected to sit
+          // behind HTTPS. Sending it from `next dev` on http://localhost would
+          // pin the browser to https for that host.
+          ...(isProd
+            ? [
+                {
+                  key: "Strict-Transport-Security",
+                  value: "max-age=31536000; includeSubDomains",
+                },
+              ]
+            : []),
         ],
       },
     ];
