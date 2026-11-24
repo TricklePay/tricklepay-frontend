@@ -2,7 +2,7 @@
 
 import { type JSX, useState } from "react";
 
-import { formatAmount } from "@/lib/format";
+import { formatTokenAmount } from "@/lib/format";
 import { parseDatetimeLocal, projectVesting } from "@/lib/vesting-projection";
 import type { StreamView } from "@/types/stream";
 
@@ -72,13 +72,13 @@ export function VestingProjection({ stream }: Props): JSX.Element {
             <div>
               <dt className="text-xs text-neutral-500">Vested at that time</dt>
               <dd className="font-mono tabular-nums text-neutral-100">
-                {formatAmount(result.vested.toString())}
+                {formatTokenAmount(result.vested.toString(), stream.token)}
               </dd>
             </div>
             <div>
               <dt className="text-xs text-neutral-500">Withdrawable at that time</dt>
               <dd className="font-mono tabular-nums text-neutral-100">
-                {formatAmount(result.withdrawable.toString())}
+                {formatTokenAmount(result.withdrawable.toString(), stream.token)}
               </dd>
             </div>
           </dl>
