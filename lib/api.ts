@@ -35,14 +35,21 @@
 // advanced balance as authoritative.
 import {
   ApiResponseError,
+  parseAccountSummary,
   parseStreamEvents,
   parseStreamListResponse,
   parseStreamView,
 } from "@/lib/api-schema";
 import { config } from "@/lib/config";
-import { mockGetStream, mockGetStreamEvents, mockListStreams } from "@/lib/mock-api";
+import {
+  mockGetAccountSummary,
+  mockGetStream,
+  mockGetStreamEvents,
+  mockListStreams,
+} from "@/lib/mock-api";
 import { isValidStreamId } from "@/lib/validation";
 import type {
+  AccountSummary,
   StreamEvent,
   StreamListResponse,
   StreamStatus,
@@ -71,6 +78,7 @@ export interface StreamApiClient {
   ): Promise<StreamListResponse>;
   getStream(id: string, options?: RequestOptions): Promise<StreamView | null>;
   getStreamEvents(id: string, options?: RequestOptions): Promise<StreamEvent[]>;
+  getAccountSummary(address: string, options?: RequestOptions): Promise<AccountSummary>;
 }
 /** Per-request options shared by every call in this module. */
 export interface RequestOptions {
@@ -349,6 +357,26 @@ export async function getStreamEvents(
   });
 }
 
+// Fetches incoming and outgoing stream counts and amount totals for one address
+// (GET /accounts/:address/summary). Unlike summing the loaded pages, these
+// cover every stream the account has. The payload is validated before it is
+// returned (see lib/api-schema.ts).
+export async function getAccountSummary(
+  address: string,
+  options: RequestOptions = {},
+): Promise<AccountSummary> {
+  if (config.mockApi) return mockGetAccountSummary(address);
+
+  const url = apiEndpoint(`accounts/${encodeURIComponent(address)}/summary`);
+
+  return request(url, "the account summary", options, async (res) => {
+    if (!res.ok) {
+      throw await createApiError(res, "Failed to load account summary");
+    }
+    return parseAccountSummary(await readJson(res, "the account summary"));
+  });
+}
+
 // A health probe that has not answered in this long counts as unreachable.
 // Shorter than the app-wide read timeout: /health does no database work, so a
 // slow answer is itself the signal, and the probe should not linger.
@@ -396,4 +424,9 @@ export async function getIndexerLag(options: RequestOptions = {}): Promise<numbe
 
 // Real backend client, typed against the shared contract so a signature drift
 // against the mock in `lib/mock-api.ts` fails the typecheck.
-export const apiClient: StreamApiClient = { listStreams, getStream, getStreamEvents };
+export const apiClient: StreamApiClient = {
+  listStreams,
+  getStream,
+  getStreamEvents,
+  getAccountSummary,
+};

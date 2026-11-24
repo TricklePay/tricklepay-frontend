@@ -10,6 +10,7 @@ import { StreamList } from "@/components/stream-list";
 import { StreamStatusLegend } from "@/components/stream-status-legend";
 import { TransactionNotice } from "@/components/transaction-notice";
 import { useWallet } from "@/components/wallet-provider";
+import { useAccountSummary } from "@/hooks/use-account-summary";
 import { useNow } from "@/hooks/use-now";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { useTokenDecimals } from "@/hooks/use-token-decimals";
@@ -288,6 +289,7 @@ function Dashboard() {
 
   const incoming = useStreamPage("recipient", wallet.address, filter, pageSize);
   const outgoing = useStreamPage("sender", wallet.address, filter, pageSize);
+  const accountSummary = useAccountSummary(wallet.address);
 
   // Client-side only: narrows whichever page is already loaded, rather than
   // asking the backend for a different one. Local state, not the URL — it
@@ -446,6 +448,13 @@ function Dashboard() {
           </select>
         </label>
       </div>
+
+      {accountSummary && (
+        <p className="mb-6 text-xs tabular-nums text-neutral-500">
+          Across all pages: {accountSummary.incoming.count} incoming ·{" "}
+          {accountSummary.outgoing.count} outgoing
+        </p>
+      )}
 
       <div className="mb-6">
         <StreamStatusLegend />
