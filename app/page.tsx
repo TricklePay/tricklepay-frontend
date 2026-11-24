@@ -16,9 +16,10 @@ import { useAccountSummary } from "@/hooks/use-account-summary";
 import { useNow } from "@/hooks/use-now";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
 import { useTokenDecimals } from "@/hooks/use-token-decimals";
+import { useTokensMetadata } from "@/hooks/use-token-metadata";
 import { streamsToCsv } from "@/lib/csv";
 import { downloadCsv } from "@/lib/csv-download";
-import { timeAgo } from "@/lib/format";
+import { formatTokenDisplay, timeAgo } from "@/lib/format";
 import { DEFAULT_PAGE_SIZE, isPageSize, PAGE_SIZE_OPTIONS, readPageSize, writePageSize, type PageSize } from "@/lib/page-size";
 import { takePendingNotice } from "@/lib/pending-notice";
 import { filterStreamsByAddress } from "@/lib/stream-search";
@@ -51,6 +52,7 @@ function StreamSection({
   title,
   page,
   filter,
+  token,
   addressQuery,
   sort,
   emptyMessage,
@@ -60,6 +62,7 @@ function StreamSection({
   title: string;
   page: StreamPage;
   filter: StreamStatus | "all";
+  token: string;
   addressQuery: string;
   sort: StreamSortOption;
   emptyMessage: string;
@@ -69,7 +72,8 @@ function StreamSection({
   // Client-side, over whatever page is already loaded — neither narrowing nor
   // reordering ever asks the backend for a different page, so both only ever
   // apply to what's already on screen.
-  const visible = sortStreams(filterStreamsByAddress(page.streams, addressQuery), sort);
+  const byToken = token === "all" ? page.streams : page.streams.filter((stream) => stream.token === token);
+  const visible = sortStreams(filterStreamsByAddress(byToken, addressQuery), sort);
   // Summed over the streams currently shown, which the active status filter
   // and search have already narrowed, so the figure follows both.
   useTokenDecimals(visible.map((stream) => stream.token));
@@ -83,8 +87,10 @@ function StreamSection({
   // comment), too slow to show a last-fetch time climbing second by second.
   const now = useNow(5_000);
   const emptyText =
-    addressQuery.trim() && page.streams.length > 0
-      ? `No streams match "${addressQuery.trim()}".`
+    (addressQuery.trim() || token !== "all") && page.streams.length > 0
+      ? addressQuery.trim()
+        ? `No streams match "${addressQuery.trim()}".`
+        : "No streams use the selected token."
       : filter === "all" || page.streams.length === 0
         ? (filter === "all" ? emptyMessage : `No ${filter} streams found.`)
         : emptyMessage;
@@ -263,6 +269,22 @@ function Dashboard() {
     [router, searchParams],
   );
 
+  // The token filter lives in the URL next to the status filter. "all" when absent.
+  const tokenFilter = searchParams.get("token") ?? "all";
+
+  const setTokenFilter = useCallback(
+    (value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value === "all") {
+        params.delete("token");
+      } else {
+        params.set("token", value);
+      }
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
   const setSort = useCallback(
     (value: StreamSortOption) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -292,6 +314,11 @@ function Dashboard() {
   const incoming = useStreamPage("recipient", wallet.address, filter, pageSize);
   const outgoing = useStreamPage("sender", wallet.address, filter, pageSize);
   const accountSummary = useAccountSummary(wallet.address);
+
+  // Tokens present in the loaded streams; resolved symbols fall back to a
+  // truncated address for tokens we cannot name.
+  const loadedTokens = [...new Set([...incoming.streams, ...outgoing.streams].map((s) => s.token))];
+  useTokensMetadata(loadedTokens);
 
   // Client-side only: narrows whichever page is already loaded, rather than
   // asking the backend for a different one. Local state, not the URL — it
@@ -405,6 +432,30 @@ function Dashboard() {
         )}
       </div>
 
+      {(loadedTokens.length > 1 || tokenFilter !== "all") && (
+        <div className="mb-8 flex items-center gap-2">
+          <label className="flex items-center gap-2 text-xs text-neutral-400">
+            <span>Token</span>
+            <select
+              value={tokenFilter}
+              onChange={(e) => setTokenFilter(e.target.value)}
+              className="min-h-[44px] rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs text-neutral-200 focus:border-neutral-500 focus-visible:outline-none"
+            >
+              <option value="all">All tokens</option>
+              {tokenFilter !== "all" && !loadedTokens.includes(tokenFilter) && (
+                <option value={tokenFilter}>{formatTokenDisplay(tokenFilter)}</option>
+              )}
+              {loadedTokens.map((token) => (
+                <option key={token} value={token}>
+                  {formatTokenDisplay(token)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="text-xs text-neutral-500">(narrows both lists)</span>
+        </div>
+      )}
+
       <div className="mb-8">
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-2 text-xs text-neutral-400">
@@ -474,6 +525,7 @@ function Dashboard() {
         title="Incoming"
         page={incoming}
         filter={filter}
+        token={tokenFilter}
         addressQuery={addressQuery}
         sort={sort}
         emptyMessage="No incoming streams."
@@ -485,6 +537,7 @@ function Dashboard() {
         page={outgoing}
         addressQuery={addressQuery}
         filter={filter}
+        token={tokenFilter}
         sort={sort}
         emptyMessage="No outgoing streams."
         showCreateLink

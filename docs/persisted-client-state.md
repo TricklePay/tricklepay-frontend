@@ -36,6 +36,9 @@ Five pieces of state are persisted, all under keys prefixed `trickle` or
   or navigating to the dashboard without a `?filter=` parameter
 - **Fallback:** "All" — every stream regardless of status
 
+The dashboard token filter works the same way: `?token=<contract id>`, set by
+`app/page.tsx`, `setTokenFilter()`, with no parameter meaning "All tokens".
+
 The filter is **not** stored across browser sessions. Closing the tab or typing
 the root URL clears it.
 
