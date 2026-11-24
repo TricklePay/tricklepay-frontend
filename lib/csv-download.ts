@@ -16,6 +16,7 @@ export function downloadCsv(filename: string, csv: string): void {
     link.click();
     link.remove();
   } finally {
-    URL.revokeObjectURL(url);
+    // some browsers start the download async, so revoking right away can break it
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 }
