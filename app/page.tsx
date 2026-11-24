@@ -12,6 +12,7 @@ import { StreamStatusLegend } from "@/components/stream-status-legend";
 import { TransactionNotice } from "@/components/transaction-notice";
 import { useWallet } from "@/components/wallet-provider";
 import { WithdrawAll } from "@/components/withdraw-all";
+import { WithdrawalTimeline } from "@/components/withdrawal-timeline";
 import { useAccountSummary } from "@/hooks/use-account-summary";
 import { useNow } from "@/hooks/use-now";
 import { useStreamPage, type StreamPage } from "@/hooks/use-stream-page";
@@ -516,6 +517,8 @@ function Dashboard() {
         walletAddress={wallet.address}
         onComplete={incoming.refresh}
       />
+
+      <WithdrawalTimeline streams={incoming.streams} walletAddress={wallet.address} />
 
       <div className="mb-6">
         <StreamStatusLegend />
