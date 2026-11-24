@@ -5,6 +5,7 @@ import { type JSX, Suspense, useCallback, useEffect, useState } from "react";
 
 import { BrowserSupportNote } from "@/components/browser-support-note";
 import { CopyButton } from "@/components/copy-button";
+import { GoToStream } from "@/components/go-to-stream";
 import { LoadingState } from "@/components/loading-state";
 import { StreamList } from "@/components/stream-list";
 import { StreamStatusLegend } from "@/components/stream-status-legend";
@@ -336,6 +337,8 @@ function Dashboard() {
           onDismiss={() => setNotice(null)}
         />
       )}
+
+      <GoToStream onGo={(href) => router.push(href)} />
 
       <div className="mb-4 flex items-center gap-2">
         <label className="flex-1">

@@ -59,6 +59,8 @@ export interface ListStreamsParams {
   cursor?: string;
   status?: StreamStatus | "all";
   includeTotal?: boolean;
+  /** Restricts the list to these stream ids. */
+  ids?: string[];
 }
 
 /** Shared contract for stream reads. Both the real backend client below and
@@ -293,6 +295,7 @@ export async function listStreams(
   if (params.limit !== undefined) url.searchParams.set("limit", String(params.limit));
   if (params.offset !== undefined) url.searchParams.set("offset", String(params.offset));
   if (params.cursor !== undefined) url.searchParams.set("cursor", params.cursor);
+  if (params.ids && params.ids.length > 0) url.searchParams.set("ids", params.ids.join(","));
   if (params.includeTotal !== undefined) {
     url.searchParams.set("includeTotal", String(params.includeTotal));
   }
