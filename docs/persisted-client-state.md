@@ -6,7 +6,7 @@ This document lists what is stored, how to clear it, and the privacy posture.
 
 ## What is stored
 
-Four pieces of state are persisted, all under keys prefixed `trickle` or
+Five pieces of state are persisted, all under keys prefixed `trickle` or
 `tricklepay`:
 
 ### 1. Theme preference
@@ -86,6 +86,22 @@ empty form. **Invalid values are never stored** — `writeLastToken` ignores
 anything that is not a valid contract address, and `readLastToken` ignores an
 invalid value already in storage.
 
+### 5. Address labels
+
+- **Key:** `tricklepay-address-labels`
+- **Value:** A JSON object mapping a Stellar address to a label of up to 40
+  characters, for example `{"GAAZ...CWN7":"Payroll"}`
+- **Set by:** `lib/address-labels.ts`, `setAddressLabel()`, from the Add label /
+  Edit label controls beside the From and To addresses on the stream page
+- **Read by:** `components/address-label.tsx`, which shows the label beside the
+  truncated address in the stream page, cards and table (the full address stays
+  in the tooltip)
+- **Cleared by:** the **Remove label** control on the stream page, saving an
+  empty label, or clearing browser data
+- **Fallback:** If absent or corrupt, no labels are shown
+
+Labels are stored only in the browser and are not sent to the backend.
+
 ## Example stored values
 
 Open the browser devtools console and run:
@@ -123,6 +139,7 @@ Open the browser devtools console on the TricklePay page and run:
 localStorage.removeItem("trickle-theme");
 localStorage.removeItem("tricklepay-create-form-draft");
 localStorage.removeItem("tricklepay-last-token");
+localStorage.removeItem("tricklepay-address-labels");
 ```
 
 Reload the page. The theme will revert to the OS preference and the create form
@@ -186,6 +203,7 @@ to the root URL (`/`) without a `?filter=` parameter.
 | Remembered token read/write/clear | `lib/last-token.ts` | `readLastToken()`, `writeLastToken()`, `clearLastToken()` |
 | Remembered token prefill/save | `hooks/use-create-stream-form.ts` | `useState` initialiser, `handleSubmit` |
 | Remembered token clear control | `components/create-stream-fields.tsx` | "Clear saved token" button |
+| Address labels | `lib/address-labels.ts` | `ADDRESS_LABELS_STORAGE_KEY`, `setAddressLabel()` |
 | Filter URL parameter | `app/page.tsx` | `useSearchParams()`, `setFilter()` |
 
 ## Summary
