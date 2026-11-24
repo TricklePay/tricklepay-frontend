@@ -90,6 +90,25 @@ describe("DuplicateStreamButton", () => {
     expect(pushMock).toHaveBeenCalledWith("/create");
   });
 
+  it("does nothing until clicked and writes the draft before navigating", () => {
+    act(() => {
+      root.render(<DuplicateStreamButton stream={STREAM} />);
+    });
+
+    expect(writeFormDraft).not.toHaveBeenCalled();
+    expect(pushMock).not.toHaveBeenCalled();
+
+    act(() => {
+      container.querySelector("button")?.click();
+    });
+
+    expect(writeFormDraft).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(writeFormDraft).mock.invocationCallOrder[0]).toBeLessThan(
+      pushMock.mock.invocationCallOrder[0],
+    );
+  });
+
   it("passes axe checks including label-content-name-mismatch", async () => {
     act(() => {
       root.render(<DuplicateStreamButton stream={STREAM} />);
