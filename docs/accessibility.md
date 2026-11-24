@@ -266,6 +266,41 @@ compute colours there. To track an existing violation instead of fixing it in
 the same change, pass its rule id as the second argument and link the issue
 next to it, so new violations of other rules still fail.
 
+```tsx
+// Tracks one existing violation, linked to its issue, while every other rule
+// still fails the test.
+expect(await axeViolations(container, ["label" /* #123 */])).toEqual([]);
+```
+
+The third argument, `enabledRules`, turns on experimental rules that
+axe-core disables by default.
+
+#### What jsdom covers and what needs the browser
+
+| Covered by axe in jsdom | Needs a real browser |
+| --- | --- |
+| Accessible names for buttons, links and inputs | Colour contrast (`color-contrast` is off, jsdom does not paint) |
+| Form label association and ARIA attribute validity | Focus order, focus visibility and focus traps |
+| Roles, required ARIA children and duplicate ids | Layout-dependent rules such as touch-target size and reflow |
+| Image alt text and document-level markup on what is rendered | What a screen reader announces and the live-region timing |
+
+Axe in jsdom only sees the component you render, not the whole page, so a
+landmark or heading problem that depends on the full page layout will not show
+up there.
+
+#### Page-level checks
+
+These run against the built app in a browser:
+
+- [`.github/lighthouse/check-lighthouse.mjs`](../.github/lighthouse/check-lighthouse.mjs)
+  checks the dashboard and create pages against accessibility score floors and a
+  list of required audits, including `color-contrast`, in the `lighthouse` job
+  of [`ci.yml`](../.github/workflows/ci.yml).
+- The Playwright specs in [`e2e/`](../e2e/README.md), for example
+  `visual-smoke.spec.ts`, which looks up landmarks by role.
+- The manual pass in the next section, for keyboard, screen reader and forced
+  colors.
+
 ### Manual pass for any pull request that changes UI
 
 Do this in a real browser; none of it is covered by automation.
