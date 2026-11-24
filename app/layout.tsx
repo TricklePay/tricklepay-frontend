@@ -8,13 +8,17 @@ import { OfflineBanner } from "@/components/offline-banner";
 import { SkipLink } from "@/components/skip-link";
 import { ThemeProvider } from "@/components/theme-provider";
 import { WalletProvider } from "@/components/wallet-provider";
-import { THEME_STORAGE_KEY } from "@/lib/theme";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 
 import "./globals.css";
 
 // No hard-coded fallback domain: an unset NEXT_PUBLIC_APP_URL should not
 // silently point canonical/social metadata at a URL we don't control.
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
+
+// The CSP carries a per-request nonce (see middleware.ts), and Next only puts
+// that nonce on its own scripts when the page is rendered per request.
+export const dynamic = "force-dynamic";
 
 // Applies the persisted (or OS-preferred) theme to <html> synchronously,
 // before hydration, so there is no flash of the wrong theme on first paint.
@@ -37,12 +41,10 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 // warning: the server renders without "light"; the bootstrap may add it on the
 // client before React hydrates, which is intentional and expected.
 //
-// This script is intentionally kept as a minified inline string. It must be a
+// The script lives in lib/theme.ts (THEME_INIT_SCRIPT) so middleware.ts can hash
+// it for the CSP. It is intentionally a minified inline string. It must be a
 // single synchronously-executed script with no imports; any async work or
 // bundle dependency would defeat its purpose.
-const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem(${JSON.stringify(
-  THEME_STORAGE_KEY,
-)});var light=s==="light"||s==="dark"?s==="light":window.matchMedia("(prefers-color-scheme: light)").matches;if(light)document.documentElement.classList.add("light");}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: {
