@@ -3,7 +3,7 @@
 import type { JSX } from "react";
 
 import { useNow } from "@/hooks/use-now";
-import { formatAmount } from "@/lib/format";
+import { formatTokenAmount, resolveTokenMetadata } from "@/lib/format";
 import { vestingCurvePoints } from "@/lib/vesting-curve";
 import type { StreamView } from "@/types/stream";
 
@@ -74,9 +74,13 @@ export function VestingCurve({ stream }: Props): JSX.Element {
   const cliffLabel = hasCliff
     ? ` There is a cliff at ${new Date(Number(cliffTime) * 1000).toLocaleDateString()}, before which nothing vests.`
     : "";
+  // Same decimals and symbol as the amounts shown on the page.
+  const totalLabel = `${formatTokenAmount(stream.totalAmount, stream.token)}${
+    resolveTokenMetadata(stream.token) ? "" : " tokens"
+  }`;
   const summaryText =
     `Linear vesting schedule from ${startLabel} to ${endLabel}.${cliffLabel}` +
-    ` Total: ${formatAmount(stream.totalAmount)} tokens. Current progress: ${progressPct}%.`;
+    ` Total: ${totalLabel}. Current progress: ${progressPct}%.`;
 
   return (
     <figure aria-label="Vesting curve chart" className="my-6">
