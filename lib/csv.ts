@@ -12,6 +12,7 @@
 
 import { formatAmount } from "@/lib/format";
 import { formatUtcFromUnixSeconds } from "@/lib/timezone";
+import { getCachedTokenDecimals } from "@/lib/token-decimals";
 import type { StreamEvent, StreamView } from "@/types/stream";
 
 const CSV_COLUMNS = [
@@ -50,17 +51,19 @@ export function escapeCsvField(value: string): string {
 }
 
 function streamRow(stream: StreamView): string[] {
+  // falls back to 7 until the token's decimals have been read
+  const decimals = getCachedTokenDecimals(stream.token) ?? 7;
   return [
     stream.id,
     stream.status,
     stream.sender,
     stream.recipient,
     stream.token,
-    formatAmount(stream.totalAmount),
-    formatAmount(stream.vested),
-    formatAmount(stream.withdrawn),
-    formatAmount(stream.withdrawable),
-    formatAmount(stream.locked),
+    formatAmount(stream.totalAmount, decimals),
+    formatAmount(stream.vested, decimals),
+    formatAmount(stream.withdrawn, decimals),
+    formatAmount(stream.withdrawable, decimals),
+    formatAmount(stream.locked, decimals),
     formatUtcFromUnixSeconds(stream.startTime),
     formatUtcFromUnixSeconds(stream.endTime),
     formatUtcFromUnixSeconds(stream.cliffTime),
