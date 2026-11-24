@@ -60,4 +60,30 @@ describe("OfflineBanner", () => {
     );
     expect(container.querySelector("button")).toBeNull();
   });
+
+  it("toggles the message when connectivity changes, keeping the same live region", () => {
+    vi.mocked(useOnline).mockReturnValue(true);
+
+    act(() => {
+      root.render(<OfflineBanner />);
+    });
+    const region = container.querySelector('[role="status"]');
+    expect(region?.textContent).toBe("");
+
+    // Connectivity drops: the message appears inside the same region element.
+    vi.mocked(useOnline).mockReturnValue(false);
+    act(() => {
+      root.render(<OfflineBanner />);
+    });
+    expect(container.querySelector('[role="status"]')).toBe(region);
+    expect(region?.textContent).toContain("You are offline.");
+
+    // Connectivity returns: the message is removed, the region stays.
+    vi.mocked(useOnline).mockReturnValue(true);
+    act(() => {
+      root.render(<OfflineBanner />);
+    });
+    expect(container.querySelector('[role="status"]')).toBe(region);
+    expect(region?.textContent).toBe("");
+  });
 });
