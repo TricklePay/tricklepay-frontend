@@ -94,10 +94,13 @@ A non-2xx response from the backend is expected to carry a JSON body:
 | `requestId` | Backend request id, kept on `ApiError.requestId` and shown to the user for support |
 
 `createApiError` (`lib/api.ts`) tolerates a missing or non-JSON body and falls
-back to a message built from the HTTP status. The backend also reports how far
-the indexer is behind the chain in the `X-Indexer-Lag-Ledgers` header; the
-client currently reads the same value as `lagLedgers` from `GET /status`
-(`getIndexerLag`) to drive the indexer lag banner.
+back to a message built from the HTTP status. When the response includes a
+`Retry-After` header (either delay-seconds or an HTTP-date), `createApiError`
+parses it into `ApiError.retryAfterSeconds` so `useStreamPage` waits at least
+that long before retrying or running the next list refresh. The backend also
+reports how far the indexer is behind the chain in the `X-Indexer-Lag-Ledgers`
+header; the client currently reads the same value as `lagLedgers` from
+`GET /status` (`getIndexerLag`) to drive the indexer lag banner.
 
 Recorded error bodies are in `test/fixtures/api/error-400.json`,
 `error-404.json` and `error-429.json`. See

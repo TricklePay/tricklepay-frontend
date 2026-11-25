@@ -1,6 +1,6 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { listStreams, getStream, ApiError } from "./api";
+import { ApiError, getStream, listStreams, parseRetryAfter } from "./api";
 
 describe("api client — non-success responses", () => {
   beforeEach(() => {
@@ -168,6 +168,155 @@ describe("api client — non-success responses", () => {
 
       const result = await getStream("non-existent");
       expect(result).toBeNull();
+    });
+  });
+
+  describe("Retry-After header parsing", () => {
+    const NOW = Date.UTC(2026, 0, 1, 12, 0, 0);
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("parses numeric delay-seconds on a 429 response into ApiError.retryAfterSeconds", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: new Headers({ "Retry-After": "45" }),
+        json: async () => ({
+          error: "Too Many Requests",
+          code: "RATE_LIMITED",
+        }),
+      });
+
+      try {
+        await listStreams({});
+        expect.unreachable("should have thrown");
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(ApiError);
+        const apiErr = err as ApiError;
+        expect(apiErr.status).toBe(429);
+        expect(apiErr.retryAfterSeconds).toBe(45);
+      }
+    });
+
+    it("parses numeric zero delay-seconds as 0 rather than undefined", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: new Headers({ "retry-after": " 0 " }),
+        json: async () => ({ error: "Too Many Requests" }),
+      });
+
+      try {
+        await listStreams({});
+        expect.unreachable("should have thrown");
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(ApiError);
+        expect((err as ApiError).retryAfterSeconds).toBe(0);
+      }
+    });
+
+    it("parses an HTTP-date Retry-After header into seconds relative to now", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(NOW);
+
+      const retryAt = new Date(NOW + 90_000).toUTCString();
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: new Headers({ "Retry-After": retryAt }),
+        json: async () => ({ error: "Too Many Requests" }),
+      });
+
+      try {
+        await listStreams({});
+        expect.unreachable("should have thrown");
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(ApiError);
+        const apiErr = err as ApiError;
+        expect(apiErr.status).toBe(429);
+        expect(apiErr.retryAfterSeconds).toBe(90);
+      }
+    });
+
+    it("rounds fractional HTTP-date delays up so callers wait at least until the timestamp", () => {
+      const retryAt = new Date(NOW + 30_000).toUTCString();
+      expect(parseRetryAfter(retryAt, NOW + 250)).toBe(30);
+    });
+
+    it("clamps HTTP-date values in the past to 0 seconds", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(NOW);
+
+      const past = new Date(NOW - 10_000).toUTCString();
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: new Headers({ "Retry-After": past }),
+      });
+
+      try {
+        await listStreams({});
+        expect.unreachable("should have thrown");
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(ApiError);
+        expect((err as ApiError).retryAfterSeconds).toBe(0);
+      }
+    });
+
+    it("parses obsolete RFC 850 and asctime HTTP-date formats in UTC", () => {
+      expect(parseRetryAfter("Thursday, 01-Jan-26 12:00:30 GMT", NOW)).toBe(30);
+      expect(parseRetryAfter("Thu Jan  1 12:00:30 2026", NOW)).toBe(30);
+    });
+
+    it("exposes Retry-After on getStream errors as well", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: new Headers({ "Retry-After": "12" }),
+      });
+
+      try {
+        await getStream("123");
+        expect.unreachable("should have thrown");
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(ApiError);
+        expect((err as ApiError).retryAfterSeconds).toBe(12);
+      }
+    });
+
+    it("leaves retryAfterSeconds undefined when the header is missing or malformed", async () => {
+      expect(parseRetryAfter(null, NOW)).toBeUndefined();
+      expect(parseRetryAfter(undefined, NOW)).toBeUndefined();
+      expect(parseRetryAfter("", NOW)).toBeUndefined();
+      expect(parseRetryAfter("   ", NOW)).toBeUndefined();
+      expect(parseRetryAfter("-5", NOW)).toBeUndefined();
+      expect(parseRetryAfter("1.5", NOW)).toBeUndefined();
+      expect(parseRetryAfter("+10", NOW)).toBeUndefined();
+      expect(parseRetryAfter("not-a-date", NOW)).toBeUndefined();
+      expect(parseRetryAfter("Thu, 32 Jan 2026 12:00:00 GMT", NOW)).toBeUndefined();
+      expect(parseRetryAfter("999999999999999999999", NOW)).toBeUndefined();
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: new Headers({ "Retry-After": "invalid" }),
+      });
+
+      try {
+        await listStreams({});
+        expect.unreachable("should have thrown");
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(ApiError);
+        expect((err as ApiError).retryAfterSeconds).toBeUndefined();
+      }
     });
   });
 });

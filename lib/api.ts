@@ -141,15 +141,60 @@ export function isTimeoutError(error: unknown): error is ApiTimeoutError {
   return error instanceof ApiTimeoutError;
 }
 
+// RFC 9110 §5.6.7 HTTP-date formats accepted in Retry-After:
+// - IMF-fixdate: "Wed, 21 Oct 2015 07:28:00 GMT"
+// - obs RFC 850: "Sunday, 06-Nov-94 08:49:37 GMT"
+// - obs asctime: "Sun Nov  6 08:49:37 1994"
+const IMF_FIXDATE_RE =
+  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{1,2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} (?:GMT|UTC)$/i;
+const RFC850_DATE_RE =
+  /^(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), \d{1,2}-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2} \d{2}:\d{2}:\d{2} (?:GMT|UTC)$/i;
+const ASCTIME_DATE_RE =
+  /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (?: \d|\d{1,2}) \d{2}:\d{2}:\d{2} \d{4}$/i;
+
+/**
+ * Parses an HTTP `Retry-After` header value into a non-negative delay in seconds.
+ * Supports both the `delay-seconds` numeric form and HTTP-date forms (RFC 9110 §10.2.3).
+ * Returns `undefined` when the header is absent or malformed, and `0` for dates in the past.
+ */
+export function parseRetryAfter(
+  headerValue: string | null | undefined,
+  nowMs: number = Date.now(),
+): number | undefined {
+  if (typeof headerValue !== "string") return undefined;
+  const trimmed = headerValue.trim();
+  if (!trimmed) return undefined;
+
+  if (/^\d+$/.test(trimmed)) {
+    const seconds = Number(trimmed);
+    return Number.isSafeInteger(seconds) ? seconds : undefined;
+  }
+
+  let targetMs: number;
+  if (IMF_FIXDATE_RE.test(trimmed) || RFC850_DATE_RE.test(trimmed)) {
+    targetMs = Date.parse(trimmed);
+  } else if (ASCTIME_DATE_RE.test(trimmed)) {
+    targetMs = Date.parse(`${trimmed} GMT`);
+  } else {
+    return undefined;
+  }
+
+  if (!Number.isFinite(targetMs)) return undefined;
+  const diffMs = targetMs - nowMs;
+  return diffMs <= 0 ? 0 : Math.ceil(diffMs / 1000);
+}
+
 /**
  * Thrown when the backend responds with a non-OK status.
- * Preserves the backend's error code, error message, and requestId when present.
+ * Preserves the backend's error code, error message, requestId, and parsed
+ * Retry-After delay (in seconds) when present.
  */
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
   readonly backendError?: string;
   readonly requestId?: string;
+  readonly retryAfterSeconds?: number;
 
   constructor(
     message: string,
@@ -158,6 +203,7 @@ export class ApiError extends Error {
       code?: string;
       error?: string;
       requestId?: string;
+      retryAfterSeconds?: number;
     },
   ) {
     super(message);
@@ -166,6 +212,7 @@ export class ApiError extends Error {
     this.code = options.code;
     this.backendError = options.error;
     this.requestId = options.requestId;
+    this.retryAfterSeconds = options.retryAfterSeconds;
   }
 
   get error(): string | undefined {
@@ -177,7 +224,13 @@ export function isApiError(error: unknown): error is ApiError {
   return error instanceof ApiError;
 }
 
+function readRetryAfterHeader(res: Response): string | null {
+  if (typeof res.headers?.get !== "function") return null;
+  return res.headers.get("Retry-After") ?? res.headers.get("retry-after");
+}
+
 async function createApiError(res: Response, fallbackPrefix: string): Promise<ApiError> {
+  const retryAfterSeconds = parseRetryAfter(readRetryAfterHeader(res));
   let body: unknown;
   try {
     body = await res.json();
@@ -201,6 +254,7 @@ async function createApiError(res: Response, fallbackPrefix: string): Promise<Ap
     code,
     error: backendError,
     requestId,
+    retryAfterSeconds,
   });
 }
 

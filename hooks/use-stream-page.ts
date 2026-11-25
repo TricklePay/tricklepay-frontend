@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { isAbortError, listStreams, type ListStreamsParams } from "@/lib/api";
+import { isAbortError, isApiError, listStreams, type ListStreamsParams } from "@/lib/api";
 import { MAX_PAGE_SIZE } from "@/lib/page-size";
 import type { StreamStatus, StreamView } from "@/types/stream";
 
@@ -26,8 +26,36 @@ const FIRST_PAGE_RETRY_DELAY_MS = 500;
  */
 export const CONSECUTIVE_REFRESH_FAILURES_THRESHOLD = 3;
 
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+// Maximum 32-bit signed integer delay accepted by setTimeout (~24.8 days);
+// larger values overflow to 1ms in browsers and Node.
+const MAX_TIMEOUT_MS = 2_147_483_647;
+
+function wait(ms: number, signal: AbortSignal): Promise<void> {
+  if (signal.aborted || ms <= 0) return Promise.resolve();
+  const target = Date.now() + ms;
+  return new Promise((resolve) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const onAbort = () => {
+      if (timer !== null) clearTimeout(timer);
+      resolve();
+    };
+    const arm = () => {
+      const remaining = target - Date.now();
+      if (remaining <= 0) {
+        signal.removeEventListener("abort", onAbort);
+        resolve();
+        return;
+      }
+      timer = setTimeout(arm, Math.min(remaining, MAX_TIMEOUT_MS));
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    arm();
+  });
+}
+
+function getRetryAfterMs(error: unknown): number | null {
+  if (!isApiError(error) || error.retryAfterSeconds === undefined) return null;
+  return Math.max(0, error.retryAfterSeconds * 1000);
 }
 
 export type StreamRole = "sender" | "recipient";
@@ -85,7 +113,8 @@ function pageQuery(
  * 
  * Refresh is triggered manually via the exposed refresh() function or automatically
  * on window focus, visibility change, and every 15 seconds. Background refreshes
- * fail silently to avoid disrupting the user experience. Manual refresh resets
+ * fail silently to avoid disrupting the user experience, and back off for at least
+ * any `Retry-After` delay returned by the backend. Manual refresh resets
  * the list to page 0 and surfaces errors.
  * 
  * Error state is set when a request fails due to a network or API issue, but not
@@ -149,6 +178,20 @@ export function useStreamPage(
   // browser's per-host connection limit and delay the one that counts.
   const inFlight = useRef<Set<AbortController>>(new Set());
 
+  // Epoch ms until which automatic refreshes and retries must back off after
+  // receiving a Retry-After header from the backend.
+  const retryAfterUntilRef = useRef(0);
+  // Active scheduled timer for the next background list refresh.
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // True while the periodic auto-refresh effect is active.
+  const autoRefreshActiveRef = useRef(false);
+  // True while loadFirstPage (including any retry wait) is actively running,
+  // so background refreshes do not overlap with an in-progress first-page load.
+  const firstPageActiveRef = useRef(false);
+  // Always points to the latest silentRefresh callback so scheduled timers and
+  // window listeners invoke it without restarting the auto-refresh effect.
+  const silentRefreshRef = useRef<() => void>(() => {});
+
   const startRequest = useCallback(() => {
     const controller = new AbortController();
     inFlight.current.add(controller);
@@ -164,10 +207,42 @@ export function useStreamPage(
     inFlight.current.clear();
   }, []);
 
+  const clearRefreshTimer = useCallback(() => {
+    if (refreshTimerRef.current !== null) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+  }, []);
+
+  const recordRetryAfter = useCallback((error: unknown): number => {
+    const retryAfterMs = getRetryAfterMs(error);
+    if (retryAfterMs === null) return 0;
+    const retryAt = Date.now() + retryAfterMs;
+    if (retryAt > retryAfterUntilRef.current) {
+      retryAfterUntilRef.current = retryAt;
+    }
+    return retryAfterMs;
+  }, []);
+
+  const scheduleNextRefresh = useCallback(
+    (minDelayMs: number = LIST_REFRESH_INTERVAL_MS) => {
+      clearRefreshTimer();
+      if (!autoRefreshActiveRef.current) return;
+      const remainingRetryMs = Math.max(0, retryAfterUntilRef.current - Date.now());
+      const delayMs = Math.max(minDelayMs, remainingRetryMs);
+      refreshTimerRef.current = setTimeout(() => {
+        refreshTimerRef.current = null;
+        silentRefreshRef.current();
+      }, Math.min(delayMs, MAX_TIMEOUT_MS));
+    },
+    [clearRefreshTimer],
+  );
+
   // Loads page 0 from scratch, discarding whatever is on screen. Shared by the
   // query-change effect and the exposed refresh() so both cancel the same way.
   const loadFirstPage = useCallback(() => {
     abortInFlight();
+    clearRefreshTimer();
     generation.current += 1;
     const gen = generation.current;
 
@@ -178,8 +253,12 @@ export function useStreamPage(
     setRequestId(null);
     setConsecutiveRefreshFailures(0);
     setRefreshWarning(null);
-    if (!address) return;
+    if (!address) {
+      firstPageActiveRef.current = false;
+      return;
+    }
 
+    firstPageActiveRef.current = true;
     setLoading(true);
 
     const run = async () => {
@@ -191,6 +270,7 @@ export function useStreamPage(
           });
           endRequest(controller);
           if (generation.current !== gen) return;
+          retryAfterUntilRef.current = 0;
           setStreams(page.streams);
           setTotal(page.total ?? page.streams.length);
           setNextCursor(page.nextCursor ?? null);
@@ -202,6 +282,7 @@ export function useStreamPage(
           endRequest(controller);
           // A cancelled request is an expected outcome, not a failure to report.
           if (isAbortError(err) || generation.current !== gen) return;
+          recordRetryAfter(err);
           if (attempt === FIRST_PAGE_MAX_ATTEMPTS) {
             setError(err instanceof Error ? err.message : "Failed to load streams");
             const reqId =
@@ -214,22 +295,45 @@ export function useStreamPage(
             setRequestId(reqId);
             return;
           }
-          await wait(FIRST_PAGE_RETRY_DELAY_MS);
+          const remainingRetryMs = Math.max(0, retryAfterUntilRef.current - Date.now());
+          const retryDelayMs = Math.max(FIRST_PAGE_RETRY_DELAY_MS, remainingRetryMs);
+          const retryController = startRequest();
+          await wait(retryDelayMs, retryController.signal);
+          endRequest(retryController);
           if (generation.current !== gen) return;
         }
       }
     };
 
     run().finally(() => {
-      if (generation.current === gen) setLoading(false);
+      if (generation.current === gen) {
+        firstPageActiveRef.current = false;
+        setLoading(false);
+        scheduleNextRefresh();
+      }
     });
-  }, [role, address, status, pageSize, abortInFlight, startRequest, endRequest]);
+  }, [
+    role,
+    address,
+    status,
+    pageSize,
+    abortInFlight,
+    clearRefreshTimer,
+    startRequest,
+    endRequest,
+    recordRetryAfter,
+    scheduleNextRefresh,
+  ]);
 
   useEffect(() => {
     loadFirstPage();
     // Leaving the page, or changing the query, cancels everything still open
     // for the query being left behind.
-    return () => abortInFlight();
+    return () => {
+      generation.current += 1;
+      firstPageActiveRef.current = false;
+      abortInFlight();
+    };
   }, [loadFirstPage, abortInFlight]);
 
   const hasMore = nextCursor !== null;
@@ -237,7 +341,22 @@ export function useStreamPage(
   const refresh = loadFirstPage;
 
   const silentRefresh = useCallback(() => {
-    if (!address || (typeof document !== "undefined" && document.visibilityState === "hidden")) return;
+    if (!address || firstPageActiveRef.current) return;
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+      if (refreshTimerRef.current === null) {
+        scheduleNextRefresh();
+      }
+      return;
+    }
+    const remainingRetryMs = retryAfterUntilRef.current - Date.now();
+    if (remainingRetryMs > 0) {
+      if (refreshTimerRef.current === null) {
+        scheduleNextRefresh(remainingRetryMs);
+      }
+      return;
+    }
+
+    clearRefreshTimer();
     const gen = generation.current;
     // Fetch enough rows to cover everything currently on screen, up to the
     // backend's page ceiling. This way a user who has loaded 75 rows still
@@ -248,6 +367,7 @@ export function useStreamPage(
     listStreams(pageQuery(role, address, status, refreshLimit), { signal: controller.signal })
       .then((page) => {
         if (generation.current !== gen) return;
+        retryAfterUntilRef.current = 0;
         // Past the page ceiling the refresh can only cover the first rows.
         // Swap those in and keep the loaded tail and its cursor, so the list
         // keeps updating instead of discarding the response.
@@ -278,6 +398,7 @@ export function useStreamPage(
       .catch((err: unknown) => {
         // Background refresh failure, or cancellation: retain existing on-screen rows
         if (isAbortError(err) || generation.current !== gen) return;
+        recordRetryAfter(err);
         setConsecutiveRefreshFailures((prev) => {
           const next = prev + 1;
           if (next >= CONSECUTIVE_REFRESH_FAILURES_THRESHOLD) {
@@ -288,32 +409,54 @@ export function useStreamPage(
       })
       .finally(() => {
         endRequest(controller);
+        if (generation.current === gen) {
+          scheduleNextRefresh();
+        }
       });
-  }, [role, address, status, pageSize, startRequest, endRequest]);
+  }, [
+    role,
+    address,
+    status,
+    pageSize,
+    clearRefreshTimer,
+    startRequest,
+    endRequest,
+    recordRetryAfter,
+    scheduleNextRefresh,
+  ]);
+
+  useEffect(() => {
+    silentRefreshRef.current = silentRefresh;
+  }, [silentRefresh]);
 
   // Periodic and window-focus auto-refresh to reflect counterparty actions
   useEffect(() => {
     if (!address || typeof window === "undefined") return;
 
+    autoRefreshActiveRef.current = true;
+
     const onFocus = () => {
-      silentRefresh();
+      silentRefreshRef.current();
     };
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        silentRefresh();
+        silentRefreshRef.current();
       }
     };
 
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibilityChange);
-    const interval = setInterval(silentRefresh, LIST_REFRESH_INTERVAL_MS);
+    if (!firstPageActiveRef.current) {
+      scheduleNextRefresh();
+    }
 
     return () => {
+      autoRefreshActiveRef.current = false;
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      clearInterval(interval);
+      clearRefreshTimer();
     };
-  }, [address, silentRefresh]);
+  }, [address, scheduleNextRefresh, clearRefreshTimer]);
 
   const loadMore = useCallback(() => {
     if (!address || loading || loadingMore || !nextCursor) return;
@@ -327,6 +470,7 @@ export function useStreamPage(
     })
       .then((page) => {
         if (generation.current !== gen) return;
+        retryAfterUntilRef.current = 0;
         setStreams((previous) => {
           const combined = [...previous, ...page.streams];
           setTotal(
@@ -343,6 +487,10 @@ export function useStreamPage(
       })
       .catch((err: unknown) => {
         if (isAbortError(err) || generation.current !== gen) return;
+        const retryAfterMs = recordRetryAfter(err);
+        if (retryAfterMs > 0) {
+          scheduleNextRefresh();
+        }
         setError(err instanceof Error ? err.message : "Failed to load more streams");
         const reqId =
           typeof err === "object" &&
@@ -367,6 +515,8 @@ export function useStreamPage(
     pageSize,
     startRequest,
     endRequest,
+    recordRetryAfter,
+    scheduleNextRefresh,
   ]);
 
   return {
