@@ -243,6 +243,9 @@ export function CreateStreamFields({
           value={values.recipient}
           onChange={(e) => onFieldChange("recipient", e.target.value)}
           placeholder="G... or C..."
+          spellCheck={false}
+          autoCapitalize="off"
+          autoComplete="off"
           aria-invalid={!!errors.recipient}
           aria-describedby={
             errors.recipient ? "recipient-error" : selfRecipient ? "recipient-self-hint" : undefined
@@ -263,6 +266,9 @@ export function CreateStreamFields({
             value={values.token}
             onChange={(e) => onFieldChange("token", e.target.value)}
             placeholder="C..."
+            spellCheck={false}
+            autoCapitalize="off"
+            autoComplete="off"
             aria-invalid={!!errors.token}
             aria-describedby={errors.token ? "token-error" : undefined}
           />

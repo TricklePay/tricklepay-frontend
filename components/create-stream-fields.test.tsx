@@ -454,4 +454,32 @@ describe("CreateStreamFields", () => {
       ).toBeTruthy();
     });
   });
+
+  describe("mobile keyboard / autocorrect attributes", () => {
+    it("recipient input has spellCheck=false, autoCapitalize=off, autoComplete=off", () => {
+      render(<CreateStreamFields {...defaultProps} />);
+      const input = document.getElementById("field-recipient") as HTMLInputElement;
+      expect(input).toBeTruthy();
+      expect(input.getAttribute("spellcheck")).toBe("false");
+      expect(input.getAttribute("autocapitalize")).toBe("off");
+      expect(input.getAttribute("autocomplete")).toBe("off");
+    });
+
+    it("token input has spellCheck=false, autoCapitalize=off, autoComplete=off", () => {
+      render(<CreateStreamFields {...defaultProps} />);
+      const input = document.getElementById("field-token") as HTMLInputElement;
+      expect(input).toBeTruthy();
+      expect(input.getAttribute("spellcheck")).toBe("false");
+      expect(input.getAttribute("autocapitalize")).toBe("off");
+      expect(input.getAttribute("autocomplete")).toBe("off");
+    });
+
+    it("amount input keeps inputMode=decimal and does not set autoCapitalize", () => {
+      render(<CreateStreamFields {...defaultProps} />);
+      const input = document.getElementById("field-amount") as HTMLInputElement;
+      expect(input).toBeTruthy();
+      expect(input.getAttribute("inputmode")).toBe("decimal");
+      expect(input.getAttribute("autocapitalize")).toBeNull();
+    });
+  });
 });

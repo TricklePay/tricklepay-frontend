@@ -379,6 +379,9 @@ function Dashboard() {
             value={addressQuery}
             onChange={(e) => setAddressQuery(e.target.value)}
             placeholder="Search by stream ID, token, or address…"
+            spellCheck={false}
+            autoCapitalize="off"
+            autoComplete="off"
             className="w-full max-w-sm rounded border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-200 placeholder:text-neutral-500 focus:border-neutral-500 focus-visible:outline-none"
           />
         </label>
