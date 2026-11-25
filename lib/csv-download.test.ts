@@ -35,6 +35,7 @@ describe("downloadCsv", () => {
     createObjectURL.mockClear();
     revokeObjectURL.mockClear();
     document.body.innerHTML = "";
+    vi.useRealTimers();
   });
 
   it("clicks an anchor with the filename and a blob with a UTF-8 BOM and CSV MIME type", async () => {
@@ -57,15 +58,27 @@ describe("downloadCsv", () => {
     const bytes = await readBytes(blob);
     expect(bytes.slice(0, 3)).toEqual([0xef, 0xbb, 0xbf]);
     expect(String.fromCharCode(...bytes.slice(3))).toBe("a,b\n1,2");
+  });
+
+  it("does not revoke the object URL immediately, only after a delay", () => {
+    vi.useFakeTimers();
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    downloadCsv("streams.csv", "a");
+
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1000);
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
   });
 
   it("revokes the object URL even if the click throws", () => {
+    vi.useFakeTimers();
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {
       throw new Error("click failed");
     });
 
     expect(() => downloadCsv("streams.csv", "a")).toThrow("click failed");
+    vi.advanceTimersByTime(1000);
     expect(revokeObjectURL).toHaveBeenCalledTimes(1);
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock-url");
   });

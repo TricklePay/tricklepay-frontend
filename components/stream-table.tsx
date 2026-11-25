@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { JSX } from "react";
 
+import { AddressWithLabel } from "@/components/address-label";
 import { StreamStatusBadge } from "@/components/stream-status-badge";
 import { useTokenDecimals } from "@/hooks/use-token-decimals";
 import { useTokensMetadata } from "@/hooks/use-token-metadata";
-import { formatTokenAmount, truncateAddress } from "@/lib/format";
+import { formatTokenAmount } from "@/lib/format";
 import { formatRemaining } from "@/lib/schedule";
 import { markNavigatingToStream } from "@/lib/scroll";
 import type { StreamView } from "@/types/stream";
@@ -100,10 +101,10 @@ export function StreamTable({
                 <StreamStatusBadge status={stream.status} />
               </td>
               <td className="px-4 py-3 font-mono text-xs text-neutral-300 truncate max-w-[100px]">
-                {truncateAddress(stream.sender)}
+                <AddressWithLabel address={stream.sender} />
               </td>
               <td className="px-4 py-3 font-mono text-xs text-neutral-300 truncate max-w-[100px]">
-                {truncateAddress(stream.recipient)}
+                <AddressWithLabel address={stream.recipient} />
               </td>
               <td
                 className="px-4 py-3 text-right tabular-nums text-neutral-100"

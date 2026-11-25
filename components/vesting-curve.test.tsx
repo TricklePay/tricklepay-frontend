@@ -6,6 +6,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { formatTokenAmount } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
 import { VestingCurve } from "./vesting-curve";
@@ -82,6 +83,14 @@ describe("VestingCurve", () => {
     expect(container.querySelector("figcaption")?.textContent).toContain(
       "Current progress: 50%.",
     );
+  });
+
+  it("says a cancelled stream was cancelled and gives the frozen amount", () => {
+    render({ ...BASE, cancelled: true, status: "cancelled", vested: "3000000" });
+
+    const caption = container.querySelector("figcaption")?.textContent ?? "";
+    expect(caption).toContain("This stream was cancelled");
+    expect(caption).toContain(`frozen at ${formatTokenAmount("3000000", BASE.token)}`);
   });
 
   it("gives the chart an accessible name and description", () => {

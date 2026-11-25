@@ -120,6 +120,30 @@ describe("projectVesting", () => {
   });
 });
 
+describe("projectVesting for a cancelled stream", () => {
+  // Cancelled when 30 of the 100 tokens had vested.
+  const FROZEN = 300_000_000n;
+  const cancelled = makeStream({
+    cancelled: true,
+    status: "cancelled",
+    vested: FROZEN.toString(),
+  });
+
+  it("vests nothing before the start", () => {
+    expect(projectVesting(cancelled, START - 1n).vested).toBe(0n);
+  });
+
+  it("caps mid-stream at the frozen amount", () => {
+    expect(projectVesting(cancelled, START + 50n).vested).toBe(FROZEN);
+  });
+
+  it("caps after the end at the frozen amount", () => {
+    const result = projectVesting(cancelled, END + 1_000n);
+    expect(result.vested).toBe(FROZEN);
+    expect(result.withdrawable).toBe(FROZEN);
+  });
+});
+
 describe("parseDatetimeLocal", () => {
   it("returns null for empty input", () => {
     expect(parseDatetimeLocal("")).toBeNull();

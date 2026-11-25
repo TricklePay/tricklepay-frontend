@@ -80,6 +80,9 @@ kind (for example `totalAmount` on `created`, `amount` on `withdrawn`,
 decimal strings.
 
 `getStreamEvents` (`lib/api.ts`) validates the body with `parseStreamEvents`.
+Events with unrecognized string `kind` values are omitted; supported events
+continue to render in their original order. Malformed supported events still
+fail validation.
 A `404`, or an id that is not a valid stream id, resolves to an empty array
 instead of throwing. Any other non-2xx status throws an `ApiError`.
 

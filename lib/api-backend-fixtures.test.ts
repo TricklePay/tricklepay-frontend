@@ -80,10 +80,37 @@ describe("API client against recorded backend fixtures", () => {
         ok: false,
         status: 429,
         statusText: "Too Many Requests",
+        headers: { get: () => null },
         json: async () => error429,
       });
 
-      await expect(listStreams({})).rejects.toThrow("Too Many Requests");
+      await expect(listStreams({})).rejects.toThrow(
+        "Too many requests — please wait a moment before retrying.",
+      );
+    });
+
+    it("handles 429 Too Many Requests with Retry-After header", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: "Too Many Requests",
+        headers: { get: (name: string) => (name === "Retry-After" ? "30" : null) },
+        json: async () => error429,
+      });
+
+      try {
+        await listStreams({});
+        expect.unreachable("should have thrown");
+      } catch (err: unknown) {
+        const { ApiError } = await import("./api");
+        expect(err).toBeInstanceOf(ApiError);
+        const apiErr = err as InstanceType<typeof ApiError>;
+        expect(apiErr.status).toBe(429);
+        expect(apiErr.retryAfter).toBe(30);
+        expect(apiErr.message).toBe(
+          "Too many requests — please wait 30s before retrying.",
+        );
+      }
     });
   });
 });

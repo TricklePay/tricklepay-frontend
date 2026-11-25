@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type JSX, type ReactNode, useEffect, useRef, useState } from "react";
 
+import { AddressWithLabel } from "@/components/address-label";
 import { CopyButton, ShareLinkButton } from "@/components/copy-button";
 import { DuplicateStreamButton } from "@/components/duplicate-stream-button";
 import { ProgressBar } from "@/components/progress-bar";
@@ -13,10 +14,12 @@ import { TokenDisplay } from "@/components/token-display";
 import { VestingCurve } from "@/components/vesting-curve";
 import { VestingProjection } from "@/components/vesting-projection";
 import { useWallet } from "@/components/wallet-provider";
+import { WithdrawalNotifyToggle } from "@/components/withdrawal-notify-toggle";
 import { useAccrual } from "@/hooks/use-accrual";
 import { useNow } from "@/hooks/use-now";
 import { useTokenDecimals } from "@/hooks/use-token-decimals";
-import { formatTokenAmount, truncateAddress } from "@/lib/format";
+import { downloadIcs, streamToIcs } from "@/lib/calendar";
+import { formatTokenAmount } from "@/lib/format";
 import { formatSchedule, NO_CLIFF_LABEL } from "@/lib/schedule";
 import { setSessionItem } from "@/lib/scroll";
 import { resolvedTimeZoneLabel } from "@/lib/timezone";
@@ -200,8 +203,8 @@ export function StreamDetail({
 
       <VestingCurve stream={stream} />
 
-      <dl className="grid grid-cols-2 gap-4 text-sm">        <Field label="From" value={truncateAddress(stream.sender)} mono copyValue={stream.sender} />
-        <Field label="To" value={truncateAddress(stream.recipient)} mono copyValue={stream.recipient} />
+      <dl className="grid grid-cols-2 gap-4 text-sm">        <Field label="From" value={<AddressWithLabel address={stream.sender} editable />} mono copyValue={stream.sender} />
+        <Field label="To" value={<AddressWithLabel address={stream.recipient} editable />} mono copyValue={stream.recipient} />
         <Field label="Token" value={<TokenDisplay token={stream.token} />} mono copyValue={stream.token} />
         <Field label="Withdrawn" value={formatTokenAmount(stream.withdrawn, stream.token)} />
         <Field
@@ -231,6 +234,17 @@ export function StreamDetail({
         Times above are shown in your local timezone —{" "}
         <span className="text-neutral-400">{resolvedTimeZoneLabel()}</span>.
       </p>
+      <button
+        type="button"
+        onClick={() => downloadIcs(`stream-${stream.id}.ics`, streamToIcs(stream))}
+        className="mt-3 inline-flex items-center justify-center min-h-[44px] rounded border border-neutral-700 px-3 py-2 text-xs text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+      >
+        Add to calendar
+      </button>
+      {wallet.address === stream.recipient &&
+        (stream.status === "streaming" || stream.status === "pending") && (
+          <WithdrawalNotifyToggle stream={stream} withdrawable={accrual.withdrawable} />
+        )}
 
       <VestingProjection stream={stream} />
 

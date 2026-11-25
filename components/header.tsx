@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { type JSX, useState, useEffect } from "react";
+import { type JSX, useState, useEffect, useRef } from "react";
 
 import { ApiStatus } from "@/components/api-status";
 import { NetworkBadge } from "@/components/network-badge";
@@ -18,11 +18,25 @@ const NAV_LINKS = [
 export function Header(): JSX.Element {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const navRef = useRef<HTMLElement>(null);
 
   // Close the drawer whenever the user navigates to a new page.
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    navRef.current?.querySelector("a")?.focus();
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      toggleRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   return (
     <header className="border-b border-neutral-800">
@@ -71,6 +85,7 @@ export function Header(): JSX.Element {
 
           {/* Hamburger — only on mobile */}
           <button
+            ref={toggleRef}
             type="button"
             aria-label={open ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={open}
@@ -112,6 +127,7 @@ export function Header(): JSX.Element {
       {/* Mobile nav drawer */}
       {open && (
         <nav
+          ref={navRef}
           id="mobile-nav"
           aria-label="Mobile navigation"
           className="border-t border-neutral-800 sm:hidden"

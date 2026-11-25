@@ -262,6 +262,30 @@ describe("api client", () => {
       expect(res).toEqual(mockEvents);
     });
 
+    it("returns known events when the response also contains an unknown kind", async () => {
+      const created = {
+        eventId: "0000000100000000-0001",
+        kind: "created",
+        streamId: "1",
+        ledger: 1000,
+        txHash: "tx-created",
+      };
+      const withdrawn = {
+        eventId: "0000000100000500-0001",
+        kind: "withdrawn",
+        streamId: "1",
+        ledger: 1500,
+        txHash: "tx-withdrawn",
+      };
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [created, { kind: "paused" }, withdrawn],
+      });
+
+      await expect(getStreamEvents("1")).resolves.toEqual([created, withdrawn]);
+    });
+
     it("returns an empty array on 404", async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
@@ -287,7 +311,7 @@ describe("api client", () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => [{ eventId: "1", kind: "invalid" }],
+        json: async () => [{ eventId: "1", kind: "created" }],
       });
 
       await expect(getStreamEvents("1")).rejects.toThrow(ApiResponseError);
