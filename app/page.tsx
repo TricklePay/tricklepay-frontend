@@ -494,7 +494,7 @@ function Dashboard() {
               const value = Number(e.target.value);
               if (isPageSize(value)) setPageSize(value);
             }}
-            className="rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-200 focus:border-neutral-500 focus-visible:outline-none"
+            className="min-h-[44px] rounded border border-neutral-700 bg-neutral-900 px-3 py-2 text-xs text-neutral-200 focus:border-neutral-500 focus-visible:outline-none"
           >
             {PAGE_SIZE_OPTIONS.map((option) => (
               <option key={option} value={option}>
