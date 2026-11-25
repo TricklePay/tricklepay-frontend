@@ -24,6 +24,9 @@ export function GoToStream({ onGo }: { onGo: (href: string) => void }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="Go to stream ID…"
+          spellCheck={false}
+          autoCapitalize="off"
+          autoComplete="off"
           className="w-full max-w-sm rounded border border-neutral-700 bg-neutral-900 px-3 py-1.5 text-sm text-neutral-200 placeholder:text-neutral-500 focus:border-neutral-500 focus-visible:outline-none"
         />
       </label>

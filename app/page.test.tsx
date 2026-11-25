@@ -557,4 +557,19 @@ describe("Dashboard Page", () => {
       );
     });
   });
+
+  describe("mobile keyboard / autocorrect attributes (#685)", () => {
+    it("search input has spellCheck=false, autoCapitalize=off, autoComplete=off", () => {
+      mockConnectedWithData();
+      render(Home());
+
+      const input = screen.getByPlaceholderText(
+        "Search by stream ID, token, or address…",
+      ) as HTMLInputElement;
+
+      expect(input.getAttribute("spellcheck")).toBe("false");
+      expect(input.getAttribute("autocapitalize")).toBe("off");
+      expect(input.getAttribute("autocomplete")).toBe("off");
+    });
+  });
 });
