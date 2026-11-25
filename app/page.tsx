@@ -175,6 +175,9 @@ function StreamSection({
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <p className="text-sm text-red-400">
             {page.error}
+            {page.retryAfter !== null && (
+              <span className="ml-1 text-neutral-400">({page.retryAfter}s)</span>
+            )}
             {page.requestId && (
               <span className="ml-2 inline-flex items-center gap-1 font-mono text-xs text-neutral-400">
                 <span>(Request ID: {page.requestId})</span>
@@ -184,7 +187,7 @@ function StreamSection({
           </p>
           <button
             onClick={page.refresh}
-            disabled={page.loading}
+            disabled={page.loading || page.retryAfter !== null}
             className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded border border-neutral-700 px-3 py-2 text-xs text-neutral-400 hover:border-neutral-500 hover:text-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-1 disabled:opacity-40"
           >
             Retry

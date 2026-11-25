@@ -144,12 +144,16 @@ export function isTimeoutError(error: unknown): error is ApiTimeoutError {
 /**
  * Thrown when the backend responds with a non-OK status.
  * Preserves the backend's error code, error message, and requestId when present.
+ * For 429 responses, `retryAfter` holds the number of seconds from the
+ * `Retry-After` header (when present) so callers can delay the Retry action.
  */
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
   readonly backendError?: string;
   readonly requestId?: string;
+  /** Seconds until a retry is allowed, from the Retry-After header. Only set on 429 responses. */
+  readonly retryAfter?: number;
 
   constructor(
     message: string,
@@ -158,6 +162,7 @@ export class ApiError extends Error {
       code?: string;
       error?: string;
       requestId?: string;
+      retryAfter?: number;
     },
   ) {
     super(message);
@@ -166,6 +171,7 @@ export class ApiError extends Error {
     this.code = options.code;
     this.backendError = options.error;
     this.requestId = options.requestId;
+    this.retryAfter = options.retryAfter;
   }
 
   get error(): string | undefined {
@@ -194,13 +200,34 @@ async function createApiError(res: Response, fallbackPrefix: string): Promise<Ap
   const backendError = typeof payload?.error === "string" ? payload.error : undefined;
   const requestId = typeof payload?.requestId === "string" ? payload.requestId : undefined;
 
-  const message = backendError || `${fallbackPrefix} (${res.status})`;
+  // Parse the Retry-After header on 429 responses. The header value is either
+  // a delay in seconds (an integer) or an HTTP-date; only the integer form is
+  // handled here because that is what the backend documents.
+  let retryAfter: number | undefined;
+  if (res.status === 429) {
+    const raw = res.headers.get("Retry-After");
+    if (raw !== null) {
+      const parsed = parseInt(raw, 10);
+      if (!isNaN(parsed) && parsed > 0) retryAfter = parsed;
+    }
+  }
+
+  let message: string;
+  if (res.status === 429) {
+    message =
+      retryAfter !== undefined
+        ? `Too many requests — please wait ${retryAfter}s before retrying.`
+        : "Too many requests — please wait a moment before retrying.";
+  } else {
+    message = backendError || `${fallbackPrefix} (${res.status})`;
+  }
 
   return new ApiError(message, {
     status: res.status,
     code,
     error: backendError,
     requestId,
+    retryAfter,
   });
 }
 

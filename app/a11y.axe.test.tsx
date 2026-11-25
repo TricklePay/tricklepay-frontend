@@ -100,6 +100,7 @@ describe("page-level axe checks", () => {
       hasMore: false,
       error: null,
       requestId: null,
+      retryAfter: null,
       consecutiveRefreshFailures: 0,
       refreshWarning: null,
       refresh: vi.fn(),
