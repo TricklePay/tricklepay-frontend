@@ -5,6 +5,7 @@
 import { EMPTY_FORM_DRAFT } from "@/lib/create-form-draft";
 import { nowAsDatetimeLocal } from "@/lib/duration";
 import { formatAmount } from "@/lib/format";
+import { getCachedTokenDecimals } from "@/lib/token-decimals";
 import type { FormDraft } from "@/types/form";
 import type { StreamView } from "@/types/stream";
 
@@ -50,11 +51,14 @@ export function buildDuplicateDraft(stream: StreamView, now: Date = new Date()):
   const durationDays = Math.round(Number(durationSeconds) / 86400);
   const durationAmount = durationDays > 0 ? String(durationDays) : "";
 
+  // Format the amount with the token's decimals (default to 7 if unknown).
+  const decimals = getCachedTokenDecimals(stream.token) ?? 7;
+
   return {
     ...EMPTY_FORM_DRAFT,
     recipient: stream.recipient,
     token: stream.token,
-    amount: formatAmount(stream.totalAmount),
+    amount: formatAmount(stream.totalAmount, decimals),
     start,
     end,
     cliff,
