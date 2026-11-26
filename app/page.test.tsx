@@ -190,14 +190,12 @@ describe("Dashboard Page", () => {
     expect(useStreamPage).toHaveBeenCalledWith(
       "recipient",
       expect.any(String),
-      "streaming",
       DEFAULT_PAGE_SIZE,
     );
 
     expect(useStreamPage).toHaveBeenCalledWith(
       "sender",
       expect.any(String),
-      "streaming",
       DEFAULT_PAGE_SIZE,
     );
 
@@ -214,7 +212,6 @@ describe("Dashboard Page", () => {
     expect(useStreamPage).toHaveBeenCalledWith(
       "recipient",
       expect.any(String),
-      "all",
       DEFAULT_PAGE_SIZE,
     );
 

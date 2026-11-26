@@ -70,13 +70,16 @@ function StreamSection({
   showCreateLink?: boolean;
   className?: string;
 }) {
-  // Client-side, over whatever page is already loaded — neither narrowing nor
-  // reordering ever asks the backend for a different page, so both only ever
-  // apply to what's already on screen.
-  const byToken = token === "all" ? page.streams : page.streams.filter((stream) => stream.token === token);
+  // The backend pages the full list. Filter only the rows loaded so far.
+  const matching = filter === "all"
+    ? page.streams
+    : page.streams.filter((stream) => stream.status === filter);
+  const byToken = token === "all" ? matching : matching.filter((stream) => stream.token === token);
   const visible = sortStreams(filterStreamsByAddress(byToken, addressQuery), sort);
-  // Summed over the streams currently shown, which the active status filter
-  // and search have already narrowed, so the figure follows both.
+  const remaining = Math.max(0, page.total - page.streams.length);
+  const loadMoreLabel = remaining === 0
+    ? "Load more"
+    : `Load more (${remaining}${filter === "all" ? "" : " unfiltered"} remaining)`;
   useTokenDecimals(visible.map((stream) => stream.token));
   const total = formatStreamsTotal(visible);
   // Re-render on an interval so a pending stream's "starts in …" countdown
@@ -88,13 +91,13 @@ function StreamSection({
   // comment), too slow to show a last-fetch time climbing second by second.
   const now = useNow(5_000);
   const emptyText =
-    (addressQuery.trim() || token !== "all") && page.streams.length > 0
+    (addressQuery.trim() || token !== "all") && matching.length > 0
       ? addressQuery.trim()
         ? `No streams match "${addressQuery.trim()}".`
         : "No streams use the selected token."
-      : filter === "all" || page.streams.length === 0
-        ? (filter === "all" ? emptyMessage : `No ${filter} streams found.`)
-        : emptyMessage;
+      : filter === "all"
+        ? emptyMessage
+        : `No ${filter} streams ${page.hasMore ? "in the loaded results" : "found"}.`;
 
   const showCreate = showCreateLink && page.streams.length === 0;
 
@@ -105,7 +108,7 @@ function StreamSection({
         <div className="flex items-center gap-3">
           {page.total > 0 && (
             <p className="text-xs tabular-nums text-neutral-500">
-              {page.streams.length} of {page.total}
+              {filter === "all" ? `${page.streams.length} of ${page.total}` : `${matching.length} matching loaded`}
             </p>
           )}
           {page.lastUpdated !== null && (
@@ -226,7 +229,7 @@ function StreamSection({
         >
           {page.loadingMore
             ? "Loading more…"
-            : `Load more (${page.total - page.streams.length} remaining)`}
+            : loadMoreLabel}
         </button>
       )}
     </section>
@@ -315,8 +318,8 @@ function Dashboard() {
     writePageSize(size);
   }, []);
 
-  const incoming = useStreamPage("recipient", wallet.address, filter, pageSize);
-  const outgoing = useStreamPage("sender", wallet.address, filter, pageSize);
+  const incoming = useStreamPage("recipient", wallet.address, pageSize);
+  const outgoing = useStreamPage("sender", wallet.address, pageSize);
   const accountSummary = useAccountSummary(wallet.address);
 
   // Tokens present in the loaded streams; resolved symbols fall back to a
