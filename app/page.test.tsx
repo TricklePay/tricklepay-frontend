@@ -1,4 +1,4 @@
-﻿/* @vitest-environment jsdom */
+/* @vitest-environment jsdom */
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
