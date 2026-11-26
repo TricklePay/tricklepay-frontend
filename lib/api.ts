@@ -372,7 +372,24 @@ export async function listStreams(
     if (!res.ok) {
       throw await createApiError(res, "Failed to load streams");
     }
-    return parseStreamListResponse(await readJson(res, "the stream list"));
+    const json = await readJson(res, "the stream list");
+    try {
+      return parseStreamListResponse(json);
+    } catch (err) {
+      if (err instanceof ApiResponseError) {
+        console.error(err);
+        const reqId =
+          res.headers.get("x-request-id") ||
+          (typeof json === "object" && json !== null && typeof (json as { requestId?: unknown }).requestId === "string"
+            ? (json as { requestId: string }).requestId
+            : undefined);
+        throw new ApiError("Failed to parse streams from server. Please try again later.", {
+          status: res.status,
+          requestId: reqId,
+        });
+      }
+      throw err;
+    }
   });
 }
 
