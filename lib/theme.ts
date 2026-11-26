@@ -76,3 +76,7 @@ export function resolveInitialTheme(stored: string | null, prefersLight: boolean
 export function otherTheme(theme: Theme): Theme {
   return theme === "light" ? "dark" : "light";
 }
+
+// Inline no-flash bootstrap rendered in app/layout.tsx. Kept here so middleware.ts
+// can hash the exact string for the CSP; change it and the hash follows.
+export const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});var light=s==="light"||s==="dark"?s==="light":window.matchMedia("(prefers-color-scheme: light)").matches;if(light)document.documentElement.classList.add("light");}catch(e){}})();`;

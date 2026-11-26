@@ -24,8 +24,7 @@ describe("mock API", () => {
     const statuses = new Set((await mockListStreams()).streams.map((s) => s.status));
     expect(statuses.size).toBeGreaterThan(1);
     expect(statuses.has("streaming")).toBe(true);
-    expect((await mockListStreams({ status: "streaming" })).streams.length).toBeGreaterThan(0);
-    expect((await mockListStreams({ status: "pending" })).streams.length).toBeGreaterThan(0);
+    expect(statuses.has("pending")).toBe(true);
   });
 
   it("returns null for an unknown stream id", async () => {

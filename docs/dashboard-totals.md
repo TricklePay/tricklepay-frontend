@@ -17,8 +17,10 @@ visible count equals the total.
 
 ## Total across visible streams
 
-Below each section header the dashboard shows a labelled `Total:` line (with the
-accessible label "Total across visible streams"). It sums `totalAmount` over the
+Below each section header the dashboard shows a labelled "Total streamed (sum of
+stream amounts):" line (read by screen readers as "Total streamed, the sum of
+stream amounts across visible streams"). It is not a balance: it is not what can
+be withdrawn or what is left. It sums `totalAmount` over the
 streams currently shown in that section, grouped by token, using
 `formatStreamsTotal` from `lib/stream-total.ts` (for example `3.5 USDC`, or
 `0` when nothing is shown). Because the status filter narrows the streams

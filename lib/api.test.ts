@@ -41,19 +41,19 @@ describe("api client", () => {
   });
 
   describe("listStreams", () => {
-    it("builds query parameters including status filter", async () => {
+    it("builds query parameters accepted by the backend", async () => {
       let requestedUrl = "";
-      global.fetch = vi.fn().mockImplementation((url: URL | string) => {
-        requestedUrl = url.toString();
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({ streams: [], total: 0 }),
-        });
+      global.fetch = vi.fn().mockImplementation((url: URL) => {
+        requestedUrl = url.href;
+        const allowed = ["sender", "recipient", "limit", "offset", "cursor", "includeTotal"];
+        if ([...url.searchParams.keys()].some((key) => !allowed.includes(key))) {
+          return Promise.resolve(Response.json({ error: "Unknown query parameter" }, { status: 400 }));
+        }
+        return Promise.resolve(Response.json({ streams: [], total: 0 }));
       });
 
       await listStreams({
         sender: "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        status: "streaming",
         limit: 25,
         offset: 0,
         includeTotal: true,
@@ -63,7 +63,6 @@ describe("api client", () => {
       expect(requestedUrl).toContain(`${config.apiUrl}/streams`);
 
       expect(requestedUrl).toContain("sender=GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-      expect(requestedUrl).toContain("status=streaming");
       expect(requestedUrl).toContain("limit=25");
       expect(requestedUrl).toContain("offset=0");
       expect(requestedUrl).toContain("includeTotal=true");
@@ -90,7 +89,7 @@ describe("api client", () => {
       expect(requestedUrl).not.toContain("offset=");
     });
 
-    it("omits status param when status is 'all' or undefined", async () => {
+    it("builds a recipient query without extra parameters", async () => {
       let requestedUrl = "";
       global.fetch = vi.fn().mockImplementation((url: URL | string) => {
         requestedUrl = url.toString();
@@ -102,7 +101,6 @@ describe("api client", () => {
 
       await listStreams({
         recipient: "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
-        status: "all",
       });
 
       expect(requestedUrl).toContain("recipient=GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");

@@ -70,31 +70,31 @@ function StreamSection({
   showCreateLink?: boolean;
   className?: string;
 }) {
-  // Client-side, over whatever page is already loaded — neither narrowing nor
-  // reordering ever asks the backend for a different page, so both only ever
-  // apply to what's already on screen.
-  const byToken = token === "all" ? page.streams : page.streams.filter((stream) => stream.token === token);
+  // The backend pages the full list. Filter only the rows loaded so far.
+  const matching = filter === "all"
+    ? page.streams
+    : page.streams.filter((stream) => stream.status === filter);
+  const byToken = token === "all" ? matching : matching.filter((stream) => stream.token === token);
   const visible = sortStreams(filterStreamsByAddress(byToken, addressQuery), sort);
-  // Summed over the streams currently shown, which the active status filter
-  // and search have already narrowed, so the figure follows both.
+  const remaining = Math.max(0, page.total - page.streams.length);
+  const loadMoreLabel = remaining === 0
+    ? "Load more"
+    : `Load more (${remaining}${filter === "all" ? "" : " unfiltered"} remaining)`;
   useTokenDecimals(visible.map((stream) => stream.token));
   const total = formatStreamsTotal(visible);
-  // Re-render on an interval so a pending stream's "starts in …" countdown
-  // in the lists keeps advancing while the absolute schedule stays on the
-  // detail page. Card/table rows themselves stay pure.
-  useNow();
-  // A second, faster tick just for the "Updated …" freshness label below —
-  // the countdown tick above is intentionally coarse (30s; see useNow's own
-  // comment), too slow to show a last-fetch time climbing second by second.
+  // Single timer for both the countdown labels and the freshness label.
+  // The 5 s tick is fast enough for the "Updated …" display and still
+  // drives the pending-stream countdowns — having two separate useNow calls
+  // (30 s + 5 s) caused two intervals and double the renders per 5 s tick.
   const now = useNow(5_000);
   const emptyText =
-    (addressQuery.trim() || token !== "all") && page.streams.length > 0
+    (addressQuery.trim() || token !== "all") && matching.length > 0
       ? addressQuery.trim()
         ? `No streams match "${addressQuery.trim()}".`
         : "No streams use the selected token."
-      : filter === "all" || page.streams.length === 0
-        ? (filter === "all" ? emptyMessage : `No ${filter} streams found.`)
-        : emptyMessage;
+      : filter === "all"
+        ? emptyMessage
+        : `No ${filter} streams ${page.hasMore ? "in the loaded results" : "found"}.`;
 
   const showCreate = showCreateLink && page.streams.length === 0;
 
@@ -105,7 +105,7 @@ function StreamSection({
         <div className="flex items-center gap-3">
           {page.total > 0 && (
             <p className="text-xs tabular-nums text-neutral-500">
-              {page.streams.length} of {page.total}
+              {filter === "all" ? `${page.streams.length} of ${page.total}` : `${matching.length} matching loaded`}
             </p>
           )}
           {page.lastUpdated !== null && (
@@ -165,8 +165,8 @@ function StreamSection({
 
       {!page.loading && (
         <p className="mb-3 text-xs text-neutral-500">
-          <span className="sr-only">Total across visible streams. </span>
-          Total:{" "}
+          <span className="sr-only">Total streamed, the sum of stream amounts across visible streams. </span>
+          Total streamed (sum of stream amounts):{" "}
           <span className="font-medium tabular-nums text-neutral-300">{total}</span>
         </p>
       )}
@@ -226,7 +226,7 @@ function StreamSection({
         >
           {page.loadingMore
             ? "Loading more…"
-            : `Load more (${page.total - page.streams.length} remaining)`}
+            : loadMoreLabel}
         </button>
       )}
     </section>
@@ -315,8 +315,8 @@ function Dashboard() {
     writePageSize(size);
   }, []);
 
-  const incoming = useStreamPage("recipient", wallet.address, filter, pageSize);
-  const outgoing = useStreamPage("sender", wallet.address, filter, pageSize);
+  const incoming = useStreamPage("recipient", wallet.address, pageSize);
+  const outgoing = useStreamPage("sender", wallet.address, pageSize);
   const accountSummary = useAccountSummary(wallet.address);
 
   // Tokens present in the loaded streams; resolved symbols fall back to a

@@ -71,14 +71,12 @@ function asParty(stream: StreamView, params: ListStreamsParams): StreamView {
   };
 }
 
-/** Mock counterpart of `listStreams`, honouring status and paging. */
+/** Mock counterpart of `listStreams`, honouring paging. */
 export const mockListStreams: StreamApiClient["listStreams"] = async (
   params: ListStreamsParams = {},
 ): Promise<StreamListResponse> => {
   const matches = MOCK_STREAMS.filter(
-    (s) =>
-      (!params.status || params.status === "all" || s.status === params.status) &&
-      (!params.ids || params.ids.length === 0 || params.ids.includes(s.id)),
+    (s) => !params.ids || params.ids.length === 0 || params.ids.includes(s.id),
   ).map((s) => asParty(s, params));
   const cursorIndex =
     params.cursor !== undefined ? matches.findIndex((s) => s.id === params.cursor) : -1;

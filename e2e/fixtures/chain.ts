@@ -272,7 +272,6 @@ function corsHeaders(): Record<string, string> {
 export const ALLOWED_STREAM_QUERY_PARAMS = [
   "sender",
   "recipient",
-  "status",
   "limit",
   "offset",
   "cursor",
@@ -349,11 +348,9 @@ export async function stubApi(page: Page, store: StreamStore): Promise<void> {
 
     const sender = url.searchParams.get("sender");
     const recipient = url.searchParams.get("recipient");
-    const status = url.searchParams.get("status");
     const streams = store.streams.filter((s) => {
       if (sender && s.sender !== sender) return false;
       if (recipient && s.recipient !== recipient) return false;
-      if (status && s.status !== status) return false;
       return true;
     });
     const total = streams.length;

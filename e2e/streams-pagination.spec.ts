@@ -45,19 +45,55 @@ test("rejects undocumented query parameters with 400 and omits total without inc
   const store: StreamStore = { streams: [] };
   await stubApi(page, store);
 
-  // Unknown parameters return 400
-  const resBad = await page.request.get("http://localhost:3000/streams?foo=bar");
-  expect(resBad.status()).toBe(400);
+  await page.goto("/");
+  const results = await page.evaluate(async () => {
+    const queries = ["?status=streaming", "", "?includeTotal=true"];
+    return Promise.all(queries.map(async (query) => {
+      const response = await fetch(`http://localhost:3000/streams${query}`);
+      const body = await response.json();
+      return { status: response.status, total: body.total };
+    }));
+  });
 
-  // Without includeTotal, total is omitted
-  const resNoTotal = await page.request.get("http://localhost:3000/streams");
-  expect(resNoTotal.status()).toBe(200);
-  const dataNoTotal = await resNoTotal.json();
-  expect(dataNoTotal.total).toBeUndefined();
+  expect(results).toEqual([
+    { status: 400, total: undefined },
+    { status: 200, total: undefined },
+    { status: 200, total: 0 },
+  ]);
+});
+test("filters loaded streams by status and keeps the backend cursor", async ({ page }) => {
+  const statuses = ["streaming", "completed", "cancelled"] as const;
+  const store: StreamStore = {
+    streams: Array.from({ length: 26 }, (_, index) =>
+      streamingStream({
+        id: String(index + 1),
+        sender: TEST_ADDRESS,
+        recipient: TEST_ADDRESS,
+        status: index === 25 ? "pending" : statuses[index % statuses.length],
+      }),
+    ),
+  };
+  await page.addInitScript(installFreighterStub, { address: TEST_ADDRESS });
+  await stubApi(page, store);
+  await stubChain(page, { address: TEST_ADDRESS });
+  await page.goto("/");
 
-  // With includeTotal=true, total is returned
-  const resWithTotal = await page.request.get("http://localhost:3000/streams?includeTotal=true");
-  expect(resWithTotal.status()).toBe(200);
-  const dataWithTotal = await resWithTotal.json();
-  expect(dataWithTotal.total).toBe(0);
+  const incoming = page.locator("section").first();
+  await expect(incoming.getByRole("link")).toHaveCount(25);
+  for (const [label, id, count] of [
+    ["Streaming", "1", 9],
+    ["Completed", "2", 8],
+    ["Cancelled", "3", 8],
+  ] as const) {
+    await page.getByRole("button", { name: label, exact: true }).click();
+    await expect(incoming.getByRole("link", { name: `#${id}`, exact: true })).toBeVisible();
+    await expect(incoming.getByRole("link")).toHaveCount(count);
+  }
+
+  await page.getByRole("button", { name: "Pending", exact: true }).click();
+  await expect(incoming.getByText("No pending streams in the loaded results.")).toBeVisible();
+  await incoming.getByRole("button", { name: "Load more (1 unfiltered remaining)" }).click();
+  await expect(incoming.getByRole("link", { name: /#26/ })).toBeVisible();
+  await expect(incoming.getByText("1 matching loaded")).toBeVisible();
+  await expect(incoming.getByRole("button", { name: /Load more/ })).toHaveCount(0);
 });
