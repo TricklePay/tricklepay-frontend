@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useAccrual } from "@/hooks/use-accrual";
 import { parseHumanAmount, withdrawalAmountError } from "@/lib/amount";
@@ -13,15 +13,16 @@ import {
   TX_FAILED_WITHDRAW_MESSAGE,
 } from "@/lib/contract-messages";
 import { formatAmount } from "@/lib/format";
+import { DEFAULT_TOKEN_DECIMALS, getCachedTokenDecimals } from "@/lib/token-decimals";
 import type { TxStage } from "@/types/contract";
 import type { StreamView } from "@/types/stream";
 
-// Parses a human decimal amount (e.g. "12.5") into 7-decimal base units.
-// Returns null on invalid input; used only for the default-balance sync, where
-// user-facing errors come from lib/amount's validators instead.
-function parseAmount(human: string): bigint | null {
+// Parses a human decimal amount (e.g. "12.5") into base units for the given
+// token precision. Returns null on invalid input; used only for the
+// default-balance sync, where user-facing errors come from lib/amount's validators.
+function parseAmount(human: string, decimals: number): bigint | null {
   try {
-    return parseHumanAmount(human);
+    return parseHumanAmount(human, decimals);
   } catch {
     return null;
   }
@@ -68,24 +69,26 @@ export function useStreamActions(
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
   const accrual = useAccrual(stream);
+  const decimals = getCachedTokenDecimals(stream.token) ?? DEFAULT_TOKEN_DECIMALS;
+  const previousAmountContextRef = useRef({ withdrawable: accrual.withdrawable, decimals });
 
   // Keep the amount input in sync with the live withdrawable balance so the
   // default is always "withdraw everything available" without the user having
   // to type anything. Only reset when the field is still showing the previous
   // default (i.e. has not been manually edited to something else).
   useEffect(() => {
-    const currentDefault = formatAmount(accrual.withdrawable.toString());
+    const currentDefault = formatAmount(accrual.withdrawable.toString(), decimals);
+    const previous = previousAmountContextRef.current;
     setAmountInput((prev) => {
       // If the field is empty or already shows a stale default, update it.
       // If the user has typed a custom value, leave it alone.
-      const prevParsed = parseAmount(prev);
+      const prevParsed = parseAmount(prev, previous.decimals);
       const prevWasDefault =
-        prev === "" ||
-        (prevParsed !== null &&
-          prevParsed === parseAmount(formatAmount(accrual.withdrawable.toString())));
+        prev === "" || (prevParsed !== null && prevParsed === previous.withdrawable);
       return prevWasDefault ? currentDefault : prev;
     });
-  }, [accrual.withdrawable]);
+    previousAmountContextRef.current = { withdrawable: accrual.withdrawable, decimals };
+  }, [accrual.withdrawable, decimals]);
 
   // Status alone is not enough: between start and cliff a stream is already
   // "streaming" while nothing has vested, and the contract rejects that
@@ -94,13 +97,13 @@ export function useStreamActions(
   const nothingToWithdraw = accrual.withdrawable === 0n;
 
   function validateAmount(): bigint | null {
-    const message = withdrawalAmountError(amountInput, accrual.withdrawable);
+    const message = withdrawalAmountError(amountInput, accrual.withdrawable, decimals);
     if (message !== null) {
       setAmountError(message);
       return null;
     }
     setAmountError(null);
-    return parseAmount(amountInput);
+    return parseAmount(amountInput, decimals);
   }
 
   // Live inline validation as the user types. Transient states — empty field
@@ -111,16 +114,18 @@ export function useStreamActions(
     setAmountError(
       !value.trim() || value.trim().endsWith(".")
         ? null
-        : withdrawalAmountError(value, accrual.withdrawable),
+        : withdrawalAmountError(value, accrual.withdrawable, decimals),
     );
   }
 
   function blurAmount() {
-    if (amountInput.trim()) setAmountError(withdrawalAmountError(amountInput, accrual.withdrawable));
+    if (amountInput.trim()) {
+      setAmountError(withdrawalAmountError(amountInput, accrual.withdrawable, decimals));
+    }
   }
 
   function setMaxAmount() {
-    setAmountInput(formatAmount(accrual.withdrawable.toString()));
+    setAmountInput(formatAmount(accrual.withdrawable.toString(), decimals));
     setAmountError(null);
   }
 
