@@ -6,7 +6,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { formatAmount } from "@/lib/format";
+import { formatTokenAmount } from "@/lib/format";
 import type { StreamView } from "@/types/stream";
 
 import { VestingCurve } from "./vesting-curve";
@@ -90,7 +90,7 @@ describe("VestingCurve", () => {
 
     const caption = container.querySelector("figcaption")?.textContent ?? "";
     expect(caption).toContain("This stream was cancelled");
-    expect(caption).toContain(`frozen at ${formatAmount("3000000")} tokens`);
+    expect(caption).toContain(`frozen at ${formatTokenAmount("3000000", BASE.token)}`);
   });
 
   it("gives the chart an accessible name and description", () => {

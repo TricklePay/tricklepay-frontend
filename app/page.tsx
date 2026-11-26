@@ -165,8 +165,8 @@ function StreamSection({
 
       {!page.loading && (
         <p className="mb-3 text-xs text-neutral-500">
-          <span className="sr-only">Total across visible streams. </span>
-          Total:{" "}
+          <span className="sr-only">Total streamed, the sum of stream amounts across visible streams. </span>
+          Total streamed (sum of stream amounts):{" "}
           <span className="font-medium tabular-nums text-neutral-300">{total}</span>
         </p>
       )}

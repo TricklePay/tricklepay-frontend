@@ -3,7 +3,7 @@
 import type { JSX } from "react";
 
 import { useNow } from "@/hooks/use-now";
-import { formatAmount } from "@/lib/format";
+import { formatTokenAmount, resolveTokenMetadata } from "@/lib/format";
 import { vestingCurvePoints } from "@/lib/vesting-curve";
 import type { StreamView } from "@/types/stream";
 
@@ -29,8 +29,8 @@ interface Props {
  */
 export function VestingCurve({ stream }: Props): JSX.Element {
   // Re-render once per second so the "now" marker advances while the stream
-  // is active; useNow() already handles this.
-  const nowSec = Math.floor(useNow() / 1000);
+  // is active. The tick state lives here, so only the curve re-renders.
+  const nowSec = Math.floor(useNow(1_000) / 1000);
 
   const totalAmount = BigInt(stream.totalAmount);
   const startTime = BigInt(stream.startTime);
@@ -80,12 +80,15 @@ export function VestingCurve({ stream }: Props): JSX.Element {
   const cliffLabel = hasCliff
     ? ` There is a cliff at ${new Date(Number(cliffTime) * 1000).toLocaleDateString()}, before which nothing vests.`
     : "";
+  // Same decimals and symbol as the amounts shown on the page.
+  const unitSuffix = resolveTokenMetadata(stream.token) ? "" : " tokens";
+  const totalLabel = `${formatTokenAmount(stream.totalAmount, stream.token)}${unitSuffix}`;
   const cancelledLabel = isCancelled
-    ? ` This stream was cancelled; vesting is frozen at ${formatAmount(stream.vested)} tokens.`
+    ? ` This stream was cancelled; vesting is frozen at ${formatTokenAmount(stream.vested, stream.token)}${unitSuffix}.`
     : "";
   const summaryText =
     `Linear vesting schedule from ${startLabel} to ${endLabel}.${cliffLabel}` +
-    ` Total: ${formatAmount(stream.totalAmount)} tokens. Current progress: ${progressPct}%.` +
+    ` Total: ${totalLabel}. Current progress: ${progressPct}%.` +
     cancelledLabel;
 
   return (

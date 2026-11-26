@@ -239,8 +239,8 @@ describe("Dashboard Page", () => {
       const el = Home();
       const htmlString = renderToStaticMarkup(el);
 
-      expect(htmlString).toContain("Total across visible streams");
-      expect(htmlString).toContain("Total:");
+      expect(htmlString).toContain("Total streamed, the sum of stream amounts across visible streams");
+      expect(htmlString).toContain("Total streamed (sum of stream amounts):");
       expect(htmlString).toContain("1 XLM");
     });
 
@@ -274,7 +274,7 @@ describe("Dashboard Page", () => {
       const el = Home();
       const htmlString = renderToStaticMarkup(el);
 
-      expect(htmlString).toContain("Total across visible streams");
+      expect(htmlString).toContain("Total streamed, the sum of stream amounts across visible streams");
       expect(htmlString).toContain(">0<");
     });
 
