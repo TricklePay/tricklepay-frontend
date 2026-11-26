@@ -1,8 +1,11 @@
 import type { JSX } from "react";
 
 import { config } from "@/lib/config";
+import { eventsToCsv } from "@/lib/csv";
+import { downloadCsv } from "@/lib/csv-download";
 import { txExplorerUrl } from "@/lib/explorer";
 import { formatTime, formatTokenAmount, truncateAddress } from "@/lib/format";
+import { DEFAULT_TOKEN_DECIMALS, getCachedTokenDecimals } from "@/lib/token-decimals";
 import type { StreamEvent, StreamEventKind } from "@/types/stream";
 
 const EVENT_LABELS: Record<StreamEventKind, string> = {
@@ -30,7 +33,9 @@ function formatEventAmounts(event: StreamEvent, streamToken: string): string | n
 
   const parts: string[] = [];
   if (event.recipientAmount != null) {
-    parts.push(`${formatTokenAmount(event.recipientAmount, token)} to recipient`);
+    parts.push(
+      `${formatTokenAmount(event.recipientAmount, token)} claimable by recipient`,
+    );
   }
   if (event.senderRefund != null) {
     parts.push(`${formatTokenAmount(event.senderRefund, token)} refunded to sender`);
@@ -66,9 +71,25 @@ export function StreamEventHistory({
       aria-labelledby="event-history-heading"
       className="mt-6 rounded-lg border border-neutral-800 bg-neutral-900/40 px-4 py-4"
     >
-      <h2 id="event-history-heading" className="mb-3 text-sm font-semibold text-neutral-200">
-        Event history
-      </h2>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 id="event-history-heading" className="text-sm font-semibold text-neutral-200">
+          Event history
+        </h2>
+        {!loading && !error && events.length > 0 && (
+          <button
+            type="button"
+            onClick={() =>
+              downloadCsv(
+                `stream-${events[0].streamId}-events.csv`,
+                eventsToCsv(events, token, getCachedTokenDecimals(token) ?? DEFAULT_TOKEN_DECIMALS),
+              )
+            }
+            className="inline-flex items-center justify-center min-h-[44px] rounded border border-neutral-700 px-3 py-2 text-xs text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+          >
+            Export CSV
+          </button>
+        )}
+      </div>
 
       {loading && (
         <p role="status" aria-live="polite" className="text-xs text-neutral-500">

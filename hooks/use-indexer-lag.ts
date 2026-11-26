@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { usePolling } from "@/hooks/use-polling";
 import { getIndexerLag, isAbortError } from "@/lib/api";
 
 // How often the indexer's lag is re-read. Lag drifts over minutes, and the
@@ -21,33 +22,19 @@ export const INDEXER_LAG_INTERVAL_MS = 60_000;
 export function useIndexerLag(enabled = true): number | null {
   const [lag, setLag] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (!enabled) return;
-
-    let controller: AbortController | null = null;
-
-    const read = () => {
-      controller?.abort();
-      const current = new AbortController();
-      controller = current;
-      getIndexerLag({ signal: current.signal })
+  usePolling(
+    (signal) => {
+      getIndexerLag({ signal })
         .then((value) => {
-          if (!current.signal.aborted) setLag(value);
+          if (!signal.aborted) setLag(value);
         })
         .catch((error: unknown) => {
-          // Only an abort reaches here, and that is our own cleanup.
           if (!isAbortError(error)) setLag(null);
         });
-    };
-
-    read();
-    const interval = setInterval(read, INDEXER_LAG_INTERVAL_MS);
-
-    return () => {
-      clearInterval(interval);
-      controller?.abort();
-    };
-  }, [enabled]);
+    },
+    INDEXER_LAG_INTERVAL_MS,
+    enabled,
+  );
 
   return lag;
 }

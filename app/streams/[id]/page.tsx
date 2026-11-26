@@ -11,6 +11,7 @@ import { useStreamEvents } from "@/hooks/use-stream-events";
 import { useStreamTitle } from "@/hooks/use-stream-title";
 import { getStream, isAbortError } from "@/lib/api";
 import { clearReturningFromStream, setSessionItem } from "@/lib/scroll";
+import { isStreamIdInRange } from "@/lib/validation";
 import type { StreamView } from "@/types/stream";
 
 // How often an open stream refetches in the background. Shorter than the
@@ -23,6 +24,7 @@ const HIDDEN_POLL_INTERVAL_MS = DETAIL_REFRESH_INTERVAL_MS * 3;
 export default function StreamDetailPage(): JSX.Element {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const validId = isStreamIdInRange(id);
   const router = useRouter();
 
   const [stream, setStream] = useState<StreamView | null>(null);
@@ -30,11 +32,12 @@ export default function StreamDetailPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const showInitialLoading = useMinimumLoadingDuration(loading && !stream);
-  const streamEvents = useStreamEvents(id, reloadKey);
+  const streamEvents = useStreamEvents(validId ? id : null, reloadKey);
 
-  useStreamTitle(stream, id);
+  useStreamTitle(validId ? stream : null, id);
 
   useEffect(() => {
+    if (!validId) return;
     // Navigating away (or retrying) cancels the request outright rather than
     // just ignoring its result, so the browser drops the connection instead of
     // decoding a stream nobody is looking at any more.
@@ -60,11 +63,12 @@ export default function StreamDetailPage(): JSX.Element {
       cancelled = true;
       controller.abort();
     };
-  }, [id, reloadKey]);
+  }, [id, reloadKey, validId]);
 
   // Periodic and window-focus background refetch so counterparty actions (e.g. withdrawal or cancellation)
   // become immediately visible without a manual browser page reload.
   useEffect(() => {
+    if (!validId) return;
     let cancelled = false;
     // Every background refetch still open, so leaving the page cancels them all
     // instead of letting a poll started seconds ago run to completion.
@@ -108,19 +112,19 @@ export default function StreamDetailPage(): JSX.Element {
       for (const controller of inFlight) controller.abort();
       inFlight.clear();
     };
-  }, [id]);
+  }, [id, validId]);
 
   // Only the initial load gets the skeleton: a post-transaction refetch keeps
   // the current detail (and StreamActions' confirmation state, like the
   // explorer link for the tx just confirmed) on screen until fresh data lands.
-  if (showInitialLoading) {
+  if (validId && showInitialLoading) {
     return (
       <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
         <LoadingState variant="stream-detail" />
       </main>
     );
   }
-  if (error) {
+  if (validId && error) {
     return (
       <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
         <button
@@ -146,7 +150,7 @@ export default function StreamDetailPage(): JSX.Element {
       </main>
     );
   }
-  if (!stream) {
+  if (!validId || !stream) {
     return (
       <main id="main-content" className="mx-auto max-w-2xl px-6 py-10">
         <button

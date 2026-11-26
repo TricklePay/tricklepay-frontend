@@ -8,10 +8,12 @@
 // Validating at the boundary turns both into one actionable error naming the
 // offending field.
 //
-// Validation asserts, it does not normalise: the payload is returned exactly
-// as it arrived so nothing downstream has to care that it passed through here.
+// Validation preserves supported payloads as received. Unknown stream event
+// kinds are omitted so newer backend events cannot hide the whole history.
 
 import type {
+  AccountSideSummary,
+  AccountSummary,
   StreamEvent,
   StreamEventKind,
   StreamListResponse,
@@ -215,10 +217,46 @@ export function parseStreamEvent(value: unknown, path = "response"): StreamEvent
 }
 
 /**
- * Validates a `GET /streams/:id/events` response array and every event inside it.
+ * Validates a `GET /streams/:id/events` response array, omitting events with
+ * unknown string kinds while validating every supported event.
  */
 export function parseStreamEvents(value: unknown): StreamEvent[] {
   if (!Array.isArray(value)) fail("response", "must be an array", value);
-  value.forEach((event, index) => parseStreamEvent(event, `response[${index}]`));
-  return value as unknown as StreamEvent[];
+  return value.filter((event, index) => {
+    if (
+      isRecord(event) &&
+      typeof event.kind === "string" &&
+      !STREAM_EVENT_KINDS.includes(event.kind as StreamEventKind)
+    ) {
+      return false;
+    }
+
+    parseStreamEvent(event, `response[${index}]`);
+    return true;
+  }) as StreamEvent[];
+}
+
+function parseAccountSide(value: unknown, path: string): AccountSideSummary {
+  if (!isRecord(value)) fail(path, "must be an object", value);
+
+  const count = value.count;
+  if (typeof count !== "number" || !Number.isInteger(count) || count < 0) {
+    fail(`${path}.count`, "must be a non-negative integer", count);
+  }
+  for (const key of ["totalAmount", "withdrawn", "vested", "withdrawable"]) {
+    requireIntegerString(value, key, path);
+  }
+
+  return value as unknown as AccountSideSummary;
+}
+
+/**
+ * Validates a `GET /accounts/:address/summary` response: an incoming and an
+ * outgoing side, each with a stream count and exact amount totals.
+ */
+export function parseAccountSummary(value: unknown): AccountSummary {
+  if (!isRecord(value)) fail("response", "must be an object", value);
+  parseAccountSide(value.incoming, "response.incoming");
+  parseAccountSide(value.outgoing, "response.outgoing");
+  return value as unknown as AccountSummary;
 }

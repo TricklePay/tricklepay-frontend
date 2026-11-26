@@ -72,7 +72,7 @@ function computeAccrual(stream: StreamView): Accrual {
  * re-renders.
  *
  * @param stream - The stream to track
- * @returns Current vested and withdrawable amounts in base units (stroops)
+ * @returns Current vested and withdrawable amounts in base units of the stream's token
  */
 export function useAccrual(stream: StreamView): Accrual {
   const [accrual, setAccrual] = useState<Accrual>(() => computeAccrual(stream));

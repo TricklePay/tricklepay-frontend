@@ -1,13 +1,13 @@
 // Linear vesting, mirroring the contract's `vesting.rs` and the backend. Kept
 // client-side so a streaming balance can be recomputed every second without
-// re-fetching. Amounts are base units and times are Unix seconds, both bigint
+// re-fetching. Amounts are base units of the token and times are Unix seconds, both bigint
 // to match the on-chain integer math exactly.
 
 /**
  * Computes the vested amount for a linear vesting stream at a given time.
  * Mirrors the contract's vesting.rs arithmetic.
  *
- * @param totalAmount - Total stream amount in base units (stroops)
+ * @param totalAmount - Total stream amount in base units
  * @param startTime - Stream start time, Unix seconds
  * @param endTime - Stream end time, Unix seconds
  * @param cliffTime - Cliff time, Unix seconds (no vesting occurs before this)
@@ -34,8 +34,8 @@ export function vestedAmount(
  * Computes the withdrawable balance from a vested amount.
  * Mirrors the contract's withdrawal arithmetic.
  *
- * @param vested - Total vested amount in base units (stroops)
- * @param withdrawn - Amount already withdrawn in base units (stroops)
+ * @param vested - Total vested amount in base units
+ * @param withdrawn - Amount already withdrawn in base units
  * @returns Withdrawable amount in base units, clamped to 0 if already fully withdrawn.
  *   No rounding; uses exact integer subtraction.
  */
@@ -48,7 +48,7 @@ export function withdrawableAmount(vested: bigint, withdrawn: bigint): bigint {
  * Computes the average vesting rate per day for a stream.
  * Mirrors the contract's per-second linear vesting, scaled to per-day for display.
  *
- * @param totalAmount - Total stream amount in base units (stroops)
+ * @param totalAmount - Total stream amount in base units
  * @param startTime - Stream start time, Unix seconds
  * @param endTime - Stream end time, Unix seconds
  * @returns Rate in base units per day, or null if the input defines an invalid or

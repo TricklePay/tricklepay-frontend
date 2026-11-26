@@ -12,7 +12,8 @@
 
 import { formatAmount } from "@/lib/format";
 import { formatUtcFromUnixSeconds } from "@/lib/timezone";
-import type { StreamView } from "@/types/stream";
+import { getCachedTokenDecimals } from "@/lib/token-decimals";
+import type { StreamEvent, StreamView } from "@/types/stream";
 
 const CSV_COLUMNS = [
   "Stream ID",
@@ -28,6 +29,7 @@ const CSV_COLUMNS = [
   "Start Time (UTC)",
   "End Time (UTC)",
   "Cliff Time (UTC)",
+  "Decimals",
 ] as const;
 
 /**
@@ -50,20 +52,23 @@ export function escapeCsvField(value: string): string {
 }
 
 function streamRow(stream: StreamView): string[] {
+  // falls back to 7 until the token's decimals have been read
+  const decimals = getCachedTokenDecimals(stream.token) ?? 7;
   return [
     stream.id,
     stream.status,
     stream.sender,
     stream.recipient,
     stream.token,
-    formatAmount(stream.totalAmount),
-    formatAmount(stream.vested),
-    formatAmount(stream.withdrawn),
-    formatAmount(stream.withdrawable),
-    formatAmount(stream.locked),
+    formatAmount(stream.totalAmount, decimals),
+    formatAmount(stream.vested, decimals),
+    formatAmount(stream.withdrawn, decimals),
+    formatAmount(stream.withdrawable, decimals),
+    formatAmount(stream.locked, decimals),
     formatUtcFromUnixSeconds(stream.startTime),
     formatUtcFromUnixSeconds(stream.endTime),
     formatUtcFromUnixSeconds(stream.cliffTime),
+    String(decimals),
   ];
 }
 
@@ -76,5 +81,49 @@ function streamRow(stream: StreamView): string[] {
  */
 export function streamsToCsv(streams: StreamView[]): string {
   const rows = [[...CSV_COLUMNS], ...streams.map(streamRow)];
+  return rows.map((row) => row.map(escapeCsvField).join(",")).join("\r\n") + "\r\n";
+}
+
+const EVENT_CSV_COLUMNS = [
+  "Event ID",
+  "Kind",
+  "Stream ID",
+  "Ledger",
+  "Time (UTC)",
+  "Transaction Hash",
+  "Token",
+  "Amount",
+  "Recipient Amount",
+  "Sender Refund",
+] as const;
+
+function eventRow(event: StreamEvent, streamToken: string, decimals: number): string[] {
+  const exact = (raw?: string | null) => (raw != null ? formatAmount(raw, decimals) : "");
+  return [
+    event.eventId,
+    event.kind,
+    event.streamId,
+    String(event.ledger),
+    event.closedAt != null ? formatUtcFromUnixSeconds(event.closedAt) : "",
+    event.txHash,
+    event.token ?? streamToken,
+    // A created event carries totalAmount, a withdrawn event carries amount.
+    exact(event.totalAmount ?? event.amount),
+    exact(event.recipientAmount),
+    exact(event.senderRefund),
+  ];
+}
+
+/**
+ * Builds a CSV document for a stream's event history, in the order given. Amounts
+ * go through formatAmount with the token's decimals (BigInt math, never a float).
+ * Same RFC 4180 escaping and CRLF line endings as streamsToCsv.
+ */
+export function eventsToCsv(
+  events: StreamEvent[],
+  streamToken: string,
+  decimals: number = 7,
+): string {
+  const rows = [[...EVENT_CSV_COLUMNS], ...events.map((e) => eventRow(e, streamToken, decimals))];
   return rows.map((row) => row.map(escapeCsvField).join(",")).join("\r\n") + "\r\n";
 }

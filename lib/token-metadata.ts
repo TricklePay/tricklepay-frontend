@@ -1,8 +1,7 @@
 
 import { config } from "@/lib/config";
-import { TRANSACTION_BASE_FEE, TX_TIMEOUT_SECONDS } from "@/lib/contract-config";
+import { simulateRead } from "@/lib/contract-read";
 import { nativeAssetContractId } from "@/lib/native-asset";
-import { isValidContract } from "@/lib/strkey";
 
 export interface TokenMetadata {
   name: string;
@@ -46,10 +45,6 @@ export const KNOWN_TOKEN_METADATA: Record<string, TokenMetadata> = {
     symbol: "XLM",
   },
 };
-
-// A valid source account for unsigned read-only transaction simulations.
-const READ_ONLY_SEQUENCE = "0";
-const READ_ONLY_SOURCE_ACCOUNT = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
 
 // In-memory cache for token metadata during the browser session.
 const metadataCache = new Map<string, TokenMetadata>();
@@ -121,36 +116,7 @@ async function simulateTokenCall(
   address: string,
   method: "symbol" | "name",
 ): Promise<string> {
-  const [{ Account, Contract, rpc, scValToNative, TransactionBuilder }, { server }] =
-    await Promise.all([import("@stellar/stellar-sdk"), import("@/lib/contract-network")]);
-
-  const contract = new Contract(address);
-  const tx = new TransactionBuilder(
-    new Account(READ_ONLY_SOURCE_ACCOUNT, READ_ONLY_SEQUENCE),
-    {
-      fee: TRANSACTION_BASE_FEE,
-      networkPassphrase: config.networkPassphrase,
-    },
-  )
-    .addOperation(contract.call(method))
-    .setTimeout(TX_TIMEOUT_SECONDS)
-    .build();
-
-  const simulation = await server().simulateTransaction(tx);
-
-  if (rpc.Api.isSimulationError(simulation)) {
-    throw new Error(simulation.error);
-  }
-
-  if (!rpc.Api.isSimulationSuccess(simulation)) {
-    throw new Error(`Token ${method} read did not complete.`);
-  }
-
-  if (!simulation.result) {
-    throw new Error(`Token ${method} read did not return a value.`);
-  }
-
-  const nativeVal = scValToNative(simulation.result.retval);
+  const nativeVal = await simulateRead(address, method);
   return typeof nativeVal === "string" ? nativeVal : String(nativeVal ?? "");
 }
 

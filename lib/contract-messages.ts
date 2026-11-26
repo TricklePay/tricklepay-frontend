@@ -6,6 +6,8 @@
 // ("preparing" | "signing" | "submitting" | "confirming") or throw one of
 // these strings, never define the wording inline.
 
+import { xdr } from "@stellar/stellar-sdk";
+
 import type { TxStage, TxStageInfo } from "@/types/contract";
 
 export const TX_STAGES: TxStageInfo[] = [
@@ -35,14 +37,139 @@ export function wrongNetworkMessage(walletNetwork: string, expectedNetwork: stri
   return `Wrong network: wallet is on ${walletNetwork}, app expects ${expectedNetwork}. Switch networks in Freighter.`;
 }
 
-// Shown when Freighter reports signed.error after the signing prompt.
-// Covers explicit rejection and expired XDR (the user took longer than the
-// TX_TIMEOUT_SECONDS window to approve).
+// Shown when Freighter's active network cannot be read before signing (error
+// result or rejected promise). Failing closed prevents signing against an
+// unknown or mismatched network.
+export const WALLET_NETWORK_UNAVAILABLE_MESSAGE =
+  "Could not read the active network from Freighter. Unlock or reconnect your wallet and try again.";
+
+// Shown when Freighter reports a user-rejected signing request.
 export const TX_SIGNING_REJECTED_MESSAGE = "Signing was rejected in the wallet.";
 
-// Shown when the RPC rejects the broadcast outright (expired XDR, duplicate
-// submission, fee too low). The transaction never entered the pending pool.
+// Shown when Freighter reports that the wallet is locked.
+export const TX_WALLET_LOCKED_MESSAGE =
+  "Your wallet is locked. Unlock Freighter and try again.";
+
+// Shown when Freighter has a different account selected than the connected caller.
+export const TX_WRONG_ACCOUNT_MESSAGE =
+  "The wrong account is selected in Freighter. Switch to the connected account and try again.";
+
+// Shown when Freighter reports an internal or generic signing failure.
+export const TX_SIGNING_WALLET_ERROR_MESSAGE =
+  "The wallet encountered an error while signing. Please try again.";
+
+/**
+ * Maps a Freighter `signed.error` value (string or `{ code, message }` object)
+ * to a distinct, actionable user-facing message for known error shapes, or
+ * surfaces the wallet's own message for unknown errors.
+ */
+export function parseSigningError(error: unknown): string {
+  let code: number | undefined;
+  let message = "";
+
+  if (typeof error === "string") {
+    message = error.trim();
+  } else if (typeof error === "object" && error !== null) {
+    if ("code" in error && typeof error.code === "number") {
+      code = error.code;
+    }
+    if ("message" in error && typeof error.message === "string") {
+      message = error.message.trim();
+    }
+  }
+
+  const lower = message.toLowerCase();
+
+  if (
+    code === -4 ||
+    /\b(reject(?:ed)?|declin(?:ed)?|cancel(?:led|ed)?|denied|dismiss(?:ed)?)\b/.test(lower)
+  ) {
+    return TX_SIGNING_REJECTED_MESSAGE;
+  }
+
+  if (/\b(locked|unlock)\b/.test(lower)) {
+    return TX_WALLET_LOCKED_MESSAGE;
+  }
+
+  if (
+    /(wrong account|account.*mismatch|address.*mismatch|mismatch.*account|mismatch.*address|account not found|invalid account|different account|not the.*account|selected account)/.test(
+      lower,
+    )
+  ) {
+    return TX_WRONG_ACCOUNT_MESSAGE;
+  }
+
+  if (
+    !message ||
+    /(internal error|internal failure|freighter.*error|extension.*error|failed to sign|unable to sign|signing failed|unexpected error)/.test(
+      lower,
+    )
+  ) {
+    return TX_SIGNING_WALLET_ERROR_MESSAGE;
+  }
+
+  return message;
+}
+
+// Shown when the RPC rejects the broadcast outright (expired XDR, bad sequence,
+// fee too low). The transaction never entered the pending pool.
 export const TX_NETWORK_REJECTED_MESSAGE = "The network rejected the transaction.";
+
+// Maps common Stellar TransactionResultCode names to actionable user messages.
+export const RPC_TX_ERROR_MESSAGES: Record<string, string> = {
+  txBadSeq: "Transaction sequence number is out of date. Please try again.",
+  txInsufficientFee:
+    "Transaction fee is too low for current network conditions. Please try again.",
+  txTooLate: "Transaction expired before it could be submitted. Please try again.",
+  txTooEarly: "Transaction is not valid yet. Please try again in a moment.",
+  txInsufficientBalance: "Insufficient XLM balance to cover transaction fees.",
+  txBadAuth: "Transaction signature is invalid or missing. Please sign again.",
+  txNoAccount: "This account has not been funded yet. Fund it before signing transactions.",
+  txFailed: "The transaction failed during execution.",
+  txSorobanInvalid: "The transaction is not valid for Soroban execution.",
+};
+
+/**
+ * Decodes the `errorResult` (or `errorResultXdr`) from an RPC `sendTransaction`
+ * ERROR response and maps known `TransactionResultCode`s to specific user
+ * messages. Unknown codes include their XDR enum name; missing or unreadable
+ * results fall back to `TX_NETWORK_REJECTED_MESSAGE`.
+ */
+export function parseRpcTransactionError(sent: {
+  errorResult?: unknown;
+  errorResultXdr?: unknown;
+}): string {
+  try {
+    let txResult: xdr.TransactionResult | undefined;
+
+    if (
+      typeof sent.errorResult === "object" &&
+      sent.errorResult !== null &&
+      "result" in sent.errorResult &&
+      typeof (sent.errorResult as { result?: unknown }).result === "function"
+    ) {
+      txResult = sent.errorResult as xdr.TransactionResult;
+    } else if (typeof sent.errorResult === "string" && sent.errorResult.length > 0) {
+      txResult = xdr.TransactionResult.fromXDR(sent.errorResult, "base64");
+    } else if (typeof sent.errorResultXdr === "string" && sent.errorResultXdr.length > 0) {
+      txResult = xdr.TransactionResult.fromXDR(sent.errorResultXdr, "base64");
+    }
+
+    if (!txResult) {
+      return TX_NETWORK_REJECTED_MESSAGE;
+    }
+
+    const codeName = txResult.result().switch().name;
+    return RPC_TX_ERROR_MESSAGES[codeName] ?? `The network rejected the transaction (${codeName}).`;
+  } catch {
+    return TX_NETWORK_REJECTED_MESSAGE;
+  }
+}
+
+// Shown when the RPC repeatedly returns TRY_AGAIN_LATER across all submission
+// retries because it is temporarily overloaded.
+export const TX_RPC_BUSY_MESSAGE =
+  "The network RPC is busy. Please try again in a moment.";
 
 // Default message for TransactionTimeoutError: polling gave up waiting, not
 // proof the transaction failed — it may still confirm later, hence the

@@ -1,13 +1,24 @@
 /* @vitest-environment jsdom */
 
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { truncateAddress } from "@/lib/format";
+import { clearTokenDecimalsCache, readTokenDecimals, setCachedTokenDecimals } from "@/lib/token-decimals";
 import type { StreamView } from "@/types/stream";
 
 import { StreamCard } from "./stream-card";
 import { StreamTable } from "./stream-table";
+
+vi.mock("@/lib/token-decimals", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/token-decimals")>()),
+  readTokenDecimals: vi.fn(),
+}));
+
+afterEach(() => {
+  clearTokenDecimalsCache();
+  vi.resetAllMocks();
+});
 
 describe("StreamTable", () => {
   const baseStream: StreamView = {
@@ -51,6 +62,34 @@ describe("StreamTable", () => {
 
     expect(screen.getByText("#123")).toBeDefined();
     expect(screen.getByText("#456")).toBeDefined();
+  });
+
+  it("updates table and card amounts when token decimals resolve", async () => {
+    const six = {
+      ...baseStream,
+      token: "CADAMBQGAYDAMBQGAYDAMBQGAYDAMBQGAYDAMBQGAYDAMBQGAYDAMSST",
+      totalAmount: "1250000",
+    };
+    const eighteen = {
+      ...baseStream,
+      id: "456",
+      token: "CAJBEEQSCIJBEEQSCIJBEEQSCIJBEEQSCIJBEEQSCIJBEEQSCIJBERTS",
+      totalAmount: "2750000000000000000",
+    };
+    vi.mocked(readTokenDecimals).mockImplementation(async (token) => {
+      await Promise.resolve();
+      const decimals = token === six.token ? 6 : 18;
+      setCachedTokenDecimals(token, decimals);
+      return decimals;
+    });
+
+    const table = render(<StreamTable streams={[six, eighteen]} />);
+    const cards = render(<><StreamCard stream={six} /><StreamCard stream={eighteen} /></>);
+    expect(within(table.container).queryByText("1.25")).toBeNull();
+    for (const { container } of [table, cards]) {
+      await within(container).findByText("1.25");
+      await within(container).findByText("2.75");
+    }
   });
 
   it("links each row to the stream detail page", () => {

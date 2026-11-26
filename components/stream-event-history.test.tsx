@@ -117,7 +117,9 @@ describe("StreamEventHistory", () => {
     expect(items[1].textContent).toContain("Ledger #1500");
 
     expect(items[2].textContent).toContain("Cancelled");
-    expect(items[2].textContent).toContain(`${formatTokenAmount("20000000", TOKEN)} to recipient`);
+    expect(items[2].textContent).toContain(
+      `${formatTokenAmount("20000000", TOKEN)} claimable by recipient`,
+    );
     expect(items[2].textContent).toContain(
       `${formatTokenAmount("50000000", TOKEN)} refunded to sender`,
     );

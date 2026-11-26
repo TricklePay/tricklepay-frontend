@@ -4,15 +4,15 @@
 
 | Baseline | Viewport | View |
 | --- | --- | --- |
-| `dashboard-smoke-chromium-win32.png` | 1280 × 720 | Connected wallet dashboard with no streams |
-| `create-stream-smoke-chromium-win32.png` | 1280 × 720 | Empty create-stream form |
-| `create-stream-mobile-smoke-chromium-win32.png` | 375 × 667 | The same form at mobile width |
+| `dashboard-smoke-chromium-linux.png` | 1280 × 720 | Connected wallet dashboard with no streams |
+| `create-stream-smoke-chromium-linux.png` | 1280 × 720 | Empty create-stream form |
+| `create-stream-mobile-smoke-chromium-linux.png` | 375 × 667 | The same form at mobile width |
 
 The tracked images live in `e2e/visual-smoke.spec.ts-snapshots/`. These are viewport captures, so content below the viewport is intentionally excluded. They do not cover stream detail, validation errors, or every theme and breakpoint.
 
 ## Baseline environment
 
-The initial images were captured on **Windows 11 x64 (build 26200)** using **Node.js 24.16.0**, the locked **Playwright 1.62.1**, and its bundled **Chromium headless shell 151.0.7922.34 (revision 1234)**. The app runs through the Next.js development server configured in `playwright.config.ts`.
+The baselines are captured on the **Ubuntu Linux x64 runner used by CI** with **Node.js 22**, the locked **Playwright 1.62.1**, and Chromium installed by `npx playwright install --with-deps chromium`. The app runs through the Next.js development server configured in `playwright.config.ts`.
 
 The spec fixes the browser locale to `en-US`, time zone to `UTC`, color scheme to `light`, and clock to `2026-01-01T12:00:00Z`. It waits for the wallet and API to settle and hides the Next.js development overlay in screenshots. Storage is fresh for each test. No real wallet, backend, or chain is needed.
 
@@ -20,23 +20,23 @@ Playwright includes the project and platform in snapshot filenames. Use this Win
 
 ## Run from a clean checkout
 
-In PowerShell on the environment above:
+In the Linux CI environment:
 
-```powershell
-npm.cmd ci
-npx.cmd playwright install chromium --only-shell
-$env:CI = "1"
-npm.cmd run test:e2e -- e2e/visual-smoke.spec.ts --project=chromium
+```bash
+npm ci
+npx playwright install --with-deps chromium
+CI=1 npm run test:e2e -- e2e/visual-smoke.spec.ts --project=chromium
 ```
 
 `CI=1` ensures Playwright starts its own server with the fixture environment instead of reusing a server with different configuration. Keep port 3100 free and avoid local `.env` overrides, especially `NEXT_PUBLIC_MOCK_API=true`. `npm test` runs Vitest and does not execute these browser screenshots.
 
 ## Update baselines deliberately
 
-After making an intentional UI change, use the same installation and environment:
+After making an intentional UI change, use the same Linux environment:
 
-```powershell
-npm.cmd run test:e2e -- e2e/visual-smoke.spec.ts --project=chromium --update-snapshots
+```bash
+npx playwright install --with-deps chromium
+CI=1 npm run test:e2e -- e2e/visual-smoke.spec.ts --project=chromium --update-snapshots
 ```
 
 Review all changed PNGs in `e2e/visual-smoke.spec.ts-snapshots/`, then run the command again without `--update-snapshots` to check the comparisons. Commit the reviewed images with the UI change. A new platform creates additional files; do not rename images from another operating system to match Windows filenames.

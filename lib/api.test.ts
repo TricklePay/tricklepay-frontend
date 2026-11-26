@@ -1,11 +1,43 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-import { listStreams, getStream, getStreamEvents, ApiResponseError } from "./api";
+import { listStreams, getStream, getStreamEvents, ApiResponseError, checkApiHealth, getIndexerLag } from "./api";
 import { config } from "./config";
 
 describe("api client", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it.each([
+    ["https://example.com", ""],
+    ["https://example.com/", ""],
+    ["https://example.com/api/v1", "/api/v1"],
+    ["https://example.com/api/v1/", "/api/v1"],
+  ])("resolves endpoints from %s", async (base, prefix) => {
+    const previous = config.apiUrl;
+    config.apiUrl = base;
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ streams: [], total: 0 })))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }));
+    vi.stubGlobal("fetch", fetch);
+
+    try {
+      await listStreams({ limit: 25 });
+      await getStream("1");
+      await getStreamEvents("1");
+      await checkApiHealth();
+      await getIndexerLag();
+      expect(fetch.mock.calls.map(([url]) => url.href)).toEqual(
+        ["/streams?limit=25", "/streams/1", "/streams/1/events", "/health", "/status"]
+          .map((path) => `https://example.com${prefix}${path}`),
+      );
+    } finally {
+      config.apiUrl = previous;
+      vi.unstubAllGlobals();
+    }
   });
 
   describe("listStreams", () => {
@@ -124,6 +156,22 @@ describe("api client", () => {
     });
   });
 
+  it.each(["..", "/", "?", "#", "123\n", ""])(
+    "skips detail and event requests for invalid id %j",
+    async (id) => {
+      const fetch = vi.fn();
+      vi.stubGlobal("fetch", fetch);
+
+      try {
+        await expect(getStream(id)).resolves.toBeNull();
+        await expect(getStreamEvents(id)).resolves.toEqual([]);
+        expect(fetch).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    },
+  );
+
   describe("getStream", () => {
     it("returns stream data when found", async () => {
       const mockStream = {
@@ -212,6 +260,30 @@ describe("api client", () => {
       expect(res).toEqual(mockEvents);
     });
 
+    it("returns known events when the response also contains an unknown kind", async () => {
+      const created = {
+        eventId: "0000000100000000-0001",
+        kind: "created",
+        streamId: "1",
+        ledger: 1000,
+        txHash: "tx-created",
+      };
+      const withdrawn = {
+        eventId: "0000000100000500-0001",
+        kind: "withdrawn",
+        streamId: "1",
+        ledger: 1500,
+        txHash: "tx-withdrawn",
+      };
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [created, { kind: "paused" }, withdrawn],
+      });
+
+      await expect(getStreamEvents("1")).resolves.toEqual([created, withdrawn]);
+    });
+
     it("returns an empty array on 404", async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
@@ -237,7 +309,7 @@ describe("api client", () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => [{ eventId: "1", kind: "invalid" }],
+        json: async () => [{ eventId: "1", kind: "created" }],
       });
 
       await expect(getStreamEvents("1")).rejects.toThrow(ApiResponseError);

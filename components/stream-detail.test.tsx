@@ -13,8 +13,14 @@ import { config } from "@/lib/config";
 import { txExplorerUrl } from "@/lib/explorer";
 import { formatTime, formatTokenAmount } from "@/lib/format";
 import { formatSchedule, NO_CLIFF_LABEL } from "@/lib/schedule";
+import { clearTokenDecimalsCache, readTokenDecimals, setCachedTokenDecimals } from "@/lib/token-decimals";
 import type { StreamEvent, StreamView } from "@/types/stream";
 import type { WalletState } from "@/types/wallet";
+
+vi.mock("@/lib/token-decimals", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/token-decimals")>()),
+  readTokenDecimals: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ back: vi.fn() }),
@@ -71,6 +77,7 @@ describe("StreamDetail", () => {
   let root: Root;
 
   beforeEach(() => {
+    vi.mocked(readTokenDecimals).mockResolvedValue(7);
     vi.mocked(useAccrual).mockReturnValue({ vested: 5_000_000n, withdrawable: 5_000_000n });
     vi.mocked(useWallet).mockReturnValue(NO_WALLET);
 
@@ -83,6 +90,27 @@ describe("StreamDetail", () => {
     act(() => root.unmount());
     container.remove();
     vi.restoreAllMocks();
+    vi.mocked(readTokenDecimals).mockReset();
+    clearTokenDecimalsCache();
+  });
+
+  it.each([
+    ["CADAMBQGAYDAMBQGAYDAMBQGAYDAMBQGAYDAMBQGAYDAMBQGAYDAMSST", 6, "1250000", "1.25"],
+    ["CAJBEEQSCIJBEEQSCIJBEEQSCIJBEEQSCIJBEEQSCIJBEEQSCIJBERTS", 18, "2750000000000000000", "2.75"],
+  ])("updates the detail total after reading decimals for %s (%i)", async (token, decimals, raw, amount) => {
+    let resolveDecimals!: (decimals: number) => void;
+    vi.mocked(readTokenDecimals).mockReturnValue(new Promise((resolve) => {
+      resolveDecimals = resolve;
+    }));
+
+    act(() => root.render(<StreamDetail stream={{ ...STREAM, token, totalAmount: raw }} onComplete={vi.fn()} />));
+    expect(container.textContent).not.toContain(`of ${amount} total`);
+
+    await act(async () => {
+      setCachedTokenDecimals(token, decimals);
+      resolveDecimals(decimals);
+    });
+    expect(container.textContent).toContain(`of ${amount} total`);
   });
 
   it("renders the schedule and the balances", async () => {

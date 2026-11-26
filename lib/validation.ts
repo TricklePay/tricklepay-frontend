@@ -107,3 +107,22 @@ export function validateStreamDates(
 
   return result;
 }
+
+/** Stream IDs are unsigned decimal integers represented as strings. */
+export function isValidStreamId(id: string): boolean {
+  return /^[0-9]+$/.test(id);
+}
+
+// Stream ids are u64 values on the contract.
+const MAX_STREAM_ID = 18446744073709551615n;
+
+/** True for a decimal stream id that also fits in a u64. */
+export function isStreamIdInRange(id: string): boolean {
+  return isValidStreamId(id) && BigInt(id) <= MAX_STREAM_ID;
+}
+
+/** Where "go to stream" should send the user: the stream, or the not-found page for a bad id. */
+export function streamHrefForInput(input: string): string {
+  const id = input.trim();
+  return isStreamIdInRange(id) ? `/streams/${id}` : "/streams/invalid";
+}

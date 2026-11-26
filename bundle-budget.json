@@ -1,0 +1,18 @@
+{
+  "measure": "gzip-level-9-bytes",
+  "note": "First-load JS budget per route (unique .js chunks in .next/app-build-manifest.json compressed with gzip level 9). Baseline not yet measured because build was not run; run `npm run build && npm run budget` and set limitBytes to ~10% above measured actualBytes.",
+  "routes": [
+    {
+      "route": "/",
+      "manifestKey": "/page",
+      "baselineBytes": null,
+      "limitBytes": 512000
+    },
+    {
+      "route": "/create",
+      "manifestKey": "/create/page",
+      "baselineBytes": null,
+      "limitBytes": 512000
+    }
+  ]
+}

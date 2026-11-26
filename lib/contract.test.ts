@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TransactionTimeoutError, confirmTransaction, createStream, isTransactionPending } from "@/lib/contract";
 import { CONTRACT_ERROR_MESSAGES, GENERIC_FAILURE, parseContractError } from "@/lib/contract-errors";
-import { TX_STAGES, TX_STAGE_LABELS } from "@/lib/contract-messages";
+import { TX_STAGES, TX_STAGE_LABELS, WALLET_NETWORK_UNAVAILABLE_MESSAGE } from "@/lib/contract-messages";
 import type { CreateStreamParams, TxStage } from "@/types/contract";
 
 vi.mock("@stellar/freighter-api", () => ({
@@ -75,6 +75,28 @@ describe("contract configuration", () => {
     vi.stubEnv("NEXT_PUBLIC_MOCK_API", "true");
     const { config } = await import("./config");
     expect(config.contractId).not.toBe("");
+  });
+
+  it("trims surrounding whitespace from a valid NEXT_PUBLIC_CONTRACT_ID", async () => {
+    stubMissingContractId();
+    const validId = "CA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQGAXE";
+    vi.stubEnv("NEXT_PUBLIC_CONTRACT_ID", `  ${validId}\n`);
+    const { config } = await import("./config");
+    expect(config.contractId).toBe(validId);
+  });
+
+  it("treats a whitespace-only NEXT_PUBLIC_CONTRACT_ID as missing", async () => {
+    stubMissingContractId();
+    vi.stubEnv("NEXT_PUBLIC_CONTRACT_ID", "   \n\t  ");
+    await expect(import("./config")).rejects.toThrow(/NEXT_PUBLIC_CONTRACT_ID is not set/);
+  });
+
+  it("shows the trimmed value in quotes when NEXT_PUBLIC_CONTRACT_ID is invalid", async () => {
+    stubMissingContractId();
+    vi.stubEnv("NEXT_PUBLIC_CONTRACT_ID", "  not-a-valid-contract\n");
+    await expect(import("./config")).rejects.toThrow(
+      'NEXT_PUBLIC_CONTRACT_ID "not-a-valid-contract" is not a valid Stellar contract address.',
+    );
   });
 });
 
@@ -198,17 +220,17 @@ describe("contract submission guard", () => {
   it("releases the guard after a failed submission", async () => {
     vi.mocked(getNetwork).mockRejectedValueOnce(new Error("wallet unreachable"));
 
-    await expect(createStream(PARAMS)).rejects.toThrow("wallet unreachable");
+    await expect(createStream(PARAMS)).rejects.toThrow(WALLET_NETWORK_UNAVAILABLE_MESSAGE);
     expect(isTransactionPending()).toBe(false);
   });
 
   it("accepts a further submission after a failure", async () => {
     vi.mocked(getNetwork).mockRejectedValue(new Error("wallet unreachable"));
 
-    await expect(createStream(PARAMS)).rejects.toThrow("wallet unreachable");
+    await expect(createStream(PARAMS)).rejects.toThrow(WALLET_NETWORK_UNAVAILABLE_MESSAGE);
     expect(isTransactionPending()).toBe(false);
 
-    await expect(createStream(PARAMS)).rejects.toThrow("wallet unreachable");
+    await expect(createStream(PARAMS)).rejects.toThrow(WALLET_NETWORK_UNAVAILABLE_MESSAGE);
     expect(vi.mocked(getNetwork)).toHaveBeenCalledTimes(2);
     expect(isTransactionPending()).toBe(false);
   });

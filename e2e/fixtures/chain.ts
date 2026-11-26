@@ -407,3 +407,19 @@ export function streamingStream(overrides: Partial<StreamView> = {}): StreamView
     ...overrides,
   };
 }
+
+// A cancelled stream as the backend reports it after the cancel settles: half
+// had vested, 2 of that was already withdrawn, so 3 stays claimable and the
+// unvested 5 went back to the sender. Amounts are in 7-decimal base units.
+export function cancelledStream(overrides: Partial<StreamView> = {}): StreamView {
+  return streamingStream({
+    cancelled: true,
+    status: "cancelled",
+    withdrawn: "200000000",
+    vested: "500000000",
+    withdrawable: "300000000",
+    locked: "500000000",
+    progress: 10_000,
+    ...overrides,
+  });
+}

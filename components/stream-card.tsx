@@ -1,14 +1,17 @@
 import Link from "next/link";
 import type { JSX } from "react";
 
+import { AddressWithLabel } from "@/components/address-label";
 import { StreamStatusBadge } from "@/components/stream-status-badge";
+import { useTokenDecimals } from "@/hooks/use-token-decimals";
 import { useTokenMetadata } from "@/hooks/use-token-metadata";
-import { formatTokenAmount, truncateAddress } from "@/lib/format";
+import { formatTokenAmount } from "@/lib/format";
 import { formatRemaining, formatSchedule } from "@/lib/schedule";
 import { markNavigatingToStream } from "@/lib/scroll";
 import type { StreamView } from "@/types/stream";
 
 export function StreamCard({ stream }: { stream: StreamView }): JSX.Element {
+  useTokenDecimals([stream.token]);
   useTokenMetadata(stream.token);
   const remaining = formatRemaining(stream);
   // Only a cliff strictly after the start is worth a row; one at or before it
@@ -33,11 +36,11 @@ export function StreamCard({ stream }: { stream: StreamView }): JSX.Element {
       <div className="grid grid-cols-2 gap-3 text-xs">
         <div>
           <p className="text-neutral-500">From</p>
-          <p className="font-mono text-neutral-300">{truncateAddress(stream.sender)}</p>
+          <p className="font-mono text-neutral-300"><AddressWithLabel address={stream.sender} /></p>
         </div>
         <div>
           <p className="text-neutral-500">To</p>
-          <p className="font-mono text-neutral-300">{truncateAddress(stream.recipient)}</p>
+          <p className="font-mono text-neutral-300"><AddressWithLabel address={stream.recipient} /></p>
         </div>
         <div>
           <p className="text-neutral-500">Withdrawable</p>

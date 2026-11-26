@@ -35,13 +35,21 @@
 // advanced balance as authoritative.
 import {
   ApiResponseError,
+  parseAccountSummary,
   parseStreamEvents,
   parseStreamListResponse,
   parseStreamView,
 } from "@/lib/api-schema";
 import { config } from "@/lib/config";
-import { mockGetStream, mockGetStreamEvents, mockListStreams } from "@/lib/mock-api";
+import {
+  mockGetAccountSummary,
+  mockGetStream,
+  mockGetStreamEvents,
+  mockListStreams,
+} from "@/lib/mock-api";
+import { isValidStreamId } from "@/lib/validation";
 import type {
+  AccountSummary,
   StreamEvent,
   StreamListResponse,
   StreamView,
@@ -56,6 +64,8 @@ export interface ListStreamsParams {
   offset?: number;
   cursor?: string;
   includeTotal?: boolean;
+  /** Restricts the list to these stream ids. */
+  ids?: string[];
 }
 
 /** Shared contract for stream reads. Both the real backend client below and
@@ -68,6 +78,7 @@ export interface StreamApiClient {
   ): Promise<StreamListResponse>;
   getStream(id: string, options?: RequestOptions): Promise<StreamView | null>;
   getStreamEvents(id: string, options?: RequestOptions): Promise<StreamEvent[]>;
+  getAccountSummary(address: string, options?: RequestOptions): Promise<AccountSummary>;
 }
 /** Per-request options shared by every call in this module. */
 export interface RequestOptions {
@@ -131,12 +142,16 @@ export function isTimeoutError(error: unknown): error is ApiTimeoutError {
 /**
  * Thrown when the backend responds with a non-OK status.
  * Preserves the backend's error code, error message, and requestId when present.
+ * For 429 responses, `retryAfter` holds the number of seconds from the
+ * `Retry-After` header (when present) so callers can delay the Retry action.
  */
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
   readonly backendError?: string;
   readonly requestId?: string;
+  /** Seconds until a retry is allowed, from the Retry-After header. Only set on 429 responses. */
+  readonly retryAfter?: number;
 
   constructor(
     message: string,
@@ -145,6 +160,7 @@ export class ApiError extends Error {
       code?: string;
       error?: string;
       requestId?: string;
+      retryAfter?: number;
     },
   ) {
     super(message);
@@ -153,6 +169,7 @@ export class ApiError extends Error {
     this.code = options.code;
     this.backendError = options.error;
     this.requestId = options.requestId;
+    this.retryAfter = options.retryAfter;
   }
 
   get error(): string | undefined {
@@ -181,13 +198,34 @@ async function createApiError(res: Response, fallbackPrefix: string): Promise<Ap
   const backendError = typeof payload?.error === "string" ? payload.error : undefined;
   const requestId = typeof payload?.requestId === "string" ? payload.requestId : undefined;
 
-  const message = backendError || `${fallbackPrefix} (${res.status})`;
+  // Parse the Retry-After header on 429 responses. The header value is either
+  // a delay in seconds (an integer) or an HTTP-date; only the integer form is
+  // handled here because that is what the backend documents.
+  let retryAfter: number | undefined;
+  if (res.status === 429) {
+    const raw = res.headers.get("Retry-After");
+    if (raw !== null) {
+      const parsed = parseInt(raw, 10);
+      if (!isNaN(parsed) && parsed > 0) retryAfter = parsed;
+    }
+  }
+
+  let message: string;
+  if (res.status === 429) {
+    message =
+      retryAfter !== undefined
+        ? `Too many requests — please wait ${retryAfter}s before retrying.`
+        : "Too many requests — please wait a moment before retrying.";
+  } else {
+    message = backendError || `${fallbackPrefix} (${res.status})`;
+  }
 
   return new ApiError(message, {
     status: res.status,
     code,
     error: backendError,
     requestId,
+    retryAfter,
   });
 }
 
@@ -261,6 +299,13 @@ async function request<T>(
   }
 }
 
+// Treat the configured pathname as a directory, with or without a trailing slash.
+function apiEndpoint(path: string): URL {
+  const base = new URL(config.apiUrl);
+  base.pathname = base.pathname.replace(/\/+$/, "") + "/";
+  return new URL(path, base);
+}
+
 // Fetches a page of streams from the backend, optionally filtered by party. The
 // whole envelope is returned rather than just the rows so callers can page
 // through a result set larger than the backend's default limit. Results are not
@@ -276,12 +321,13 @@ export async function listStreams(
 ): Promise<StreamListResponse> {
   if (config.mockApi) return mockListStreams(params);
 
-  const url = new URL("/streams", config.apiUrl);
+  const url = apiEndpoint("streams");
   if (params.sender) url.searchParams.set("sender", params.sender);
   if (params.recipient) url.searchParams.set("recipient", params.recipient);
   if (params.limit !== undefined) url.searchParams.set("limit", String(params.limit));
   if (params.offset !== undefined) url.searchParams.set("offset", String(params.offset));
   if (params.cursor !== undefined) url.searchParams.set("cursor", params.cursor);
+  if (params.ids && params.ids.length > 0) url.searchParams.set("ids", params.ids.join(","));
   if (params.includeTotal !== undefined) {
     url.searchParams.set("includeTotal", String(params.includeTotal));
   }
@@ -304,9 +350,10 @@ export async function getStream(
   id: string,
   options: RequestOptions = {},
 ): Promise<StreamView | null> {
+  if (!isValidStreamId(id)) return null;
   if (config.mockApi) return mockGetStream(id);
 
-  const url = new URL(`/streams/${id}`, config.apiUrl);
+  const url = apiEndpoint(`streams/${id}`);
 
   return request(url, `stream ${id}`, options, async (res) => {
     if (res.status === 404) return null;
@@ -323,9 +370,10 @@ export async function getStreamEvents(
   id: string,
   options: RequestOptions = {},
 ): Promise<StreamEvent[]> {
+  if (!isValidStreamId(id)) return [];
   if (config.mockApi) return mockGetStreamEvents(id);
 
-  const url = new URL(`/streams/${id}/events`, config.apiUrl);
+  const url = apiEndpoint(`streams/${id}/events`);
 
   return request(url, `events for stream ${id}`, options, async (res) => {
     if (res.status === 404) return [];
@@ -333,6 +381,26 @@ export async function getStreamEvents(
       throw await createApiError(res, `Failed to load events for stream ${id}`);
     }
     return parseStreamEvents(await readJson(res, `events for stream ${id}`));
+  });
+}
+
+// Fetches incoming and outgoing stream counts and amount totals for one address
+// (GET /accounts/:address/summary). Unlike summing the loaded pages, these
+// cover every stream the account has. The payload is validated before it is
+// returned (see lib/api-schema.ts).
+export async function getAccountSummary(
+  address: string,
+  options: RequestOptions = {},
+): Promise<AccountSummary> {
+  if (config.mockApi) return mockGetAccountSummary(address);
+
+  const url = apiEndpoint(`accounts/${encodeURIComponent(address)}/summary`);
+
+  return request(url, "the account summary", options, async (res) => {
+    if (!res.ok) {
+      throw await createApiError(res, "Failed to load account summary");
+    }
+    return parseAccountSummary(await readJson(res, "the account summary"));
   });
 }
 
@@ -347,7 +415,7 @@ const HEALTH_CHECK_TIMEOUT_MS = 5_000;
 // not". A caller-driven abort is the one exception and still rejects, so a
 // cancelled probe is never mistaken for an outage.
 export async function checkApiHealth(options: RequestOptions = {}): Promise<boolean> {
-  const url = new URL("/health", config.apiUrl);
+  const url = apiEndpoint("health");
   try {
     return await request(
       url,
@@ -367,7 +435,7 @@ export async function checkApiHealth(options: RequestOptions = {}): Promise<bool
 // figure is advisory, so every failure collapses to "unknown" instead of an
 // error; only a caller-driven abort still rejects.
 export async function getIndexerLag(options: RequestOptions = {}): Promise<number | null> {
-  const url = new URL("/status", config.apiUrl);
+  const url = apiEndpoint("status");
   try {
     return await request(url, "the indexer status", options, async (res) => {
       if (!res.ok) return null;
@@ -383,4 +451,9 @@ export async function getIndexerLag(options: RequestOptions = {}): Promise<numbe
 
 // Real backend client, typed against the shared contract so a signature drift
 // against the mock in `lib/mock-api.ts` fails the typecheck.
-export const apiClient: StreamApiClient = { listStreams, getStream, getStreamEvents };
+export const apiClient: StreamApiClient = {
+  listStreams,
+  getStream,
+  getStreamEvents,
+  getAccountSummary,
+};
