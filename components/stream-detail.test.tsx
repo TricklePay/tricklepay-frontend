@@ -172,6 +172,33 @@ describe("StreamDetail", () => {
     expect(container.querySelector('[data-testid="stream-actions"]')).toBeNull();
   });
 
+  it("shows the Duplicate stream button to the sender", async () => {
+    vi.mocked(useWallet).mockReturnValue({ ...NO_WALLET, address: STREAM.sender });
+
+    await act(async () => {
+      root.render(<StreamDetail stream={STREAM} onComplete={vi.fn()} />);
+    });
+
+    const button = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Duplicate stream"),
+    );
+    expect(button).toBeDefined();
+  });
+
+  it("hides the Duplicate stream button from a wallet that is not the sender", async () => {
+    const unrelatedWallet = "GCCZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN7";
+    vi.mocked(useWallet).mockReturnValue({ ...NO_WALLET, address: unrelatedWallet });
+
+    await act(async () => {
+      root.render(<StreamDetail stream={STREAM} onComplete={vi.fn()} />);
+    });
+
+    const button = Array.from(container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Duplicate stream"),
+    );
+    expect(button).toBeUndefined();
+  });
+
   it("renders event history loading, empty, error, and populated states", async () => {
     await act(async () => {
       root.render(<StreamDetail stream={STREAM} onComplete={vi.fn()} eventsLoading />);

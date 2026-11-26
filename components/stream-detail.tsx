@@ -22,6 +22,7 @@ import { downloadIcs, streamToIcs } from "@/lib/calendar";
 import { formatTokenAmount } from "@/lib/format";
 import { formatSchedule, NO_CLIFF_LABEL } from "@/lib/schedule";
 import { navigateBack } from "@/lib/scroll";
+import { isStreamRecipient, isStreamSender } from "@/lib/stream-role";
 import { resolvedTimeZoneLabel } from "@/lib/timezone";
 import { cliffPositionBps } from "@/lib/vesting";
 import type { StreamEvent, StreamView } from "@/types/stream";
@@ -124,7 +125,7 @@ export function StreamDetail({
           &larr; Back
         </button>
         <div className="flex items-center gap-2">
-          {wallet.address === stream.sender && (
+          {isStreamSender(stream, wallet.address) && (
             <DuplicateStreamButton stream={stream} />
           )}
           <ShareLinkButton
@@ -238,7 +239,7 @@ export function StreamDetail({
       >
         Add to calendar
       </button>
-      {wallet.address === stream.recipient &&
+      {isStreamRecipient(stream, wallet.address) &&
         (stream.status === "streaming" || stream.status === "pending") && (
           <WithdrawalNotifyToggle stream={stream} withdrawable={accrual.withdrawable} />
         )}
