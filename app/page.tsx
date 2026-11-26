@@ -328,6 +328,14 @@ function Dashboard() {
   // asking the backend for a different one. Local state, not the URL — it
   // doesn't need to survive navigation the way the status filter does.
   const [addressQuery, setAddressQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(addressQuery);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [addressQuery]);
 
   // Picked up once per mount, e.g. after a redirect from a successful create.
   // takePendingNotice clears it from storage immediately, so a refresh never
@@ -397,6 +405,10 @@ function Dashboard() {
             Clear
           </button>
         )}
+      </div>
+
+      <div role="status" aria-live="polite" className="sr-only">
+        {searchAnnouncement}
       </div>
 
       <div
