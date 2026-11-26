@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { isAbortError, isApiError, listStreams, type ListStreamsParams } from "@/lib/api";
 import { MAX_PAGE_SIZE } from "@/lib/page-size";
-import type { StreamStatus, StreamView } from "@/types/stream";
+import type { StreamView } from "@/types/stream";
 
 // Rows per request. Kept under the backend's 50-row default so a large account
 // arrives in visible increments instead of one long stall.
@@ -54,8 +54,8 @@ function wait(ms: number, signal: AbortSignal): Promise<void> {
 }
 
 function getRetryAfterMs(error: unknown): number | null {
-  if (!isApiError(error) || error.retryAfterSeconds === undefined) return null;
-  return Math.max(0, error.retryAfterSeconds * 1000);
+  if (!isApiError(error) || error.retryAfter === undefined) return null;
+  return Math.max(0, error.retryAfter * 1000);
 }
 
 export type StreamRole = "sender" | "recipient";
@@ -67,6 +67,12 @@ export interface StreamPage {
   loadingMore: boolean;
   error: string | null;
   requestId: string | null;
+  /**
+   * Seconds remaining before a rate-limited retry is allowed, or null when
+   * the error is not a 429 or no Retry-After header was present.
+   * Counts down to zero in one-second steps, then becomes null.
+   */
+  retryAfter: number | null;
   hasMore: boolean;
   loadMore: () => void;
   refresh: () => void;
@@ -90,7 +96,6 @@ export interface StreamPage {
 function pageQuery(
   role: StreamRole,
   address: string,
-  status: StreamStatus | "all" | undefined,
   pageSize: number,
   cursor?: string,
 ): ListStreamsParams {
@@ -100,7 +105,6 @@ function pageQuery(
     ...party,
     limit: pageSize,
     ...(cursor !== undefined ? { cursor } : {}),
-    status,
     includeTotal: true,
   };
 }
@@ -124,7 +128,6 @@ function pageQuery(
  * 
  * @param role - Whether to fetch streams where the address is "sender" or "recipient"
  * @param address - The wallet address to fetch streams for, or null if no wallet connected
- * @param status - Filter streams by status, or "all" to fetch streams of any status
  * @param pageSize - Rows requested per page; defaults to PAGE_SIZE
  *
  * @returns {StreamPage} An object containing:
@@ -142,7 +145,6 @@ function pageQuery(
 export function useStreamPage(
   role: StreamRole,
   address: string | null,
-  status: StreamStatus | "all" = "all",
   pageSize: number = PAGE_SIZE,
 ): StreamPage {
   const [streams, setStreams] = useState<StreamView[]>([]);
@@ -152,6 +154,7 @@ export function useStreamPage(
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
   const [consecutiveRefreshFailures, setConsecutiveRefreshFailures] = useState(0);
   const [refreshWarning, setRefreshWarning] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
@@ -164,6 +167,16 @@ export function useStreamPage(
     streamsRef.current = streams;
   }, [streams]);
 
+  // Count down retryAfter one second at a time. Clears itself when it reaches
+  // zero so the Retry button re-enables automatically without a page reload.
+  useEffect(() => {
+    if (retryAfter === null || retryAfter <= 0) return;
+    const timer = setTimeout(() => {
+      setRetryAfter((prev) => (prev !== null && prev > 1 ? prev - 1 : null));
+    }, 1_000);
+    return () => clearTimeout(timer);
+  }, [retryAfter]);
+
   // Bumped whenever the query changes. A request compares the generation it
   // started under against the current one before writing, so a slow page cannot
   // append its rows to a list that has since been reset for another address.
@@ -171,8 +184,8 @@ export function useStreamPage(
 
   // Controllers for requests that have not settled yet. The generation check
   // above already stops a stale response from being *written*; aborting stops
-  // it from being *waited for* — switching accounts, changing the status
-  // filter, or leaving the page drops the connection instead of holding a
+  // it from being *waited for* — switching accounts, changing the page
+  // size, or leaving the page drops the connection instead of holding a
   // socket open and decoding a body nobody will read. It also matters on a slow
   // link, where superseded page loads would otherwise queue up against the
   // browser's per-host connection limit and delay the one that counts.
@@ -251,6 +264,7 @@ export function useStreamPage(
     setNextCursor(null);
     setError(null);
     setRequestId(null);
+    setRetryAfter(null);
     setConsecutiveRefreshFailures(0);
     setRefreshWarning(null);
     if (!address) {
@@ -265,7 +279,7 @@ export function useStreamPage(
       for (let attempt = 1; attempt <= FIRST_PAGE_MAX_ATTEMPTS; attempt += 1) {
         const controller = startRequest();
         try {
-          const page = await listStreams(pageQuery(role, address, status, pageSize), {
+          const page = await listStreams(pageQuery(role, address, pageSize), {
             signal: controller.signal,
           });
           endRequest(controller);
@@ -293,6 +307,11 @@ export function useStreamPage(
                 ? (err as { requestId: string }).requestId
                 : null;
             setRequestId(reqId);
+            const ra =
+              isApiError(err) && typeof err.retryAfter === "number" && err.retryAfter > 0
+                ? err.retryAfter
+                : null;
+            setRetryAfter(ra);
             return;
           }
           const remainingRetryMs = Math.max(0, retryAfterUntilRef.current - Date.now());
@@ -315,7 +334,6 @@ export function useStreamPage(
   }, [
     role,
     address,
-    status,
     pageSize,
     abortInFlight,
     clearRefreshTimer,
@@ -364,7 +382,7 @@ export function useStreamPage(
     // reset to the default page size.
     const refreshLimit = Math.min(MAX_PAGE_SIZE, Math.max(pageSize, streamsRef.current.length));
     const controller = startRequest();
-    listStreams(pageQuery(role, address, status, refreshLimit), { signal: controller.signal })
+    listStreams(pageQuery(role, address, refreshLimit), { signal: controller.signal })
       .then((page) => {
         if (generation.current !== gen) return;
         retryAfterUntilRef.current = 0;
@@ -416,7 +434,6 @@ export function useStreamPage(
   }, [
     role,
     address,
-    status,
     pageSize,
     clearRefreshTimer,
     startRequest,
@@ -464,8 +481,9 @@ export function useStreamPage(
     const controller = startRequest();
     setLoadingMore(true);
     setError(null);
+    setRetryAfter(null);
 
-    listStreams(pageQuery(role, address, status, pageSize, nextCursor), {
+    listStreams(pageQuery(role, address, pageSize, nextCursor), {
       signal: controller.signal,
     })
       .then((page) => {
@@ -500,6 +518,11 @@ export function useStreamPage(
             ? (err as { requestId: string }).requestId
             : null;
         setRequestId(reqId);
+        const ra =
+          isApiError(err) && typeof err.retryAfter === "number" && err.retryAfter > 0
+            ? err.retryAfter
+            : null;
+        setRetryAfter(ra);
       })
       .finally(() => {
         endRequest(controller);
@@ -511,7 +534,6 @@ export function useStreamPage(
     nextCursor,
     loading,
     loadingMore,
-    status,
     pageSize,
     startRequest,
     endRequest,
@@ -526,6 +548,7 @@ export function useStreamPage(
     loadingMore,
     error,
     requestId,
+    retryAfter,
     hasMore,
     loadMore,
     refresh,

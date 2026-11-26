@@ -2,6 +2,7 @@
 
 import { type JSX, useEffect } from "react";
 
+import { CopyButton } from "@/components/copy-button";
 import { pageDocumentTitle } from "@/lib/document-title";
 
 // Next's file-based error boundary: catches any render-time throw in a page
@@ -34,6 +35,22 @@ export default function Error({
       <p className="mt-2 text-sm text-neutral-400">
         {error.message || "An unexpected error occurred while rendering this page."}
       </p>
+      {error.digest && (
+        <div className="mt-6 rounded border border-neutral-800 bg-neutral-900 px-4 py-3 text-left">
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+            Error digest
+          </p>
+          <div className="mt-1 flex items-center gap-2">
+            <code className="min-w-0 flex-1 break-all font-mono text-sm text-neutral-200">
+              {error.digest}
+            </code>
+            <CopyButton value={error.digest} label="error digest" />
+          </div>
+          <p className="mt-2 text-xs text-neutral-500">
+            Quote this digest when reporting the problem.
+          </p>
+        </div>
+      )}
       <div className="mt-6 flex items-center justify-center gap-3">
         <button
           type="button"

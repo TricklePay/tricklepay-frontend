@@ -178,7 +178,7 @@ describe("api client — non-success responses", () => {
       vi.useRealTimers();
     });
 
-    it("parses numeric delay-seconds on a 429 response into ApiError.retryAfterSeconds", async () => {
+    it("parses numeric delay-seconds on a 429 response into ApiError.retryAfter", async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 429,
@@ -197,7 +197,7 @@ describe("api client — non-success responses", () => {
         expect(err).toBeInstanceOf(ApiError);
         const apiErr = err as ApiError;
         expect(apiErr.status).toBe(429);
-        expect(apiErr.retryAfterSeconds).toBe(45);
+        expect(apiErr.retryAfter).toBe(45);
       }
     });
 
@@ -215,7 +215,7 @@ describe("api client — non-success responses", () => {
         expect.unreachable("should have thrown");
       } catch (err: unknown) {
         expect(err).toBeInstanceOf(ApiError);
-        expect((err as ApiError).retryAfterSeconds).toBe(0);
+        expect((err as ApiError).retryAfter).toBe(0);
       }
     });
 
@@ -239,7 +239,7 @@ describe("api client — non-success responses", () => {
         expect(err).toBeInstanceOf(ApiError);
         const apiErr = err as ApiError;
         expect(apiErr.status).toBe(429);
-        expect(apiErr.retryAfterSeconds).toBe(90);
+        expect(apiErr.retryAfter).toBe(90);
       }
     });
 
@@ -265,7 +265,7 @@ describe("api client — non-success responses", () => {
         expect.unreachable("should have thrown");
       } catch (err: unknown) {
         expect(err).toBeInstanceOf(ApiError);
-        expect((err as ApiError).retryAfterSeconds).toBe(0);
+        expect((err as ApiError).retryAfter).toBe(0);
       }
     });
 
@@ -287,11 +287,11 @@ describe("api client — non-success responses", () => {
         expect.unreachable("should have thrown");
       } catch (err: unknown) {
         expect(err).toBeInstanceOf(ApiError);
-        expect((err as ApiError).retryAfterSeconds).toBe(12);
+        expect((err as ApiError).retryAfter).toBe(12);
       }
     });
 
-    it("leaves retryAfterSeconds undefined when the header is missing or malformed", async () => {
+    it("leaves retryAfter undefined when the header is missing or malformed", async () => {
       expect(parseRetryAfter(null, NOW)).toBeUndefined();
       expect(parseRetryAfter(undefined, NOW)).toBeUndefined();
       expect(parseRetryAfter("", NOW)).toBeUndefined();
@@ -315,7 +315,7 @@ describe("api client — non-success responses", () => {
         expect.unreachable("should have thrown");
       } catch (err: unknown) {
         expect(err).toBeInstanceOf(ApiError);
-        expect((err as ApiError).retryAfterSeconds).toBeUndefined();
+        expect((err as ApiError).retryAfter).toBeUndefined();
       }
     });
   });

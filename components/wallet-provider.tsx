@@ -21,6 +21,28 @@ export const WalletContext = createContext<WalletState | null>(null);
 // session is open. Freighter emits no events, so polling is the only option.
 export const WALLET_WATCH_INTERVAL_MS = 3000;
 
+// Set when the user disconnects in the app, so the restore step on the next
+// load does not quietly reconnect. Cleared by an explicit connect.
+export const WALLET_DISCONNECTED_KEY = "tricklepay:wallet-disconnected";
+
+function readDisconnectedFlag(): boolean {
+  try {
+    return window.localStorage.getItem(WALLET_DISCONNECTED_KEY) === "1";
+  } catch {
+    // Storage unavailable: behave as before and allow the restore.
+    return false;
+  }
+}
+
+function writeDisconnectedFlag(disconnected: boolean): void {
+  try {
+    if (disconnected) window.localStorage.setItem(WALLET_DISCONNECTED_KEY, "1");
+    else window.localStorage.removeItem(WALLET_DISCONNECTED_KEY);
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
 /**
  * Owns the single wallet session for the whole app. This provider centralizes
  * connection state so that every component reads the same address, sees
@@ -58,6 +80,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }): JSX
   // authorized this app, so a returning user does not have to reconnect.
   useEffect(() => {
     let cancelled = false;
+    if (readDisconnectedFlag()) return;
     void (async () => {
       try {
         const connected = await isConnected();
@@ -112,6 +135,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }): JSX
         return;
       }
       const net = await getNetwork();
+      writeDisconnectedFlag(false);
       setAddress(access.address);
       if (!net.error) setNetwork(normalizeNetwork(net.network));
     } catch {
@@ -122,6 +146,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }): JSX
   }, []);
 
   const disconnect = useCallback(() => {
+    writeDisconnectedFlag(true);
     setAddress(null);
     setNetwork(null);
     setError(null);

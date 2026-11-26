@@ -5,6 +5,7 @@
 
 const SCROLL_POS_PREFIX = "tricklepay:scroll_pos:";
 const FROM_STREAM_KEY = "tricklepay:from_stream_detail";
+const IN_APP_HISTORY_KEY = "tricklepay:in_app_history";
 
 export function getSessionItem(key: string): string | null {
   try {
@@ -49,6 +50,19 @@ export function getSavedDashboardScroll(search = ""): number | null {
 export function markNavigatingToStream(search = ""): void {
   saveDashboardScroll(search);
   setSessionItem(FROM_STREAM_KEY, "true");
+  // sessionStorage is per tab, so a stream opened from a shared link or a new
+  // tab never has this flag and has nothing in-app to go back to.
+  setSessionItem(IN_APP_HISTORY_KEY, "true");
+}
+
+/** Back button for the stream pages: previous page if there is one, else the dashboard. */
+export function navigateBack(router: { back: () => void; push: (href: string) => void }): void {
+  if (getSessionItem(IN_APP_HISTORY_KEY) === "true") {
+    setSessionItem(FROM_STREAM_KEY, "true");
+    router.back();
+  } else {
+    router.push("/");
+  }
 }
 
 export function isReturningFromStream(): boolean {

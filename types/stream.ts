@@ -3,9 +3,10 @@
 // MAX_SAFE_INTEGER. Parsing an amount as a Number or using parseFloat() risks
 // silent loss of precision (e.g. truncating the lowest digits).
 //
-// To convert an amount for display, do not cast it to a Number. Instead, use
-// `formatAmount(string)` from `lib/format.ts`, which safely computes the
-// fractional representation using BigInt math.
+// Amounts are base units of the stream's token. To convert an amount for display,
+// do not cast it to a Number or assume 7 decimals. Instead, use `formatTokenAmount`
+// from `lib/format.ts` or resolve token decimals via `getCachedTokenDecimals` /
+// `readTokenDecimals` from `lib/token-decimals.ts` alongside `formatAmount`.
 //
 // Times are Unix-second strings for the same precision reason.
 
@@ -24,19 +25,19 @@ export interface StreamView {
   /** Stellar contract address of the token being streamed */
   token: string;
   
-  /** Total stream amount in base units (stroops, 7 decimals), as a string */
+  /** Total stream amount in base units of the stream's token, as a string. Format using `formatTokenAmount` or token decimals helpers. */
   totalAmount: string;
   
-  /** Amount already withdrawn in base units (stroops), as a string */
+  /** Amount already withdrawn in base units of the stream's token, as a string. Format using `formatTokenAmount` or token decimals helpers. */
   withdrawn: string;
   
-  /** Amount vested so far in base units (stroops), as a string */
+  /** Amount vested so far in base units of the stream's token, as a string. Format using `formatTokenAmount` or token decimals helpers. */
   vested: string;
   
-  /** Amount available to withdraw now in base units (stroops), as a string */
+  /** Amount available to withdraw now in base units of the stream's token, as a string. Format using `formatTokenAmount` or token decimals helpers. */
   withdrawable: string;
   
-  /** Amount still locked (not yet vested) in base units (stroops), as a string */
+  /** Amount still locked (not yet vested) in base units of the stream's token, as a string. Format using `formatTokenAmount` or token decimals helpers. */
   locked: string;
   
   /** Stream start time, Unix seconds as a string */

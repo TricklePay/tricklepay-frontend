@@ -52,7 +52,6 @@ import type {
   AccountSummary,
   StreamEvent,
   StreamListResponse,
-  StreamStatus,
   StreamView,
 } from "@/types/stream";
 
@@ -64,7 +63,6 @@ export interface ListStreamsParams {
   limit?: number;
   offset?: number;
   cursor?: string;
-  status?: StreamStatus | "all";
   includeTotal?: boolean;
   /** Restricts the list to these stream ids. */
   ids?: string[];
@@ -187,14 +185,15 @@ export function parseRetryAfter(
 /**
  * Thrown when the backend responds with a non-OK status.
  * Preserves the backend's error code, error message, requestId, and parsed
- * Retry-After delay (in seconds) when present.
+ * Retry-After delay (in seconds, from either header form) when present.
  */
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
   readonly backendError?: string;
   readonly requestId?: string;
-  readonly retryAfterSeconds?: number;
+  /** Seconds until a retry is allowed, from the Retry-After header (delay-seconds or HTTP-date). */
+  readonly retryAfter?: number;
 
   constructor(
     message: string,
@@ -203,7 +202,7 @@ export class ApiError extends Error {
       code?: string;
       error?: string;
       requestId?: string;
-      retryAfterSeconds?: number;
+      retryAfter?: number;
     },
   ) {
     super(message);
@@ -212,7 +211,7 @@ export class ApiError extends Error {
     this.code = options.code;
     this.backendError = options.error;
     this.requestId = options.requestId;
-    this.retryAfterSeconds = options.retryAfterSeconds;
+    this.retryAfter = options.retryAfter;
   }
 
   get error(): string | undefined {
@@ -230,7 +229,7 @@ function readRetryAfterHeader(res: Response): string | null {
 }
 
 async function createApiError(res: Response, fallbackPrefix: string): Promise<ApiError> {
-  const retryAfterSeconds = parseRetryAfter(readRetryAfterHeader(res));
+  const retryAfter = parseRetryAfter(readRetryAfterHeader(res));
   let body: unknown;
   try {
     body = await res.json();
@@ -247,14 +246,22 @@ async function createApiError(res: Response, fallbackPrefix: string): Promise<Ap
   const backendError = typeof payload?.error === "string" ? payload.error : undefined;
   const requestId = typeof payload?.requestId === "string" ? payload.requestId : undefined;
 
-  const message = backendError || `${fallbackPrefix} (${res.status})`;
+  let message: string;
+  if (res.status === 429) {
+    message =
+      retryAfter !== undefined && retryAfter > 0
+        ? `Too many requests — please wait ${retryAfter}s before retrying.`
+        : "Too many requests — please wait a moment before retrying.";
+  } else {
+    message = backendError || `${fallbackPrefix} (${res.status})`;
+  }
 
   return new ApiError(message, {
     status: res.status,
     code,
     error: backendError,
     requestId,
-    retryAfterSeconds,
+    retryAfter,
   });
 }
 
@@ -335,7 +342,7 @@ function apiEndpoint(path: string): URL {
   return new URL(path, base);
 }
 
-// Fetches a page of streams from the backend, optionally filtered by party and status. The
+// Fetches a page of streams from the backend, optionally filtered by party. The
 // whole envelope is returned rather than just the rows so callers can page
 // through a result set larger than the backend's default limit. Results are not
 // cached so the list reflects the latest indexed state. The payload is checked
@@ -353,7 +360,6 @@ export async function listStreams(
   const url = apiEndpoint("streams");
   if (params.sender) url.searchParams.set("sender", params.sender);
   if (params.recipient) url.searchParams.set("recipient", params.recipient);
-  if (params.status && params.status !== "all") url.searchParams.set("status", params.status);
   if (params.limit !== undefined) url.searchParams.set("limit", String(params.limit));
   if (params.offset !== undefined) url.searchParams.set("offset", String(params.offset));
   if (params.cursor !== undefined) url.searchParams.set("cursor", params.cursor);

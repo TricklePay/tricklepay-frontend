@@ -42,7 +42,7 @@ The dashboard list has one extra wrinkle the detail page does not: a failed
 set at all, on the theory that most single failures are a transient blip
 (dropped connection, momentary 5xx) that clears itself. When a response
 includes a `Retry-After` header (such as a `429 Too Many Requests`),
-`createApiError` exposes the parsed delay on `ApiError.retryAfterSeconds` and
+`createApiError` exposes the parsed delay on `ApiError.retryAfter` and
 `use-stream-page.ts` waits at least that long before retrying the first page or
 running the next background/focus list refresh. `load-more` requests
 and the stream detail page's initial load do not get this retry — they

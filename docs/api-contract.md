@@ -80,6 +80,9 @@ kind (for example `totalAmount` on `created`, `amount` on `withdrawn`,
 decimal strings.
 
 `getStreamEvents` (`lib/api.ts`) validates the body with `parseStreamEvents`.
+Events with unrecognized string `kind` values are omitted; supported events
+continue to render in their original order. Malformed supported events still
+fail validation.
 A `404`, or an id that is not a valid stream id, resolves to an empty array
 instead of throwing. Any other non-2xx status throws an `ApiError`.
 
@@ -96,7 +99,7 @@ A non-2xx response from the backend is expected to carry a JSON body:
 `createApiError` (`lib/api.ts`) tolerates a missing or non-JSON body and falls
 back to a message built from the HTTP status. When the response includes a
 `Retry-After` header (either delay-seconds or an HTTP-date), `createApiError`
-parses it into `ApiError.retryAfterSeconds` so `useStreamPage` waits at least
+parses it into `ApiError.retryAfter` so `useStreamPage` waits at least
 that long before retrying or running the next list refresh. The backend also
 reports how far the indexer is behind the chain in the `X-Indexer-Lag-Ledgers`
 header; the client currently reads the same value as `lagLedgers` from

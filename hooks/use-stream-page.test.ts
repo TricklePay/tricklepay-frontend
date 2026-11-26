@@ -215,7 +215,6 @@ describe("useStreamPage — load error", () => {
       {
         sender: ADDRESS,
         limit: PAGE_SIZE,
-        status: "all",
         includeTotal: true,
       },
       expect.objectContaining({
@@ -593,12 +592,12 @@ describe("useStreamPage — cursor pagination", () => {
       });
 
     harness.render(() =>
-      useStreamPage("sender", ADDRESS, "all", 1),
+      useStreamPage("sender", ADDRESS, 1),
     );
     await flush();
 
     let page = harness.render(() =>
-      useStreamPage("sender", ADDRESS, "all", 1),
+      useStreamPage("sender", ADDRESS, 1),
     );
 
     expect(listStreams).toHaveBeenNthCalledWith(
@@ -606,7 +605,6 @@ describe("useStreamPage — cursor pagination", () => {
       {
         sender: ADDRESS,
         limit: 1,
-        status: "all",
         includeTotal: true,
       },
       expect.objectContaining({
@@ -621,7 +619,7 @@ describe("useStreamPage — cursor pagination", () => {
     await flush();
 
     page = harness.render(() =>
-      useStreamPage("sender", ADDRESS, "all", 1),
+      useStreamPage("sender", ADDRESS, 1),
     );
 
     expect(listStreams).toHaveBeenNthCalledWith(
@@ -630,7 +628,6 @@ describe("useStreamPage — cursor pagination", () => {
         sender: ADDRESS,
         limit: 1,
         cursor: "cursor_after_2",
-        status: "all",
         includeTotal: true,
       },
       expect.objectContaining({
@@ -645,7 +642,7 @@ describe("useStreamPage — cursor pagination", () => {
     await flush();
 
     page = harness.render(() =>
-      useStreamPage("sender", ADDRESS, "all", 1),
+      useStreamPage("sender", ADDRESS, 1),
     );
 
     expect(listStreams).toHaveBeenNthCalledWith(
@@ -653,7 +650,6 @@ describe("useStreamPage — cursor pagination", () => {
       {
         sender: ADDRESS,
         limit: 1,
-        status: "all",
         includeTotal: true,
       },
       expect.objectContaining({
@@ -678,12 +674,12 @@ describe("useStreamPage — cursor pagination", () => {
       });
 
     harness.render(() =>
-      useStreamPage("sender", ADDRESS, "all", 2),
+      useStreamPage("sender", ADDRESS, 2),
     );
     await flush();
 
     let page = harness.render(() =>
-      useStreamPage("sender", ADDRESS, "all", 2),
+      useStreamPage("sender", ADDRESS, 2),
     );
 
     expect(page.streams.map((s) => s.id)).toEqual(["3", "2"]);
@@ -694,7 +690,7 @@ describe("useStreamPage — cursor pagination", () => {
     await flush();
 
     page = harness.render(() =>
-      useStreamPage("sender", ADDRESS, "all", 2),
+      useStreamPage("sender", ADDRESS, 2),
     );
 
     expect(listStreams).toHaveBeenLastCalledWith(
@@ -702,7 +698,6 @@ describe("useStreamPage — cursor pagination", () => {
         sender: ADDRESS,
         limit: 2,
         cursor: "cursor_after_2",
-        status: "all",
         includeTotal: true,
       },
       expect.objectContaining({
@@ -776,7 +771,7 @@ describe("useStreamPage — Retry-After backoff", () => {
     vi.mocked(listStreams).mockRejectedValueOnce(
       new ApiError("Too Many Requests", {
         status: 429,
-        retryAfterSeconds: 45,
+        retryAfter: 45,
       }),
     );
 
@@ -834,7 +829,7 @@ describe("useStreamPage — Retry-After backoff", () => {
     vi.mocked(listStreams).mockImplementationOnce(async () => {
       throw new ApiError("Too Many Requests", {
         status: 429,
-        retryAfterSeconds: parseRetryAfter(retryAfterDate),
+        retryAfter: parseRetryAfter(retryAfterDate),
       });
     });
 
@@ -872,7 +867,7 @@ describe("useStreamPage — Retry-After backoff", () => {
     vi.mocked(listStreams).mockRejectedValueOnce(
       new ApiError("Too Many Requests", {
         status: 429,
-        retryAfterSeconds: 45,
+        retryAfter: 45,
       }),
     );
 
@@ -914,7 +909,7 @@ describe("useStreamPage — Retry-After backoff", () => {
     vi.mocked(listStreams).mockRejectedValueOnce(
       new ApiError("Too Many Requests", {
         status: 429,
-        retryAfterSeconds: 5,
+        retryAfter: 5,
       }),
     );
 
@@ -950,7 +945,7 @@ describe("useStreamPage — Retry-After backoff", () => {
       .mockRejectedValueOnce(
         new ApiError("Too Many Requests", {
           status: 429,
-          retryAfterSeconds: 5,
+          retryAfter: 5,
         }),
       )
       .mockResolvedValueOnce({
@@ -992,7 +987,7 @@ describe("useStreamPage — Retry-After backoff", () => {
       .mockRejectedValueOnce(
         new ApiError("Too Many Requests", {
           status: 429,
-          retryAfterSeconds: 40,
+          retryAfter: 40,
         }),
       );
 
@@ -1025,13 +1020,13 @@ describe("useStreamPage — Retry-After backoff", () => {
       .mockRejectedValueOnce(
         new ApiError("Too Many Requests", {
           status: 429,
-          retryAfterSeconds: 2,
+          retryAfter: 2,
         }),
       )
       .mockRejectedValueOnce(
         new ApiError("Too Many Requests", {
           status: 429,
-          retryAfterSeconds: 45,
+          retryAfter: 45,
         }),
       )
       .mockResolvedValue({
@@ -1068,7 +1063,7 @@ describe("useStreamPage — Retry-After backoff", () => {
     vi.mocked(listStreams).mockRejectedValueOnce(
       new ApiError("Too Many Requests", {
         status: 429,
-        retryAfterSeconds: 30,
+        retryAfter: 30,
       }),
     );
 
