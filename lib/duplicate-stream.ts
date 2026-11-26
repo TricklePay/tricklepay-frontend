@@ -47,9 +47,27 @@ export function buildDuplicateDraft(stream: StreamView, now: Date = new Date()):
       `T${pad(cliffDate.getHours())}:${pad(cliffDate.getMinutes())}`;
   }
 
-  // Duration display in days (best-effort whole-day approximation for the shortcut field).
-  const durationDays = Math.round(Number(durationSeconds) / 86400);
-  const durationAmount = durationDays > 0 ? String(durationDays) : "";
+  // Pick the largest unit (days, hours, or minutes) that divides the duration
+  // exactly, so the shortcut field shows the exact value. If none divide evenly,
+  // leave the shortcut empty and let the end field hold the precise duration.
+  const durationSecondsNum = Number(durationSeconds);
+  let durationAmount = "";
+  let durationUnit: "days" | "hours" | "minutes" = "days";
+
+  if (durationSecondsNum % 86400 === 0) {
+    // Evenly divisible by days
+    durationAmount = String(durationSecondsNum / 86400);
+    durationUnit = "days";
+  } else if (durationSecondsNum % 3600 === 0) {
+    // Evenly divisible by hours
+    durationAmount = String(durationSecondsNum / 3600);
+    durationUnit = "hours";
+  } else if (durationSecondsNum % 60 === 0) {
+    // Evenly divisible by minutes
+    durationAmount = String(durationSecondsNum / 60);
+    durationUnit = "minutes";
+  }
+  // Otherwise, leave durationAmount empty; the end field holds the exact time.
 
   // Format the amount with the token's decimals (default to 7 if unknown).
   const decimals = getCachedTokenDecimals(stream.token) ?? 7;
@@ -63,6 +81,6 @@ export function buildDuplicateDraft(stream: StreamView, now: Date = new Date()):
     end,
     cliff,
     durationAmount,
-    durationUnit: "days",
+    durationUnit,
   };
 }

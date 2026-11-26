@@ -73,14 +73,55 @@ describe("buildDuplicateDraft", () => {
     expect(draft.cliff).toBe("");
   });
 
-  it("sets durationUnit to days", () => {
+  it("sets durationUnit to days when the duration divides evenly", () => {
     const draft = buildDuplicateDraft(STREAM, NOW);
     expect(draft.durationUnit).toBe("days");
+    expect(draft.durationAmount).toBe("30");
   });
 
-  it("approximates duration in whole days", () => {
-    const draft = buildDuplicateDraft(STREAM, NOW);
-    expect(draft.durationAmount).toBe("30");
+  it("uses hours when the duration is 36 hours", () => {
+    const stream36h: StreamView = {
+      ...STREAM,
+      startTime: "1704067200", // 2024-01-01 00:00 UTC
+      endTime: "1704196800",   // 2024-01-02 12:00 UTC (36 hours later)
+    };
+    const draft = buildDuplicateDraft(stream36h, NOW);
+    expect(draft.durationUnit).toBe("hours");
+    expect(draft.durationAmount).toBe("36");
+  });
+
+  it("uses minutes when the duration is 90 minutes", () => {
+    const stream90m: StreamView = {
+      ...STREAM,
+      startTime: "1704067200", // 2024-01-01 00:00 UTC
+      endTime: "1704072600",   // 2024-01-01 01:30 UTC (90 minutes later)
+    };
+    const draft = buildDuplicateDraft(stream90m, NOW);
+    expect(draft.durationUnit).toBe("minutes");
+    expect(draft.durationAmount).toBe("90");
+  });
+
+  it("uses days when the duration is 5 days", () => {
+    const stream5d: StreamView = {
+      ...STREAM,
+      startTime: "1704067200", // 2024-01-01 00:00 UTC
+      endTime: "1704499200",   // 2024-01-06 00:00 UTC (5 days later)
+    };
+    const draft = buildDuplicateDraft(stream5d, NOW);
+    expect(draft.durationUnit).toBe("days");
+    expect(draft.durationAmount).toBe("5");
+  });
+
+  it("leaves durationAmount empty when no unit divides evenly", () => {
+    const streamOdd: StreamView = {
+      ...STREAM,
+      startTime: "1704067200", // 2024-01-01 00:00 UTC
+      endTime: "1704067245",   // 2024-01-01 00:00:45 UTC (45 seconds later)
+    };
+    const draft = buildDuplicateDraft(streamOdd, NOW);
+    expect(draft.durationAmount).toBe("");
+    // The end field still holds the exact end time
+    expect(draft.end).toBeTruthy();
   });
 
   it("formats amount with token decimals when cached", () => {
