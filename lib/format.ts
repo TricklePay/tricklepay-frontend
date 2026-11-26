@@ -171,7 +171,7 @@ export function timeRemaining(endTimeSeconds: string): string {
 /**
  * Formats a maximum withdrawable amount hint string.
  *
- * @param rawWithdrawable - Withdrawable amount in base units (stroops), as a string
+ * @param rawWithdrawable - Withdrawable amount in base units of the stream's token, as a string
  * @returns Formatted hint message (e.g., "Maximum withdrawable amount: 1.5")
  */
 export function formatMaxWithdrawHint(

@@ -193,7 +193,21 @@ describe("parseStreamEvent and parseStreamEvents", () => {
         totalAmount: null,
       }),
     ];
-    expect(parseStreamEvents(events)).toBe(events);
+    expect(parseStreamEvents(events)).toEqual(events);
+  });
+
+  it("skips unknown kinds and preserves the order of known events", () => {
+    const created = validEvent({ kind: "created" });
+    const withdrawn = validEvent({ kind: "withdrawn", eventId: "2" });
+    const cancelled = validEvent({ kind: "cancelled", eventId: "3" });
+
+    expect(parseStreamEvents([
+      created,
+      { kind: "paused" },
+      withdrawn,
+      { kind: "resumed" },
+      cancelled,
+    ])).toEqual([created, withdrawn, cancelled]);
   });
 
   it("rejects a non-array event history payload", () => {
@@ -212,6 +226,13 @@ describe("parseStreamEvent and parseStreamEvents", () => {
     expect(() => parseStreamEvent(validEvent({ ledger: -1 }))).toThrow(
       /response\.ledger must be a non-negative integer/,
     );
+  });
+
+  it("still rejects a malformed supported event after an unknown kind", () => {
+    expect(() => parseStreamEvents([
+      { kind: "paused" },
+      validEvent({ kind: "withdrawn", ledger: -1 }),
+    ])).toThrow(/response\[1\]\.ledger must be a non-negative integer/);
   });
 
   it("rejects an amount that is not a decimal integer string", () => {

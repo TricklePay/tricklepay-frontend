@@ -29,8 +29,14 @@ function setOnline(online: boolean) {
   });
 }
 
-function Consumer({ onState }: { onState: (lag: number | null) => void }) {
-  onState(useIndexerLag(true));
+function Consumer({
+  onState,
+  enabled = true,
+}: {
+  onState: (lag: number | null) => void;
+  enabled?: boolean;
+}) {
+  onState(useIndexerLag(enabled));
   return null;
 }
 
@@ -45,7 +51,7 @@ describe("useIndexerLag", () => {
     setVisibility("visible");
     setOnline(true);
     vi.useFakeTimers();
-    vi.mocked(getIndexerLag).mockResolvedValue(42);
+    vi.mocked(getIndexerLag).mockReset().mockResolvedValue(42);
   });
 
   afterEach(() => {
@@ -107,5 +113,140 @@ describe("useIndexerLag", () => {
       window.dispatchEvent(new Event("online"));
     });
     expect(getIndexerLag).toHaveBeenCalledTimes(2);
+  });
+
+  it("is null until the first read resolves, then reports the lag", async () => {
+    let resolveRead: (value: number | null) => void = () => {};
+    vi.mocked(getIndexerLag).mockImplementation(
+      () =>
+        new Promise<number | null>((resolve) => {
+          resolveRead = resolve;
+        }),
+    );
+    const states: Array<number | null> = [];
+
+    await act(async () => {
+      root.render(<Consumer onState={(s) => states.push(s)} />);
+    });
+    expect(getIndexerLag).toHaveBeenCalledTimes(1);
+    expect(states.at(-1)).toBeNull();
+
+    await act(async () => {
+      resolveRead(7);
+    });
+    expect(states.at(-1)).toBe(7);
+  });
+
+  it("reads again every interval and replaces the stale value", async () => {
+    vi.mocked(getIndexerLag).mockResolvedValueOnce(5).mockResolvedValueOnce(9);
+    const states: Array<number | null> = [];
+
+    await act(async () => {
+      root.render(<Consumer onState={(s) => states.push(s)} />);
+    });
+    expect(states.at(-1)).toBe(5);
+
+    await act(async () => {
+      vi.advanceTimersByTime(INDEXER_LAG_INTERVAL_MS);
+    });
+    expect(getIndexerLag).toHaveBeenCalledTimes(2);
+    expect(states.at(-1)).toBe(9);
+  });
+
+  it("returns null when a read fails after a success, and recovers on the next success", async () => {
+    vi.mocked(getIndexerLag)
+      .mockResolvedValueOnce(42)
+      .mockRejectedValueOnce(new Error("indexer down"));
+    const states: Array<number | null> = [];
+
+    await act(async () => {
+      root.render(<Consumer onState={(s) => states.push(s)} />);
+    });
+    expect(states.at(-1)).toBe(42);
+
+    await act(async () => {
+      vi.advanceTimersByTime(INDEXER_LAG_INTERVAL_MS);
+    });
+    expect(states.at(-1)).toBeNull();
+
+    await act(async () => {
+      vi.advanceTimersByTime(INDEXER_LAG_INTERVAL_MS);
+    });
+    expect(states.at(-1)).toBe(42);
+  });
+
+  it("returns null when the backend reports no figure", async () => {
+    vi.mocked(getIndexerLag).mockResolvedValueOnce(42).mockResolvedValueOnce(null);
+    const states: Array<number | null> = [];
+
+    await act(async () => {
+      root.render(<Consumer onState={(s) => states.push(s)} />);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(INDEXER_LAG_INTERVAL_MS);
+    });
+
+    expect(states.at(-1)).toBeNull();
+  });
+
+  it("ignores an aborted read and keeps the last value", async () => {
+    const abortError = Object.assign(new Error("aborted"), { name: "AbortError" });
+    vi.mocked(getIndexerLag).mockResolvedValueOnce(42).mockRejectedValueOnce(abortError);
+    const states: Array<number | null> = [];
+
+    await act(async () => {
+      root.render(<Consumer onState={(s) => states.push(s)} />);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(INDEXER_LAG_INTERVAL_MS);
+    });
+
+    expect(getIndexerLag).toHaveBeenCalledTimes(2);
+    expect(states.at(-1)).toBe(42);
+  });
+
+  it("aborts an in-flight read on unmount, stops the timer and ignores a late result", async () => {
+    const probe: { signal?: AbortSignal } = {};
+    let resolveRead: (value: number | null) => void = () => {};
+    vi.mocked(getIndexerLag).mockImplementation((options) => {
+      probe.signal = options?.signal;
+      return new Promise<number | null>((resolve) => {
+        resolveRead = resolve;
+      });
+    });
+    const states: Array<number | null> = [];
+
+    await act(async () => {
+      root.render(<Consumer onState={(s) => states.push(s)} />);
+    });
+    expect(probe.signal?.aborted).toBe(false);
+    const rendersBeforeUnmount = states.length;
+
+    act(() => root.unmount());
+    expect(probe.signal?.aborted).toBe(true);
+
+    await act(async () => {
+      resolveRead(11);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(INDEXER_LAG_INTERVAL_MS * 3);
+    });
+
+    expect(states).toHaveLength(rendersBeforeUnmount);
+    expect(getIndexerLag).toHaveBeenCalledTimes(1);
+  });
+
+  it("makes no request while disabled and stays null", async () => {
+    const states: Array<number | null> = [];
+
+    await act(async () => {
+      root.render(<Consumer enabled={false} onState={(s) => states.push(s)} />);
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(INDEXER_LAG_INTERVAL_MS * 3);
+    });
+
+    expect(getIndexerLag).not.toHaveBeenCalled();
+    expect(states.at(-1)).toBeNull();
   });
 });

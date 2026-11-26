@@ -466,6 +466,9 @@ The `docs/` directory holds reference documentation beyond what fits here —
 see [docs/README.md](docs/README.md) for an index of what's there and a
 one-line description of each document.
 
+How token symbols and decimals are resolved, and what the app shows when
+they cannot be read, is described in [docs/token-metadata.md](docs/token-metadata.md).
+
 Conventions for writing components and hooks are documented in
 [`component-conventions.md`](docs/component-conventions.md) and
 [`hook-conventions.md`](docs/hook-conventions.md).

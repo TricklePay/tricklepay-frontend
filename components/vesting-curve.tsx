@@ -53,7 +53,13 @@ export function VestingCurve({ stream }: Props): JSX.Element {
     return { x, y };
   }
 
-  const points = vestingCurvePoints(totalAmount, startTime, endTime, cliffTime);
+  // A cancelled stream stops vesting at cancellation, so its curve is capped
+  // at the frozen vested amount instead of climbing to the full total.
+  const isCancelled = stream.status === "cancelled" || stream.cancelled;
+  const frozenVested = BigInt(stream.vested);
+  const points = vestingCurvePoints(totalAmount, startTime, endTime, cliffTime).map((p) =>
+    isCancelled && p.vested > frozenVested ? { ...p, vested: frozenVested } : p,
+  );
 
   // Build an SVG polyline points string.
   const polylinePoints = points
@@ -74,9 +80,13 @@ export function VestingCurve({ stream }: Props): JSX.Element {
   const cliffLabel = hasCliff
     ? ` There is a cliff at ${new Date(Number(cliffTime) * 1000).toLocaleDateString()}, before which nothing vests.`
     : "";
+  const cancelledLabel = isCancelled
+    ? ` This stream was cancelled; vesting is frozen at ${formatAmount(stream.vested)} tokens.`
+    : "";
   const summaryText =
     `Linear vesting schedule from ${startLabel} to ${endLabel}.${cliffLabel}` +
-    ` Total: ${formatAmount(stream.totalAmount)} tokens. Current progress: ${progressPct}%.`;
+    ` Total: ${formatAmount(stream.totalAmount)} tokens. Current progress: ${progressPct}%.` +
+    cancelledLabel;
 
   return (
     <figure aria-label="Vesting curve chart" className="my-6">

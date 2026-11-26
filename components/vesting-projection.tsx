@@ -2,7 +2,8 @@
 
 import { type JSX, useState } from "react";
 
-import { formatTokenAmount } from "@/lib/format";
+import { formatAmount } from "@/lib/format";
+import { DEFAULT_TOKEN_DECIMALS, getCachedTokenDecimals } from "@/lib/token-decimals";
 import { parseDatetimeLocal, projectVesting } from "@/lib/vesting-projection";
 import type { StreamView } from "@/types/stream";
 
@@ -20,12 +21,16 @@ interface Props {
 export function VestingProjection({ stream }: Props): JSX.Element {
   const [dateInput, setDateInput] = useState("");
 
+  const decimals = getCachedTokenDecimals(stream.token) ?? DEFAULT_TOKEN_DECIMALS;
   const atTime = parseDatetimeLocal(dateInput);
   const result = atTime !== null ? projectVesting(stream, atTime) : null;
 
   // Determine a label for the result context.
   function resultLabel(): string {
     if (atTime === null) return "";
+    if (stream.status === "cancelled" || stream.cancelled) {
+      return "Stream was cancelled, so the vested amount is capped at its frozen value.";
+    }
     const start = BigInt(stream.startTime);
     const end = BigInt(stream.endTime);
     if (atTime < start) return "Before stream starts — nothing vested yet.";
@@ -72,13 +77,13 @@ export function VestingProjection({ stream }: Props): JSX.Element {
             <div>
               <dt className="text-xs text-neutral-500">Vested at that time</dt>
               <dd className="font-mono tabular-nums text-neutral-100">
-                {formatTokenAmount(result.vested.toString(), stream.token)}
+                {formatAmount(result.vested.toString(), decimals)}
               </dd>
             </div>
             <div>
               <dt className="text-xs text-neutral-500">Withdrawable at that time</dt>
               <dd className="font-mono tabular-nums text-neutral-100">
-                {formatTokenAmount(result.withdrawable.toString(), stream.token)}
+                {formatAmount(result.withdrawable.toString(), decimals)}
               </dd>
             </div>
           </dl>

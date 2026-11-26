@@ -11,7 +11,7 @@ import { useStreamEvents } from "@/hooks/use-stream-events";
 import { useStreamTitle } from "@/hooks/use-stream-title";
 import { getStream, isAbortError } from "@/lib/api";
 import { clearReturningFromStream, navigateBack } from "@/lib/scroll";
-import { isValidStreamId } from "@/lib/validation";
+import { isStreamIdInRange } from "@/lib/validation";
 import type { StreamView } from "@/types/stream";
 
 // How often an open stream refetches in the background. Shorter than the
@@ -24,7 +24,7 @@ const HIDDEN_POLL_INTERVAL_MS = DETAIL_REFRESH_INTERVAL_MS * 3;
 export default function StreamDetailPage(): JSX.Element {
   const params = useParams<{ id: string }>();
   const id = params.id;
-  const validId = isValidStreamId(id);
+  const validId = isStreamIdInRange(id);
   const router = useRouter();
 
   const [stream, setStream] = useState<StreamView | null>(null);

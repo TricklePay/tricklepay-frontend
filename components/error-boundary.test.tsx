@@ -1,3 +1,4 @@
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("react", async (importOriginal) => {
@@ -28,6 +29,15 @@ describe("ErrorBoundary (app/error.tsx)", () => {
     const output = JSON.stringify(ErrorBoundary({ error, reset }));
 
     expect(output).toContain("An unexpected error occurred while rendering this page.");
+  });
+
+  it("renders the error digest with a copy button when present", () => {
+    const error = Object.assign(new Error("boom"), { digest: "digest-abc123" });
+    const html = renderToStaticMarkup(ErrorBoundary({ error, reset }));
+
+    expect(html).toContain("Error digest");
+    expect(html).toContain("digest-abc123");
+    expect(html).toContain('aria-label="Copy error digest"');
   });
 
   it("offers a Try again recovery action", () => {

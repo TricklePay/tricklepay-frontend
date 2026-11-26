@@ -77,6 +77,7 @@ function mockDisconnected() {
     hasMore: false,
     error: null,
     requestId: null,
+    retryAfter: null,
     consecutiveRefreshFailures: 0,
     refreshWarning: null,
     refresh: vi.fn(),
@@ -121,6 +122,7 @@ function mockConnectedWithData() {
     hasMore: false,
     error: null,
     requestId: null,
+    retryAfter: null,
     consecutiveRefreshFailures: 0,
     refreshWarning: null,
     refresh: vi.fn(),
@@ -261,6 +263,7 @@ describe("Dashboard Page", () => {
         hasMore: false,
         error: null,
         requestId: null,
+        retryAfter: null,
         consecutiveRefreshFailures: 0,
         refreshWarning: null,
         refresh: vi.fn(),
@@ -293,6 +296,7 @@ describe("Dashboard Page", () => {
         hasMore: false,
         error: "Database connection failed",
         requestId: "req-err-789",
+        retryAfter: null,
         consecutiveRefreshFailures: 0,
         refreshWarning: null,
         refresh: vi.fn(),
@@ -326,6 +330,7 @@ describe("Dashboard Page", () => {
         hasMore: false,
         error: null,
         requestId: null,
+        retryAfter: null,
         consecutiveRefreshFailures: 3,
         refreshWarning: "Data may be out of date.",
         refresh: vi.fn(),
@@ -426,6 +431,7 @@ describe("Dashboard Page", () => {
         hasMore: false,
         error: null,
         requestId: null,
+        retryAfter: null,
         consecutiveRefreshFailures: 0,
         refreshWarning: null,
         refresh: vi.fn(),
@@ -526,6 +532,7 @@ describe("Dashboard Page", () => {
         hasMore: false,
         error: null,
         requestId: null,
+        retryAfter: null,
         consecutiveRefreshFailures: 0,
         refreshWarning: null,
         refresh: vi.fn(),
@@ -548,6 +555,21 @@ describe("Dashboard Page", () => {
         "tricklepay-incoming-streams.csv",
         streamsToCsv([stream]),
       );
+    });
+  });
+
+  describe("mobile keyboard / autocorrect attributes (#685)", () => {
+    it("search input has spellCheck=false, autoCapitalize=off, autoComplete=off", () => {
+      mockConnectedWithData();
+      render(Home());
+
+      const input = screen.getByPlaceholderText(
+        "Search by stream ID, token, or address…",
+      ) as HTMLInputElement;
+
+      expect(input.getAttribute("spellcheck")).toBe("false");
+      expect(input.getAttribute("autocapitalize")).toBe("off");
+      expect(input.getAttribute("autocomplete")).toBe("off");
     });
   });
 });

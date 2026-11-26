@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { isAbortError, listStreams, type ListStreamsParams } from "@/lib/api";
+import { isAbortError, isApiError, listStreams, type ListStreamsParams } from "@/lib/api";
 import { MAX_PAGE_SIZE } from "@/lib/page-size";
 import type { StreamStatus, StreamView } from "@/types/stream";
 
@@ -39,6 +39,12 @@ export interface StreamPage {
   loadingMore: boolean;
   error: string | null;
   requestId: string | null;
+  /**
+   * Seconds remaining before a rate-limited retry is allowed, or null when
+   * the error is not a 429 or no Retry-After header was present.
+   * Counts down to zero in one-second steps, then becomes null.
+   */
+  retryAfter: number | null;
   hasMore: boolean;
   loadMore: () => void;
   refresh: () => void;
@@ -123,6 +129,7 @@ export function useStreamPage(
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
   const [consecutiveRefreshFailures, setConsecutiveRefreshFailures] = useState(0);
   const [refreshWarning, setRefreshWarning] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
@@ -134,6 +141,16 @@ export function useStreamPage(
   useEffect(() => {
     streamsRef.current = streams;
   }, [streams]);
+
+  // Count down retryAfter one second at a time. Clears itself when it reaches
+  // zero so the Retry button re-enables automatically without a page reload.
+  useEffect(() => {
+    if (retryAfter === null || retryAfter <= 0) return;
+    const timer = setTimeout(() => {
+      setRetryAfter((prev) => (prev !== null && prev > 1 ? prev - 1 : null));
+    }, 1_000);
+    return () => clearTimeout(timer);
+  }, [retryAfter]);
 
   // Bumped whenever the query changes. A request compares the generation it
   // started under against the current one before writing, so a slow page cannot
@@ -176,6 +193,7 @@ export function useStreamPage(
     setNextCursor(null);
     setError(null);
     setRequestId(null);
+    setRetryAfter(null);
     setConsecutiveRefreshFailures(0);
     setRefreshWarning(null);
     if (!address) return;
@@ -212,6 +230,11 @@ export function useStreamPage(
                 ? (err as { requestId: string }).requestId
                 : null;
             setRequestId(reqId);
+            const ra =
+              isApiError(err) && typeof err.retryAfter === "number"
+                ? err.retryAfter
+                : null;
+            setRetryAfter(ra);
             return;
           }
           await wait(FIRST_PAGE_RETRY_DELAY_MS);
@@ -248,6 +271,21 @@ export function useStreamPage(
     listStreams(pageQuery(role, address, status, refreshLimit), { signal: controller.signal })
       .then((page) => {
         if (generation.current !== gen) return;
+        // Past the page ceiling the refresh can only cover the first rows.
+        // Swap those in and keep the loaded tail and its cursor, so the list
+        // keeps updating instead of discarding the response.
+        if (
+          streamsRef.current.length > MAX_PAGE_SIZE &&
+          page.streams.length >= refreshLimit
+        ) {
+          const head = page.streams.length;
+          setStreams((previous) => [...page.streams, ...previous.slice(head)]);
+          setTotal(page.total ?? streamsRef.current.length);
+          setLastUpdated(Date.now());
+          setConsecutiveRefreshFailures(0);
+          setRefreshWarning(null);
+          return;
+        }
         // If loadMore ran while this request was in flight, it has appended
         // rows beyond what we fetched. Applying a shorter list would silently
         // drop them, so skip this refresh result; the next interval will cover
@@ -306,6 +344,7 @@ export function useStreamPage(
     const controller = startRequest();
     setLoadingMore(true);
     setError(null);
+    setRetryAfter(null);
 
     listStreams(pageQuery(role, address, status, pageSize, nextCursor), {
       signal: controller.signal,
@@ -337,6 +376,11 @@ export function useStreamPage(
             ? (err as { requestId: string }).requestId
             : null;
         setRequestId(reqId);
+        const ra =
+          isApiError(err) && typeof err.retryAfter === "number"
+            ? err.retryAfter
+            : null;
+        setRetryAfter(ra);
       })
       .finally(() => {
         endRequest(controller);
@@ -361,6 +405,7 @@ export function useStreamPage(
     loadingMore,
     error,
     requestId,
+    retryAfter,
     hasMore,
     loadMore,
     refresh,

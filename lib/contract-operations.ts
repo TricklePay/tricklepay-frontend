@@ -62,7 +62,7 @@ export async function withdraw(
 /**
  * Withdraws a specific amount from a stream instead of the full vested balance.
  * Maps to the contract's `withdraw_amount(id, amount)` entry point.
- * `amount` is in base units (7 decimal places, the Stellar stroop standard).
+ * `amount` is in base units of the stream's token.
  */
 export async function withdrawAmount(
   caller: string,
