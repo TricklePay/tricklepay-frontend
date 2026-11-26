@@ -79,13 +79,10 @@ function StreamSection({
   // and search have already narrowed, so the figure follows both.
   useTokenDecimals(visible.map((stream) => stream.token));
   const total = formatStreamsTotal(visible);
-  // Re-render on an interval so a pending stream's "starts in …" countdown
-  // in the lists keeps advancing while the absolute schedule stays on the
-  // detail page. Card/table rows themselves stay pure.
-  useNow();
-  // A second, faster tick just for the "Updated …" freshness label below —
-  // the countdown tick above is intentionally coarse (30s; see useNow's own
-  // comment), too slow to show a last-fetch time climbing second by second.
+  // Single timer for both the countdown labels and the freshness label.
+  // The 5 s tick is fast enough for the "Updated …" display and still
+  // drives the pending-stream countdowns — having two separate useNow calls
+  // (30 s + 5 s) caused two intervals and double the renders per 5 s tick.
   const now = useNow(5_000);
   const emptyText =
     (addressQuery.trim() || token !== "all") && page.streams.length > 0
