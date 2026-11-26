@@ -151,7 +151,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
   };
 });
 
-import { listStreams } from "@/lib/api";
+import { ApiError, listStreams, parseRetryAfter } from "@/lib/api";
 
 import {
   useStreamPage,
@@ -712,5 +712,369 @@ describe("useStreamPage — cursor pagination", () => {
     ]);
     expect(page.total).toBe(4);
     expect(page.hasMore).toBe(false);
+  });
+});
+
+describe("useStreamPage — Retry-After backoff", () => {
+  const NOW = Date.UTC(2026, 0, 1, 12, 0, 0);
+  let windowListeners: Map<string, Set<() => void>>;
+  let documentListeners: Map<string, Set<() => void>>;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    windowListeners = new Map();
+    documentListeners = new Map();
+
+    vi.stubGlobal("window", {
+      addEventListener: vi.fn((event: string, listener: () => void) => {
+        if (!windowListeners.has(event)) windowListeners.set(event, new Set());
+        windowListeners.get(event)!.add(listener);
+      }),
+      removeEventListener: vi.fn((event: string, listener: () => void) => {
+        windowListeners.get(event)?.delete(listener);
+      }),
+    });
+
+    vi.stubGlobal("document", {
+      visibilityState: "visible",
+      addEventListener: vi.fn((event: string, listener: () => void) => {
+        if (!documentListeners.has(event)) documentListeners.set(event, new Set());
+        documentListeners.get(event)!.add(listener);
+      }),
+      removeEventListener: vi.fn((event: string, listener: () => void) => {
+        documentListeners.get(event)?.delete(listener);
+      }),
+    });
+  });
+
+  const fireWindowEvent = (event: string) => {
+    for (const listener of windowListeners.get(event) ?? []) listener();
+  };
+
+  const fireDocumentEvent = (event: string) => {
+    for (const listener of documentListeners.get(event) ?? []) listener();
+  };
+
+  it("waits at least Retry-After seconds before running the next background refresh", async () => {
+    vi.mocked(listStreams).mockResolvedValueOnce({
+      streams: [],
+      total: 0,
+      limit: PAGE_SIZE,
+      offset: 0,
+    });
+
+    harness.render(() => useStreamPage("sender", ADDRESS));
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(1);
+
+    vi.mocked(listStreams).mockRejectedValueOnce(
+      new ApiError("Too Many Requests", {
+        status: 429,
+        retryAfter: 45,
+      }),
+    );
+
+    // First background refresh fires at 15s and receives Retry-After: 45.
+    await vi.advanceTimersByTimeAsync(15_000);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    vi.mocked(listStreams).mockResolvedValue({
+      streams: [],
+      total: 0,
+      limit: PAGE_SIZE,
+      offset: 0,
+    });
+
+    // Normal 15s ticks inside the 45s window must not hit the backend.
+    await vi.advanceTimersByTimeAsync(15_000);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    // Still 1ms shy of the 45s Retry-After delay.
+    await vi.advanceTimersByTimeAsync(14_999);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    // At exactly 45s after the 429, the refresh retries and succeeds.
+    await vi.advanceTimersByTimeAsync(1);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(3);
+
+    // Once recovered, the normal 15s schedule resumes.
+    await vi.advanceTimersByTimeAsync(15_000);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(4);
+  });
+
+  it("honors Retry-After derived from an HTTP-date header", async () => {
+    vi.mocked(listStreams).mockResolvedValueOnce({
+      streams: [],
+      total: 0,
+      limit: PAGE_SIZE,
+      offset: 0,
+    });
+
+    harness.render(() => useStreamPage("sender", ADDRESS));
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(1);
+
+    // At t = 15s, backend asks the client to wait until t = 65s (50s delay).
+    const retryAfterDate = new Date(NOW + 65_000).toUTCString();
+    vi.mocked(listStreams).mockImplementationOnce(async () => {
+      throw new ApiError("Too Many Requests", {
+        status: 429,
+        retryAfter: parseRetryAfter(retryAfterDate),
+      });
+    });
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    vi.mocked(listStreams).mockResolvedValue({
+      streams: [],
+      total: 0,
+      limit: PAGE_SIZE,
+      offset: 0,
+    });
+
+    await vi.advanceTimersByTimeAsync(49_999);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(3);
+  });
+
+  it("suppresses focus and visibilitychange refreshes until Retry-After has elapsed", async () => {
+    vi.mocked(listStreams).mockResolvedValueOnce({
+      streams: [],
+      total: 0,
+      limit: PAGE_SIZE,
+      offset: 0,
+    });
+
+    harness.render(() => useStreamPage("sender", ADDRESS));
+    await flush();
+
+    vi.mocked(listStreams).mockRejectedValueOnce(
+      new ApiError("Too Many Requests", {
+        status: 429,
+        retryAfter: 45,
+      }),
+    );
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    vi.mocked(listStreams).mockResolvedValue({
+      streams: [],
+      total: 0,
+      limit: PAGE_SIZE,
+      offset: 0,
+    });
+
+    // Focus and visibility events 10s later must respect the 45s window.
+    await vi.advanceTimersByTimeAsync(10_000);
+    fireWindowEvent("focus");
+    fireDocumentEvent("visibilitychange");
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    // After the remaining 35s elapse, the scheduled refresh runs.
+    await vi.advanceTimersByTimeAsync(35_000);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps at least the normal 15s interval when Retry-After is shorter than 15s", async () => {
+    vi.mocked(listStreams).mockResolvedValueOnce({
+      streams: [],
+      total: 0,
+      limit: PAGE_SIZE,
+      offset: 0,
+    });
+
+    harness.render(() => useStreamPage("sender", ADDRESS));
+    await flush();
+
+    vi.mocked(listStreams).mockRejectedValueOnce(
+      new ApiError("Too Many Requests", {
+        status: 429,
+        retryAfter: 5,
+      }),
+    );
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    vi.mocked(listStreams).mockResolvedValue({
+      streams: [],
+      total: 0,
+      limit: PAGE_SIZE,
+      offset: 0,
+    });
+
+    // Focus during the 5s window is skipped.
+    await vi.advanceTimersByTimeAsync(3_000);
+    fireWindowEvent("focus");
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    // Scheduled refresh still waits the full 15s interval (12s remaining).
+    await vi.advanceTimersByTimeAsync(11_999);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(3);
+  });
+
+  it("waits at least Retry-After seconds before retrying a rate-limited first page load", async () => {
+    vi.mocked(listStreams)
+      .mockRejectedValueOnce(
+        new ApiError("Too Many Requests", {
+          status: 429,
+          retryAfter: 5,
+        }),
+      )
+      .mockResolvedValueOnce({
+        streams: [],
+        total: 0,
+        limit: PAGE_SIZE,
+        offset: 0,
+      });
+
+    harness.render(() => useStreamPage("sender", ADDRESS));
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(1);
+
+    // Must not retry after the default 500ms delay.
+    await vi.advanceTimersByTimeAsync(500);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(4_499);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await flush();
+
+    const page = harness.render(() => useStreamPage("sender", ADDRESS));
+    expect(listStreams).toHaveBeenCalledTimes(2);
+    expect(page.error).toBeNull();
+    expect(page.loading).toBe(false);
+  });
+
+  it("delays background refresh after loadMore receives a 429 with Retry-After", async () => {
+    vi.mocked(listStreams)
+      .mockResolvedValueOnce({
+        streams: [fakeStream("2")],
+        total: 2,
+        nextCursor: "cursor_after_2",
+      })
+      .mockRejectedValueOnce(
+        new ApiError("Too Many Requests", {
+          status: 429,
+          retryAfter: 40,
+        }),
+      );
+
+    harness.render(() => useStreamPage("sender", ADDRESS, "all", 1));
+    await flush();
+
+    const page = harness.render(() => useStreamPage("sender", ADDRESS, "all", 1));
+    page.loadMore();
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    vi.mocked(listStreams).mockResolvedValue({
+      streams: [fakeStream("2")],
+      total: 2,
+      nextCursor: "cursor_after_2",
+    });
+
+    // Normal 15s and 30s intervals must not trigger while within the 40s window.
+    await vi.advanceTimersByTimeAsync(39_999);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(3);
+  });
+
+  it("delays background refresh when both first-page attempts fail with Retry-After", async () => {
+    vi.mocked(listStreams)
+      .mockRejectedValueOnce(
+        new ApiError("Too Many Requests", {
+          status: 429,
+          retryAfter: 2,
+        }),
+      )
+      .mockRejectedValueOnce(
+        new ApiError("Too Many Requests", {
+          status: 429,
+          retryAfter: 45,
+        }),
+      )
+      .mockResolvedValue({
+        streams: [],
+        total: 0,
+        limit: PAGE_SIZE,
+        offset: 0,
+      });
+
+    harness.render(() => useStreamPage("sender", ADDRESS));
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(1);
+
+    // Wait out the first attempt's 2s Retry-After; second attempt fails with 45s.
+    await vi.advanceTimersByTimeAsync(2_000);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    const errored = harness.render(() => useStreamPage("sender", ADDRESS));
+    expect(errored.error).toBe("Too Many Requests");
+    expect(errored.loading).toBe(false);
+
+    // Background refresh must wait the full 45s from the second 429.
+    await vi.advanceTimersByTimeAsync(44_999);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(3);
+  });
+
+  it("cancels a pending first-page Retry-After wait on unmount", async () => {
+    vi.mocked(listStreams).mockRejectedValueOnce(
+      new ApiError("Too Many Requests", {
+        status: 429,
+        retryAfter: 30,
+      }),
+    );
+
+    harness.render(() => useStreamPage("sender", ADDRESS));
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(1);
+
+    harness.unmount();
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    await flush();
+    expect(listStreams).toHaveBeenCalledTimes(1);
   });
 });

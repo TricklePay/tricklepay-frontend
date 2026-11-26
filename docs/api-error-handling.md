@@ -40,7 +40,11 @@ The dashboard list has one extra wrinkle the detail page does not: a failed
 *first-page* fetch is retried once automatically (`FIRST_PAGE_MAX_ATTEMPTS`,
 `FIRST_PAGE_RETRY_DELAY_MS` in `use-stream-page.ts`) before `page.error` is
 set at all, on the theory that most single failures are a transient blip
-(dropped connection, momentary 5xx) that clears itself. `load-more` requests
+(dropped connection, momentary 5xx) that clears itself. When a response
+includes a `Retry-After` header (such as a `429 Too Many Requests`),
+`createApiError` exposes the parsed delay on `ApiError.retryAfter` and
+`use-stream-page.ts` waits at least that long before retrying the first page or
+running the next background/focus list refresh. `load-more` requests
 and the stream detail page's initial load do not get this retry — they
 surface on the first failure.
 
