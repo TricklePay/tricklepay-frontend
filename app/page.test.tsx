@@ -609,4 +609,42 @@ describe("Dashboard Page", () => {
       vi.useRealTimers();
     });
   });
+
+    it("announces matching stream count in a polite live region when search settles", async () => {
+      vi.useFakeTimers();
+      try {
+        mockConnectedWithData();
+        render(<Home />);
+
+        const searchInput = screen.getByPlaceholderText("Search by stream ID, token, or address…");
+        const liveRegion = screen.getByRole("status", { name: "" });
+
+        expect(liveRegion).toBeInTheDocument();
+        expect(liveRegion.textContent).toBe("");
+
+        // Type query matching stream-1
+        fireEvent.change(searchInput, { target: { value: "stream-1" } });
+        // Before debounce settles, no announcement yet
+        expect(liveRegion.textContent).toBe("");
+
+        // Advance timers for debounce (200ms)
+        vi.advanceTimersByTime(200);
+
+        expect(liveRegion.textContent).toBe("1 stream matches your search.");
+
+        // Type query that matches nothing
+        fireEvent.change(searchInput, { target: { value: "nonexistent-address" } });
+        vi.advanceTimersByTime(200);
+
+        expect(liveRegion.textContent).toBe("No streams match your search.");
+
+        // Clear query
+        fireEvent.change(searchInput, { target: { value: "" } });
+        vi.advanceTimersByTime(200);
+
+        expect(liveRegion.textContent).toBe("");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
 });
