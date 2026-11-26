@@ -68,7 +68,7 @@ export function CancelStreamControl({
         type="button"
         onClick={onRequestCancel}
         disabled={busy}
-        className="self-start rounded border border-red-900 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-950/40 disabled:opacity-50"
+        className="inline-flex items-center justify-center min-h-[44px] self-start rounded border border-red-900 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-950/40 disabled:opacity-50"
       >
         Cancel stream
       </button>
@@ -93,7 +93,7 @@ export function CancelStreamControl({
           type="button"
           onClick={onConfirm}
           disabled={busy}
-          className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+          className="inline-flex items-center justify-center min-h-[44px] rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
         >
           {cancelling ? "Cancelling..." : "Yes, cancel stream"}
         </button>
@@ -101,7 +101,7 @@ export function CancelStreamControl({
           type="button"
           onClick={dismiss}
           disabled={busy}
-          className="rounded border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300 hover:bg-neutral-900 disabled:opacity-50"
+          className="inline-flex items-center justify-center min-h-[44px] rounded border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300 hover:bg-neutral-900 disabled:opacity-50"
         >
           Keep streaming
         </button>

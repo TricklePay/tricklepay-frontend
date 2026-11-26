@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type JSX, Suspense, useCallback, useEffect, useState } from "react";
 
@@ -356,12 +357,12 @@ function Dashboard() {
         </p>
         <p className="mt-1 text-sm text-neutral-500">
           Once connected you can also{" "}
-          <a
+          <Link
             href="/create"
             className="text-neutral-300 underline underline-offset-2 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400"
           >
             create a new stream
-          </a>
+          </Link>
           .
         </p>
         <BrowserSupportNote className="mt-8" />
