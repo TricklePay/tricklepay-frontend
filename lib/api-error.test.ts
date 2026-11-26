@@ -8,6 +8,54 @@ describe("api client — non-success responses", () => {
   });
 
   describe("listStreams error handling", () => {
+    it("converts a malformed stream list body into a human-readable ApiError with requestId and logs details", async () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: new Headers({ "x-request-id": "req-malformed-999" }),
+        json: async () => ({
+          streams: [
+            {
+              id: "1",
+              sender: "GAAA",
+              recipient: "GBBB",
+              token: "CCCC",
+              totalAmount: "10000000",
+              withdrawn: "0",
+              vested: 5000000, // Invalid: should be a string, fails validation
+              withdrawable: "5000000",
+              locked: "5000000",
+              startTime: "100",
+              endTime: "200",
+              cliffTime: "100",
+              cancelled: false,
+              status: "streaming",
+              progress: 5000,
+            },
+          ],
+        }),
+      });
+
+      try {
+        await listStreams({});
+        expect.unreachable("should have thrown");
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(ApiError);
+        const apiErr = err as ApiError;
+        expect(apiErr.message).toBe("Failed to parse streams from server. Please try again later.");
+        expect(apiErr.requestId).toBe("req-malformed-999");
+        expect(apiErr.status).toBe(200);
+        expect(consoleSpy).toHaveBeenCalled();
+        const loggedError = consoleSpy.mock.calls[0][0];
+        expect(loggedError.message).toContain("response.streams[0].vested must be a string");
+      } finally {
+        consoleSpy.mockRestore();
+      }
+    });
+
     it("converts a 500 server error response to a descriptive Error", async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
