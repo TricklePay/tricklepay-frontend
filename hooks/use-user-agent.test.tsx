@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -42,14 +42,24 @@ describe("useUserAgent", () => {
     expect(renders.at(-1)).toBe(navigator.userAgent);
   });
 
-  it("returns null before mount and the user agent after mount", () => {
+  it("returns null while hydrating and the user agent after", () => {
+    // A plain client render reads the real value straight away. The server
+    // snapshot (null) is only used while hydrating server-rendered markup.
+    const hydrationContainer = document.createElement("div");
+    document.body.appendChild(hydrationContainer);
+    hydrationContainer.innerHTML = renderToString(<Consumer onRender={() => {}} />);
+
     const renders: (string | null)[] = [];
+    let hydrated: Root | undefined;
     act(() => {
-      root.render(<Consumer onRender={(v) => renders.push(v)} />);
+      hydrated = hydrateRoot(hydrationContainer, <Consumer onRender={(v) => renders.push(v)} />);
     });
-    // The hook returns null during hydration (first render) and the real value after
-    expect(renders).toContain(null);
+
+    expect(renders[0]).toBe(null);
     expect(renders.at(-1)).toBe(navigator.userAgent);
+
+    act(() => hydrated?.unmount());
+    hydrationContainer.remove();
   });
 
   it("checks the behaviour when navigator is unavailable", () => {

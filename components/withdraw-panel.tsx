@@ -66,7 +66,7 @@ export function WithdrawPanel({
           type="button"
           onClick={onSetMax}
           disabled={busy || nothingToWithdraw}
-          className="rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm font-medium text-neutral-200 hover:bg-neutral-700 disabled:opacity-50"
+          className="inline-flex items-center justify-center min-h-[44px] rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm font-medium text-neutral-200 hover:bg-neutral-700 disabled:opacity-50"
           aria-label="Set maximum withdraw amount"
         >
           Max
@@ -76,7 +76,7 @@ export function WithdrawPanel({
           onClick={onWithdraw}
           disabled={busy || nothingToWithdraw || !!amountError}
           aria-describedby={nothingToWithdraw ? "withdraw-blocked-reason" : undefined}
-          className="rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 disabled:opacity-50"
+          className="inline-flex items-center justify-center min-h-[44px] rounded bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 disabled:opacity-50"
         >
           {withdrawing ? "Withdrawing..." : "Withdraw"}
         </button>

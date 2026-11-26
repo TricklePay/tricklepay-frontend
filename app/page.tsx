@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type JSX, Suspense, useCallback, useEffect, useState } from "react";
 
@@ -328,6 +329,14 @@ function Dashboard() {
   // asking the backend for a different one. Local state, not the URL — it
   // doesn't need to survive navigation the way the status filter does.
   const [addressQuery, setAddressQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(addressQuery);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [addressQuery]);
 
   // Picked up once per mount, e.g. after a redirect from a successful create.
   // takePendingNotice clears it from storage immediately, so a refresh never
@@ -348,12 +357,12 @@ function Dashboard() {
         </p>
         <p className="mt-1 text-sm text-neutral-500">
           Once connected you can also{" "}
-          <a
+          <Link
             href="/create"
             className="text-neutral-300 underline underline-offset-2 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-400"
           >
             create a new stream
-          </a>
+          </Link>
           .
         </p>
         <BrowserSupportNote className="mt-8" />
@@ -397,6 +406,10 @@ function Dashboard() {
             Clear
           </button>
         )}
+      </div>
+
+      <div role="status" aria-live="polite" className="sr-only">
+        {searchAnnouncement}
       </div>
 
       <div

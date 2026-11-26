@@ -329,8 +329,10 @@ when you do, move it into section 1 with its verification.
 - **Touch-target size.** Key interactive controls have been measured and enlarged
   to meet the 44×44px mobile touch target guideline (including `CopyButton`,
   filter pills, search clear, filter clear, table action links, refresh, retry,
-  theme toggle, and notice dismiss). Remaining controls outside primary workflows
-  aim for the 24×24px WCAG 2.5.8 minimum and are audited when touched.
+  theme toggle, notice dismiss, and withdraw/cancel stream controls in
+  `components/withdraw-panel.tsx` and `components/cancel-stream-control.tsx`).
+  Remaining controls outside primary workflows aim for the 24×24px WCAG 2.5.8
+  minimum and are audited when touched.
 - **Conformance and contrast.** No WCAG conformance is claimed and no audit has
   been done. The only contrast ratio documented (≥3:1) is the focus ring's, and
   it is asserted in comments, not measured by a tool. Text and status-colour

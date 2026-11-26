@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildDuplicateDraft } from "@/lib/duplicate-stream";
+import { setCachedTokenDecimals } from "@/lib/token-decimals";
 import type { StreamView } from "@/types/stream";
 
 // A 100-token stream over 30 days with a 7-day cliff.
@@ -121,5 +122,33 @@ describe("buildDuplicateDraft", () => {
     expect(draft.durationAmount).toBe("");
     // The end field still holds the exact end time
     expect(draft.end).toBeTruthy();
+  });
+
+  it("formats amount with token decimals when cached", () => {
+    const SIX_DECIMAL_TOKEN = "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC";
+    setCachedTokenDecimals(SIX_DECIMAL_TOKEN, 6);
+    
+    const sixDecimalStream: StreamView = {
+      ...STREAM,
+      token: SIX_DECIMAL_TOKEN,
+      totalAmount: "123456789", // 123.456789 with 6 decimals
+    };
+    
+    const draft = buildDuplicateDraft(sixDecimalStream, NOW);
+    // With 6 decimals: 123456789 / 10^6 = 123.456789
+    expect(draft.amount).toBe("123.456789");
+  });
+
+  it("falls back to 7 decimals when token decimals are unknown", () => {
+    const UNKNOWN_TOKEN = "CUNKNOWNTOKEN1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ123";
+    const unknownTokenStream: StreamView = {
+      ...STREAM,
+      token: UNKNOWN_TOKEN,
+      totalAmount: "1000000000", // 100 tokens with 7 decimals
+    };
+    
+    const draft = buildDuplicateDraft(unknownTokenStream, NOW);
+    // Falls back to 7 decimals: 1000000000 / 10^7 = 100
+    expect(draft.amount).toBe("100");
   });
 });
