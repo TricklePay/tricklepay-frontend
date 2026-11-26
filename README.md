@@ -39,6 +39,7 @@ See also [Running locally](#running-locally) for the short version,
 - [Browser Support](#browser-support)
 - [Wallet Requirement](#wallet-requirement)
 - [Running locally](#running-locally)
+  - [Git hooks](#git-hooks)
 - [Testing](#testing)
   - [Running unit tests (Vitest)](#running-unit-tests-vitest)
   - [Running end-to-end tests (Playwright)](#running-end-to-end-tests-playwright)
@@ -141,6 +142,19 @@ npm run dev
 ```
 
 Open http://localhost:3000.
+
+### Git hooks
+
+The repository ships an optional pre-commit hook in `.githooks/pre-commit`. It is off until you enable it.
+
+- **Enable:** `npm run setup-hooks` runs `scripts/install-hooks.sh`, which sets `core.hooksPath` to the tracked `.githooks` directory (or copies the hook to `.git/hooks` if that cannot be set).
+- **What it runs:** on commits that stage `.ts`, `.tsx`, `.js` or `.mjs` files it runs `npx eslint --max-warnings 0` on the staged files and then `npm run typecheck`. These are the same lint and typecheck commands CI runs (`npm run lint` and `npm run typecheck`), but on staged files only. CI also runs tests and the build.
+- **Skip once:** `SKIP_HOOKS=1 git commit -m "wip"` or `git commit --no-verify`.
+- **Disable:** `git config --unset core.hooksPath` (or delete `.git/hooks/pre-commit` if it was copied there).
+
+> **Hooks are repository code.** A hook runs on your machine with your permissions on every commit, and `.githooks/` changes whenever you pull. Read `.githooks/pre-commit` and `scripts/install-hooks.sh` before enabling them and review changes to them after pulling.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow.
 
 ## Testing
 

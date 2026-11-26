@@ -19,7 +19,7 @@ echo "Running pre-commit checks..."
 
 # 1. Run lint on staged files
 echo "→ Running lint on staged files..."
-npx eslint $STAGED_FILES
+npx eslint --max-warnings 0 $STAGED_FILES
 
 # 2. Run TypeScript type check
 echo "→ Running type check..."
